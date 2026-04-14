@@ -1,0 +1,200 @@
+[
+	{
+		"name": "DW World News",
+		"url": "https://rss.dw.com/rdf/rss-en-world",
+		"type": "rss",
+		"tags": ["World", "Europe", "Politics"]
+	},
+	{
+		"name": "AP News",
+		"url": "https://apnews.com/rss",
+		"type": "rss",
+		"tags": ["World", "USA", "Politics"]
+	},
+	{
+		"name": "BBC News",
+		"url": "http://feeds.bbci.co.uk/news/rss.xml",
+		"type": "rss",
+		"tags": ["World", "Europe", "Politics"]
+	},
+	{
+		"name": "NPR News",
+		"url": "https://feeds.npr.org/1001/rss.xml",
+		"type": "rss",
+		"tags": ["USA", "Culture", "Politics"]
+	},
+	{
+		"name": "Ars Technica",
+		"url": "http://feeds.arstechnica.com/arstechnica/index",
+		"type": "rss",
+		"tags": ["Technology", "Science", "AI", "Cybersecurity"]
+	},
+	{
+		"name": "The Verge",
+		"url": "https://www.theverge.com/rss/index.xml",
+		"type": "rss",
+		"tags": ["Technology", "AI", "Gaming"]
+	},
+	{
+		"name": "TechCrunch",
+		"url": "https://techcrunch.com/feed/",
+		"type": "rss",
+		"tags": ["Technology", "Business", "AI"]
+	},
+	{
+		"name": "Wired",
+		"url": "https://www.wired.com/feed/rss",
+		"type": "rss",
+		"tags": ["Technology", "Science", "Culture", "AI"]
+	},
+	{
+		"name": "NASA News",
+		"url": "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+		"type": "rss",
+		"tags": ["Science", "Space"]
+	},
+	{
+		"name": "Science Daily",
+		"url": "https://www.sciencedaily.com/rss/all.xml",
+		"type": "rss",
+		"tags": ["Science", "Health", "Environment"]
+	},
+	{
+		"name": "The Guardian",
+		"url": "https://www.theguardian.com/world/rss",
+		"type": "rss",
+		"tags": ["World", "Europe", "Environment", "Politics"]
+	},
+	{
+		"name": "Politico",
+		"url": "https://www.politico.com/rss/politicopicks.xml",
+		"type": "rss",
+		"tags": ["Politics", "USA", "Europe"]
+	},
+	{
+		"name": "ESPN",
+		"url": "https://www.espn.com/espn/rss/news",
+		"type": "rss",
+		"tags": ["Sports"]
+	},
+	{
+		"name": "Bloomberg Technology",
+		"url": "https://feeds.bloomberg.com/technology/news.rss",
+		"type": "rss",
+		"tags": ["Technology", "Business", "Finance"]
+	},
+	{
+		"name": "MIT Technology Review",
+		"url": "https://www.technologyreview.com/feed/",
+		"type": "rss",
+		"tags": ["Technology", "AI", "Science"]
+	},
+	{
+		"name": "Al Jazeera",
+		"url": "https://www.aljazeera.com/xml/rss/all.xml",
+		"type": "rss",
+		"tags": ["World", "Politics", "Middle East"]
+	},
+	{
+		"name": "Hacker News",
+		"url": "https://news.ycombinator.com/rss",
+		"type": "rss",
+		"tags": ["Technology", "Business", "AI"]
+	},
+	{
+		"name": "NASA Climate",
+		"url": "https://climate.nasa.gov/rss/news/",
+		"type": "rss",
+		"tags": ["Climate", "Environment", "Science", "Space"]
+	},
+	{
+		"name": "CSS-Tricks",
+		"url": "https://css-tricks.com/feed/",
+		"type": "rss",
+		"tags": ["Web Development", "Programming", "CSS"]
+	},
+	{
+		"name": "Smashing Magazine",
+		"url": "https://www.smashingmagazine.com/feed/",
+		"type": "rss",
+		"tags": ["Web Development", "Design", "Programming"]
+	},
+	{
+		"name": "Stack Overflow Blog",
+		"url": "https://stackoverflow.blog/feed/",
+		"type": "rss",
+		"tags": ["Programming", "Software Engineering", "AI"]
+	},
+	{
+		"name": "Dev.to",
+		"url": "https://dev.to/feed",
+		"type": "rss",
+		"tags": ["Programming", "Web Development", "Software Engineering"]
+	},
+	{
+		"name": "web.dev",
+		"url": "https://web.dev/feed.xml",
+		"type": "rss",
+		"tags": ["Web Development", "Performance", "Programming"]
+	},
+	{
+		"name": "InfoQ",
+		"url": "https://feed.infoq.com/",
+		"type": "rss",
+		"tags": ["Software Engineering", "Architecture", "AI"]
+	},
+	{
+		"name": "The Pragmatic Engineer",
+		"url": "https://newsletter.pragmaticengineer.com/feed",
+		"type": "rss",
+		"tags": ["Software Engineering", "Engineering Leadership", "Technology"]
+	},
+	{
+		"name": "Krebs on Security",
+		"url": "https://krebsonsecurity.com/feed/",
+		"type": "rss",
+		"tags": ["Cybersecurity", "Privacy"]
+	},
+	{
+		"name": "Bleeping Computer",
+		"url": "https://www.bleepingcomputer.com/feed/",
+		"type": "rss",
+		"tags": ["Cybersecurity", "Technology"]
+	},
+	{
+		"name": "The Hacker News",
+		"url": "https://feeds.feedburner.com/TheHackersNews",
+		"type": "rss",
+		"tags": ["Cybersecurity", "Privacy", "Technology"]
+	},
+	{
+		"name": "SANS Internet Storm Center",
+		"url": "https://isc.sans.edu/rssfeed_full.xml",
+		"type": "rss",
+		"tags": ["Cybersecurity", "Threats"]
+	},
+	{
+		"name": "IEEE Spectrum",
+		"url": "https://spectrum.ieee.org/feeds/feed.rss",
+		"type": "rss",
+		"tags": ["Engineering", "Science", "AI", "Technology"]
+	},
+	{
+		"name": "New Scientist",
+		"url": "https://www.newscientist.com/feed/home/",
+		"type": "rss",
+		"tags": ["Science", "Technology", "Space", "Health"]
+	},
+	{
+		"name": "Google DeepMind Blog",
+		"url": "https://deepmind.google/blog/rss.xml",
+		"type": "rss",
+		"tags": ["AI", "Research", "Science"]
+	},
+	{
+		"name": "OpenAI News",
+		"url": "https://openai.com/news/rss.xml",
+		"type": "rss",
+		"tags": ["AI", "Research", "Technology"]
+	}
+]
