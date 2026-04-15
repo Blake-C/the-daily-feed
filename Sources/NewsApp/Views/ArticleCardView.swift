@@ -106,31 +106,25 @@ struct ArticleCardView: View {
 			RoundedRectangle(cornerRadius: 10)
 				.strokeBorder(isHovered ? Color.accentColor.opacity(0.6) : Color.clear, lineWidth: 1.5)
 
-			// Top-right action buttons
+			// Top-right action buttons — bookmark is always rightmost so it stays
+			// anchored to the corner; hide slides in to its left on hover.
 			VStack {
 				HStack(spacing: 4) {
 					Spacer()
 					if isHovered {
-						CardActionButton(
-							icon: article.isBookmarked ? "bookmark.fill" : "bookmark",
-							tint: article.isBookmarked ? Color.accentColor : .white,
-							help: article.isBookmarked ? "Remove bookmark" : "Bookmark"
-						) { vm.toggleBookmark(article) }
-						.transition(.opacity.combined(with: .scale(scale: 0.8)))
-
 						CardActionButton(
 							icon: "xmark",
 							tint: .white,
 							help: "Hide article"
 						) { vm.hideArticle(article) }
 						.transition(.opacity.combined(with: .scale(scale: 0.8)))
-					} else if article.isBookmarked {
-						CardActionButton(
-							icon: "bookmark.fill",
-							tint: Color.accentColor,
-							help: "Bookmarked"
-						) { vm.toggleBookmark(article) }
 					}
+					CardActionButton(
+						icon: article.isBookmarked ? "bookmark.fill" : "bookmark",
+						tint: article.isBookmarked ? Color.accentColor : .white,
+						help: article.isBookmarked ? "Remove bookmark" : "Bookmark"
+					) { vm.toggleBookmark(article) }
+					.opacity(isHovered || article.isBookmarked ? 1 : 0)
 				}
 				.padding(8)
 				.animation(.easeOut(duration: 0.15), value: isHovered)
