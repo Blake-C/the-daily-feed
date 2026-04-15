@@ -19,6 +19,11 @@ final class FeedRefreshService: @unchecked Sendable {
 			return RefreshResult(fetched: 0, sourceErrors: [:])
 		}
 
+		// Prune old read articles before fetching new ones so we don't immediately
+		// re-insert something we just cleaned up. Reads retention setting directly
+		// from UserDefaults (set via AppState's @AppStorage binding).
+		pruneIfNeeded()
+
 		var totalFetched = 0
 		var sourceErrors: [Int64: String] = [:]
 
@@ -89,6 +94,14 @@ final class FeedRefreshService: @unchecked Sendable {
 	}
 
 	// MARK: - Private
+
+	private func pruneIfNeeded() {
+		let retentionDays = UserDefaults.standard.integer(forKey: "articleRetentionDays")
+		// 0 means "keep forever" — skip pruning entirely.
+		guard retentionDays > 0 else { return }
+		guard let cutoff = Calendar.current.date(byAdding: .day, value: -retentionDays, to: Date()) else { return }
+		try? articleRepo.pruneArticles(olderThan: cutoff)
+	}
 
 	private func friendlyError(_ error: Error, sourceId: Int64, sources: [NewsSource]) -> String {
 		let source = sources.first { $0.id == sourceId }

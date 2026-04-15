@@ -45,6 +45,23 @@ struct SettingsView: View {
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}
+
+			Section {
+				Picker("Keep read articles for", selection: $appState.articleRetentionDays) {
+					Text("30 days").tag(30)
+					Text("60 days").tag(60)
+					Text("90 days").tag(90)
+					Text("Forever").tag(0)
+				}
+				.pickerStyle(.radioGroup)
+			} header: {
+				Text("Storage")
+					.font(.headline)
+			} footer: {
+				Text("Read articles older than this are removed during each refresh. Unread articles and starred articles are always kept.")
+					.foregroundStyle(.secondary)
+					.font(.caption)
+			}
 		}
 		.formStyle(.grouped)
 	}

@@ -12,6 +12,8 @@ final class AppState: ObservableObject {
 	@AppStorage("weatherCity") var weatherCity: String = ""
 	/// Auto-refresh interval in minutes. 0 = off.
 	@AppStorage("autoRefreshInterval") var autoRefreshInterval: Int = 0
+	/// Article retention window in days. 0 = keep forever.
+	@AppStorage("articleRetentionDays") var articleRetentionDays: Int = 30
 
 	// Sensitive credentials — stored in the macOS Keychain, not UserDefaults.
 	@Published var openWeatherApiKey: String {
