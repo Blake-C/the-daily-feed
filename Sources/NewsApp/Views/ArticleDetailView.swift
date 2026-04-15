@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 import WebKit
 
@@ -12,6 +13,7 @@ struct ArticleDetailView: View {
 	@State private var readabilityResult: ReadabilityResult?
 	@State private var displayTitle: String
 	@State private var displaySummary: String
+	@StateObject private var speech = SpeechController()
 
 	init(article: Article, vm: ArticlesViewModel, sourceName: String? = nil) {
 		self.article = article
@@ -37,6 +39,24 @@ struct ArticleDetailView: View {
 				if detailVM.isLoadingContent {
 					ProgressView().scaleEffect(0.7)
 				}
+
+				Button {
+					if speech.isSpeaking {
+						speech.stop()
+					} else {
+						let text = readabilityResult?.textContent ?? (displaySummary.isEmpty ? displayTitle : displaySummary)
+						speech.speak(text)
+					}
+				} label: {
+					Label(
+						speech.isSpeaking ? "Stop" : "Listen",
+						systemImage: speech.isSpeaking ? "stop.circle" : "play.circle"
+					)
+					.font(.system(size: 12))
+				}
+				.buttonStyle(.bordered)
+				.controlSize(.small)
+				.help(speech.isSpeaking ? "Stop reading aloud" : "Read article aloud")
 
 				Button {
 					Task { await rewriteWithAI() }
@@ -150,6 +170,9 @@ struct ArticleDetailView: View {
 			vm.markRead(article)
 			readabilityResult = await detailVM.loadContent(for: article)
 		}
+		.onDisappear {
+			speech.stop()
+		}
 		.alert("Error", isPresented: Binding(
 			get: { detailVM.errorMessage != nil },
 			set: { if !$0 { detailVM.errorMessage = nil } }
@@ -173,6 +196,37 @@ struct ArticleDetailView: View {
 			displaySummary = result.summary
 			vm.updateAfterRewrite(id: article.id, title: result.headline, summary: result.summary)
 		}
+	}
+}
+
+// MARK: - Speech controller
+
+@MainActor
+final class SpeechController: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
+	private let synth = AVSpeechSynthesizer()
+	@Published var isSpeaking = false
+
+	override init() {
+		super.init()
+		synth.delegate = self
+	}
+
+	func speak(_ text: String) {
+		if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
+		let utterance = AVSpeechUtterance(string: text)
+		utterance.voice = AVSpeechSynthesisVoice(language: Locale.current.language.languageCode?.identifier ?? "en")
+		utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+		synth.speak(utterance)
+		isSpeaking = true
+	}
+
+	func stop() {
+		synth.stopSpeaking(at: .immediate)
+		isSpeaking = false
+	}
+
+	nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+		Task { @MainActor in self.isSpeaking = false }
 	}
 }
 
