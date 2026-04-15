@@ -43,11 +43,13 @@ struct SidebarView: View {
 			List {
 				Section("Feeds") {
 					// All Articles
+					let totalUnread = sourcesVM.unreadCounts.values.reduce(0, +)
 					SidebarRow(
 						title: "All Articles",
 						icon: "newspaper",
 						selectedIcon: "newspaper.fill",
 						isSelected: articlesVM.selectedSourceId == nil,
+						unreadCount: totalUnread,
 						badge: nil,
 						error: nil
 					) {
@@ -55,11 +57,13 @@ struct SidebarView: View {
 					}
 
 					ForEach(filteredSources) { source in
+						let unread = sourcesVM.unreadCounts[source.id ?? -1] ?? 0
 						SidebarRow(
 							title: source.name,
 							icon: source.type == .rss ? "dot.radiowaves.left.and.right" : "globe",
 							selectedIcon: source.type == .rss ? "dot.radiowaves.up.forward" : "globe.americas.fill",
 							isSelected: articlesVM.selectedSourceId == source.id,
+							unreadCount: source.isEnabled ? unread : 0,
 							badge: source.isEnabled ? nil : "pause.circle",
 							error: source.lastError
 						) {
@@ -113,7 +117,8 @@ private struct SidebarRow: View {
 	let icon: String
 	let selectedIcon: String
 	let isSelected: Bool
-	let badge: String?       // optional SF symbol for a secondary badge
+	let unreadCount: Int     // 0 = hide badge
+	let badge: String?       // optional SF symbol for a secondary indicator
 	let error: String?       // non-nil = show warning indicator
 	let action: () -> Void
 
@@ -143,6 +148,18 @@ private struct SidebarRow: View {
 					Image(systemName: badge)
 						.font(.system(size: 11))
 						.foregroundStyle(.secondary)
+				}
+
+				if unreadCount > 0 {
+					Text(unreadCount > 999 ? "999+" : "\(unreadCount)")
+						.font(.system(size: 11, weight: .semibold))
+						.foregroundStyle(isSelected ? Color.accentColor : .secondary)
+						.padding(.horizontal, 6)
+						.padding(.vertical, 2)
+						.background(
+							(isSelected ? Color.accentColor : Color.secondary).opacity(0.15),
+							in: Capsule()
+						)
 				}
 			}
 			.padding(.vertical, 3)

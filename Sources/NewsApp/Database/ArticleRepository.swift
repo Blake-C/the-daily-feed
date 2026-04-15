@@ -243,6 +243,24 @@ final class ArticleRepository: @unchecked Sendable {
 		}
 	}
 
+	/// Returns a dictionary mapping source ID → unread article count.
+	/// Only counts visible (non-hidden) unread articles.
+	func fetchUnreadCountsBySource() throws -> [Int64: Int] {
+		try db.read { conn in
+			let rows = try Row.fetchAll(
+				conn,
+				sql: "SELECT sourceId, COUNT(*) AS cnt FROM articles WHERE isRead = 0 AND isHidden = 0 GROUP BY sourceId"
+			)
+			var result: [Int64: Int] = [:]
+			for row in rows {
+				let sourceId: Int64 = row["sourceId"]
+				let count: Int = row["cnt"]
+				result[sourceId] = count
+			}
+			return result
+		}
+	}
+
 	func count(query: ArticleQuery) throws -> Int {
 		try db.read { conn in
 			var sql: String

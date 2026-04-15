@@ -6,6 +6,8 @@ final class SourcesViewModel: ObservableObject {
 	@Published var tags: [Tag] = []
 	@Published var errorMessage: String?
 	@Published var importSummary: String?
+	/// Unread article counts keyed by source ID. Refreshed on every load().
+	@Published var unreadCounts: [Int64: Int] = [:]
 	/// Non-nil while feed autodiscovery is running.
 	@Published var discoveryInProgress = false
 	/// Set when discovery finds a different URL than the one the user typed.
@@ -17,11 +19,13 @@ final class SourcesViewModel: ObservableObject {
 
 	private let sourceRepo = SourceRepository()
 	private let tagRepo = TagRepository()
+	private let articleRepo = ArticleRepository()
 
 	func load() {
 		do {
 			sources = try sourceRepo.fetchAll()
 			tags = try tagRepo.fetchAll()
+			unreadCounts = (try? articleRepo.fetchUnreadCountsBySource()) ?? [:]
 		} catch {
 			errorMessage = error.localizedDescription
 		}

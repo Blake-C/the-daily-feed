@@ -69,14 +69,22 @@ struct ContentView: View {
 				.frame(minWidth: 600, minHeight: 500)
 		}
 		.task {
-			sourcesVM.onSourceAdded = { [weak articlesVM] in
-				Task { await articlesVM?.refresh() }
+			// Initialise the notification delegate early so the system can deliver
+			// any pending notifications that arrived while the app was not running.
+			_ = NotificationService.shared
+
+			sourcesVM.onSourceAdded = { [weak articlesVM, weak sourcesVM] in
+				Task {
+					await articlesVM?.refresh()
+					sourcesVM?.load()
+				}
 			}
 			sourcesVM.load()
 			await seedIfNeeded()
 			// Load cached articles immediately, then fetch fresh content from the network.
 			await articlesVM.initialLoad()
 			await articlesVM.refresh()
+			sourcesVM.load()  // Sync unread counts after the initial fetch
 			if appState.hasWeather {
 				await weatherService.fetchWeather(apiKey: appState.openWeatherApiKey)
 			}
@@ -87,7 +95,8 @@ struct ContentView: View {
 			while !Task.isCancelled {
 				try? await Task.sleep(for: .seconds(interval))
 				guard !Task.isCancelled else { break }
-				await articlesVM.refresh()
+				await articlesVM.refresh(notifyIfNew: true)
+				sourcesVM.load()  // Sync unread counts after background fetch
 			}
 		}
 		.alert("Error", isPresented: Binding(
