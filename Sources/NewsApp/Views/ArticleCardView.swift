@@ -129,32 +129,29 @@ private struct ThumbnailView: View {
 	let url: String?
 
 	var body: some View {
-		// ZStack with a Color base guarantees the frame is always filled to exactly
-		// the parent's dimensions, regardless of image loading state or aspect ratio.
-		ZStack {
-			Color.secondary.opacity(0.08)
-
-			if let urlString = url, let imageURL = URL(string: urlString) {
-				AsyncImage(url: imageURL) { phase in
-					switch phase {
-					case .success(let image):
-						image
-							.resizable()
-							.scaledToFill()
-							.frame(maxWidth: .infinity, maxHeight: .infinity)
-							.clipped()
-					case .failure:
-						placeholderOverlay
-					default:
-						ProgressView()
+		// Use Color as the layout anchor — overlay content cannot expand it,
+		// so large images cannot widen or grow the card's layout footprint.
+		Color.secondary.opacity(0.08)
+			.overlay {
+				if let urlString = url, let imageURL = URL(string: urlString) {
+					AsyncImage(url: imageURL) { phase in
+						switch phase {
+						case .success(let image):
+							image
+								.resizable()
+								.scaledToFill()
+						case .failure:
+							placeholderOverlay
+						default:
+							ProgressView()
+						}
 					}
+				} else {
+					placeholderOverlay
 				}
-			} else {
-				placeholderOverlay
 			}
-		}
-		.clipped()
-		.contentShape(Rectangle())
+			.clipped()
+			.contentShape(Rectangle())
 	}
 
 	private var placeholderOverlay: some View {
