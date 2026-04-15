@@ -13,6 +13,7 @@ final class ArticlesViewModel: ObservableObject {
 	@Published var hasMore = true
 	@Published var errorMessage: String?
 	@Published var dimThumbnails = false
+	@Published var dateRangeFilter: DateRangeFilter = .all
 	/// Increments every time the article list is reset (source/filter change).
 	/// Views observe this to scroll back to the top.
 	@Published private(set) var scrollResetToken = 0
@@ -228,6 +229,12 @@ final class ArticlesViewModel: ObservableObject {
 		scrollResetToken += 1
 	}
 
+	func setDateRange(_ range: DateRangeFilter) {
+		dateRangeFilter = range
+		reset()
+		loadTask = Task { await loadNextPage() }
+	}
+
 	private func buildQuery(offset: Int) -> ArticleQuery {
 		ArticleQuery(
 			tags: Array(activeTags),
@@ -235,6 +242,7 @@ final class ArticlesViewModel: ObservableObject {
 			sourceId: selectedSourceId,
 			hideRead: hideRead,
 			hideHidden: true,
+			dateRange: dateRangeFilter,
 			limit: pageSize,
 			offset: offset
 		)

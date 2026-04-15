@@ -62,6 +62,29 @@ struct ContentView: View {
 				.help(articlesVM.dimThumbnails ? "Thumbnails dimmed — click to restore" : "Dim thumbnails")
 			}
 
+			ToolbarItem(placement: .primaryAction) {
+				Menu {
+					ForEach(DateRangeFilter.allCases, id: \.rawValue) { range in
+						Button {
+							articlesVM.setDateRange(range)
+						} label: {
+							HStack {
+								Text(range.label)
+								if articlesVM.dateRangeFilter == range {
+									Image(systemName: "checkmark")
+								}
+							}
+						}
+					}
+				} label: {
+					Label(
+						articlesVM.dateRangeFilter == .all ? "All Time" : articlesVM.dateRangeFilter.label,
+						systemImage: "calendar"
+					)
+				}
+				.help("Filter articles by date range")
+			}
+
 			ToolbarItem(placement: .principal) {
 				SearchField(text: Binding(
 					get: { articlesVM.searchText },

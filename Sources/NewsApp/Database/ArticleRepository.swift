@@ -1,12 +1,49 @@
 import Foundation
 import GRDB
 
+enum DateRangeFilter: Int, CaseIterable {
+	case all = 0
+	case today = 1
+	case twoDays = 2
+	case week = 7
+	case month = 30
+
+	var label: String {
+		switch self {
+		case .all:     return "All Time"
+		case .today:   return "Today"
+		case .twoDays: return "Past 2 Days"
+		case .week:    return "Past Week"
+		case .month:   return "Past Month"
+		}
+	}
+
+	/// Returns the oldest date that should be included, or nil for no cutoff.
+	var cutoffDate: Date? {
+		guard self != .all else { return nil }
+		let cal = Calendar.current
+		switch self {
+		case .today:
+			return cal.startOfDay(for: Date())
+		case .twoDays:
+			return cal.date(byAdding: .day, value: -2, to: cal.startOfDay(for: Date()))
+		case .week:
+			return cal.date(byAdding: .day, value: -7, to: Date())
+		case .month:
+			return cal.date(byAdding: .month, value: -1, to: Date())
+		case .all:
+			return nil
+		}
+	}
+}
+
 struct ArticleQuery {
 	var tags: [String] = []
 	var searchText: String = ""
 	var sourceId: Int64? = nil
 	var hideRead: Bool = false
 	var hideHidden: Bool = true   // always filter dismissed articles by default
+	var dateRange: DateRangeFilter = .all
 	var limit: Int = 40
 	var offset: Int = 0
 }
@@ -59,6 +96,10 @@ final class ArticleRepository: @unchecked Sendable {
 				let conditions = query.tags.map { _ in "tags LIKE ?" }.joined(separator: " OR ")
 				sql += " AND (\(conditions))"
 				args += query.tags.map { "%\($0)%" as DatabaseValueConvertible }
+			}
+			if let cutoff = query.dateRange.cutoffDate {
+				sql += " AND publishedAt >= ?"
+				args.append(cutoff)
 			}
 
 			sql += " ORDER BY publishedAt DESC LIMIT ? OFFSET ?"
@@ -316,6 +357,10 @@ final class ArticleRepository: @unchecked Sendable {
 				let conditions = query.tags.map { _ in "tags LIKE ?" }.joined(separator: " OR ")
 				sql += " AND (\(conditions))"
 				args += query.tags.map { "%\($0)%" as DatabaseValueConvertible }
+			}
+			if let cutoff = query.dateRange.cutoffDate {
+				sql += " AND publishedAt >= ?"
+				args.append(cutoff)
 			}
 
 			return try Int.fetchOne(conn, sql: sql, arguments: StatementArguments(args)) ?? 0
