@@ -90,10 +90,11 @@ final class ArticlesViewModel: ObservableObject {
 	}
 
 	func toggleTag(_ tag: String) {
-		if activeTags.contains(tag) {
-			activeTags.remove(tag)
+		// Exclusive: selecting a tag deselects all others; tapping the active tag clears filters.
+		if activeTags == [tag] {
+			activeTags = []
 		} else {
-			activeTags.insert(tag)
+			activeTags = [tag]
 		}
 		reset()
 		loadTask = Task { await loadNextPage() }
