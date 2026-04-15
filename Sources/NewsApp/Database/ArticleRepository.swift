@@ -164,6 +164,15 @@ final class ArticleRepository: @unchecked Sendable {
 		}
 	}
 
+	func markUnread(id: String) throws {
+		try db.write { conn in
+			try conn.execute(
+				sql: "UPDATE articles SET isRead = 0 WHERE id = ?",
+				arguments: [id]
+			)
+		}
+	}
+
 	func updateContent(id: String, rawContent: String?, readableContent: String?) throws {
 		try db.write { conn in
 			try conn.execute(

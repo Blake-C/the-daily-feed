@@ -151,6 +151,18 @@ final class ArticlesViewModel: ObservableObject {
 		}
 	}
 
+	func markUnread(_ article: Article) {
+		do {
+			try articleRepo.markUnread(id: article.id)
+			if let idx = articles.firstIndex(where: { $0.id == article.id }) {
+				articles[idx].isRead = false
+			}
+			onArticleRead?()
+		} catch {
+			errorMessage = error.localizedDescription
+		}
+	}
+
 	/// Marks all unread articles as read, optionally scoped to a single source.
 	/// Updates both the database and the in-memory articles array, then fires
 	/// `onArticleRead` so the sidebar badge refreshes immediately.

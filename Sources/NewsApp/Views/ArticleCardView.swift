@@ -142,6 +142,20 @@ struct ArticleCardView: View {
 				}
 			}
 			Divider()
+			if article.isRead {
+				Button {
+					vm.markUnread(article)
+				} label: {
+					Label("Mark as Unread", systemImage: "circle")
+				}
+			} else {
+				Button {
+					vm.markRead(article)
+				} label: {
+					Label("Mark as Read", systemImage: "checkmark.circle")
+				}
+			}
+			Divider()
 			Button {
 				vm.hideArticle(article)
 			} label: {
