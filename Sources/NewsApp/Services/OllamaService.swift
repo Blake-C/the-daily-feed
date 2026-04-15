@@ -6,14 +6,7 @@ final class OllamaService: @unchecked Sendable {
 
 	// MARK: - Public API
 
-	/// Returns a rewritten headline + summary for the given article text.
-	func rewriteAndSummarize(
-		title: String,
-		content: String,
-		endpoint: String,
-		model: String
-	) async throws -> OllamaArticleResult {
-		let prompt = """
+	static let defaultPromptTemplate = """
 		You are a concise, neutral news editor. Given the following article, do two things:
 		1. Write a clear, factual, non-clickbait headline (max 12 words).
 		2. Write a 2–3 sentence summary of the key facts.
@@ -21,11 +14,28 @@ final class OllamaService: @unchecked Sendable {
 		Respond ONLY in this JSON format (no markdown, no extra text):
 		{"headline": "...", "summary": "..."}
 
-		Article title: \(title)
+		Article title: {title}
 
 		Article content:
-		\(content.prefix(4000))
+		{content}
 		"""
+
+	/// Returns a rewritten headline + summary for the given article text.
+	/// - Parameter customPromptTemplate: Optional template overriding the default.
+	///   Use `{title}` and `{content}` as placeholders. When empty the built-in default is used.
+	func rewriteAndSummarize(
+		title: String,
+		content: String,
+		endpoint: String,
+		model: String,
+		customPromptTemplate: String = ""
+	) async throws -> OllamaArticleResult {
+		let template = customPromptTemplate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+			? Self.defaultPromptTemplate
+			: customPromptTemplate
+		let prompt = template
+			.replacingOccurrences(of: "{title}", with: title)
+			.replacingOccurrences(of: "{content}", with: String(content.prefix(4000)))
 
 		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model)
 		return try parseArticleResult(from: responseText)

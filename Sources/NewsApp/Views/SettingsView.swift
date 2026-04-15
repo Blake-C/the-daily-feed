@@ -107,6 +107,30 @@ struct SettingsView: View {
 			}
 
 			Section {
+				VStack(alignment: .leading, spacing: 6) {
+					TextEditor(text: $appState.ollamaPrompt)
+						.font(.system(size: 12, design: .monospaced))
+						.frame(minHeight: 120, maxHeight: 200)
+						.overlay(
+							RoundedRectangle(cornerRadius: 5)
+								.strokeBorder(Color.secondary.opacity(0.3), lineWidth: 1)
+						)
+					if appState.ollamaPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+						Text("Using built-in default prompt. Paste a custom template to override it.")
+							.font(.system(size: 11))
+							.foregroundStyle(.secondary)
+					}
+				}
+			} header: {
+				Text("Custom Prompt Template")
+					.font(.headline)
+			} footer: {
+				Text("Use {title} and {content} as placeholders for the article data. Leave blank to use the default.")
+					.foregroundStyle(.secondary)
+					.font(.caption)
+			}
+
+			Section {
 				if let status = ollamaTestStatus {
 					Text(status)
 						.font(.system(size: 12))

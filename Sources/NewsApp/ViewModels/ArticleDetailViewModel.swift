@@ -47,7 +47,8 @@ final class ArticleDetailViewModel: ObservableObject {
 		article: Article,
 		content: String,
 		endpoint: String,
-		model: String
+		model: String,
+		customPrompt: String = ""
 	) async -> OllamaArticleResult? {
 		// Cancel any in-flight rewrite before starting a new one so rapid successive
 		// taps don't queue up multiple Ollama requests.
@@ -62,7 +63,8 @@ final class ArticleDetailViewModel: ObservableObject {
 					title: article.title,
 					content: content,
 					endpoint: endpoint,
-					model: model
+					model: model,
+					customPromptTemplate: customPrompt
 				)
 			} catch {
 				if !Task.isCancelled {

@@ -166,7 +166,8 @@ struct ArticleDetailView: View {
 			article: article,
 			content: content,
 			endpoint: appState.ollamaEndpoint,
-			model: appState.ollamaModel
+			model: appState.ollamaModel,
+			customPrompt: appState.ollamaPrompt
 		) {
 			displayTitle = result.headline
 			displaySummary = result.summary

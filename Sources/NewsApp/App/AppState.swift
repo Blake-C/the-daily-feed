@@ -16,6 +16,9 @@ final class AppState: ObservableObject {
 	@AppStorage("articleRetentionDays") var articleRetentionDays: Int = 30
 	/// Body font size for article detail view, in points.
 	@AppStorage("articleFontSize") var articleFontSize: Int = 17
+	/// Custom Ollama prompt template. Use {title} and {content} as placeholders.
+	/// When empty the built-in default prompt is used.
+	@AppStorage("ollamaPrompt") var ollamaPrompt: String = ""
 
 	// Sensitive credentials — stored in the macOS Keychain, not UserDefaults.
 	@Published var openWeatherApiKey: String {
