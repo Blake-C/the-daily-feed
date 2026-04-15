@@ -50,6 +50,13 @@ struct ArticleDetailView: View {
 				.disabled(detailVM.isProcessingAI)
 
 				if let articleURL = URL(string: article.articleURL) {
+					ShareLink(item: articleURL) {
+						Label("Share", systemImage: "square.and.arrow.up")
+							.font(.system(size: 12))
+					}
+					.buttonStyle(.bordered)
+					.controlSize(.small)
+
 					Link(destination: articleURL) {
 						Label("Open in Browser", systemImage: "arrow.up.right.square")
 							.font(.system(size: 12))

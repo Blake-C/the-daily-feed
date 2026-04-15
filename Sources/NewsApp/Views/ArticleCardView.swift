@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct ArticleCardView: View {
@@ -122,6 +123,31 @@ struct ArticleCardView: View {
 		.animation(.easeOut(duration: 0.15), value: isHovered)
 		.onHover { isHovered = $0 }
 		.opacity(article.isRead ? 0.75 : 1.0)
+		.contextMenu {
+			if let articleURL = URL(string: article.articleURL) {
+				ShareLink(item: articleURL) {
+					Label("Share…", systemImage: "square.and.arrow.up")
+				}
+				Button {
+					NSPasteboard.general.clearContents()
+					NSPasteboard.general.setString(article.articleURL, forType: .string)
+				} label: {
+					Label("Copy Link", systemImage: "link")
+				}
+				Divider()
+				Button {
+					NSWorkspace.shared.open(articleURL)
+				} label: {
+					Label("Open in Browser", systemImage: "arrow.up.right.square")
+				}
+			}
+			Divider()
+			Button {
+				vm.hideArticle(article)
+			} label: {
+				Label("Hide Article", systemImage: "xmark.circle")
+			}
+		}
 	}
 }
 
