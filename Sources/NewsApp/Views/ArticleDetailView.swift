@@ -11,14 +11,12 @@ struct ArticleDetailView: View {
 	@State private var readabilityResult: ReadabilityResult?
 	@State private var displayTitle: String
 	@State private var displaySummary: String
-	@State private var starRating: Int
 
 	init(article: Article, vm: ArticlesViewModel) {
 		self.article = article
 		self.vm = vm
 		_displayTitle = State(initialValue: article.rewrittenTitle ?? article.title)
 		_displaySummary = State(initialValue: article.summary ?? "")
-		_starRating = State(initialValue: article.starRating)
 	}
 
 	var body: some View {
@@ -112,14 +110,7 @@ struct ArticleDetailView: View {
 								.background(Color.accentColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
 						}
 
-						// Star rating
-						HStack {
-							StarRatingView(rating: starRating) { stars in
-								starRating = stars
-								vm.rate(article: article, stars: stars)
-							}
-							Spacer()
-						}
+
 					}
 
 					Divider()

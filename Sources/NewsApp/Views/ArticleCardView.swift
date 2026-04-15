@@ -49,11 +49,14 @@ struct ArticleCardView: View {
 					}
 				}
 
-				// Title
+				// Title — Spacer below pushes meta to the bottom so all cards
+				// in a row share the same height with whitespace under the title.
 				Text(displayTitle)
 					.font(.system(size: 14, weight: .semibold, design: .serif))
 					.lineLimit(3)
 					.foregroundStyle(article.isRead ? .secondary : .primary)
+
+				Spacer(minLength: 0)
 
 				// Meta row
 				HStack(spacing: 6) {
@@ -69,29 +72,13 @@ struct ArticleCardView: View {
 						.foregroundStyle(.tertiary)
 				}
 
-				// Summary if available
-				if let summary = article.summary {
-					Text(summary)
-						.font(.system(size: 12))
-						.foregroundStyle(.secondary)
-						.lineLimit(2)
-				}
-
-				Divider()
-
-				// Footer: star rating
-				HStack {
-					StarRatingView(rating: article.starRating) { stars in
-						vm.rate(article: article, stars: stars)
-					}
-					Spacer()
-					if article.isRead {
-						Image(systemName: "checkmark.circle.fill")
-							.foregroundStyle(.green)
-							.font(.caption)
-					}
+				if article.isRead {
+					Image(systemName: "checkmark.circle.fill")
+						.foregroundStyle(.green)
+						.font(.caption)
 				}
 			}
+			.frame(maxHeight: .infinity, alignment: .top)
 			.padding(12)
 		}
 		.background(.background.secondary)
