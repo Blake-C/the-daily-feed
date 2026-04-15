@@ -57,10 +57,17 @@ final class ArticlesViewModel: ObservableObject {
 		loadTask = Task { await loadNextPage() }
 	}
 
-	func refresh() async {
+	/// Refreshes all enabled sources.
+	/// - Parameter notifyIfNew: When `true`, posts a system notification if new
+	///   articles are fetched. Pass `true` only for background/auto-refresh calls
+	///   so the user is not notified when they manually trigger a refresh.
+	func refresh(notifyIfNew: Bool = false) async {
 		isRefreshing = true
 		defer { isRefreshing = false }
-		await refreshService.refreshAll()
+		let result = await refreshService.refreshAll()
+		if notifyIfNew {
+			await NotificationService.shared.notifyNewArticles(count: result.fetched)
+		}
 		reset()
 		await loadNextPage()
 	}
