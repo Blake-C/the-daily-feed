@@ -106,50 +106,35 @@ struct ArticleCardView: View {
 			RoundedRectangle(cornerRadius: 10)
 				.strokeBorder(isHovered ? Color.accentColor.opacity(0.6) : Color.clear, lineWidth: 1.5)
 
-			// Top-right action buttons — visible on hover
-			if isHovered {
-				VStack {
-					HStack {
-						Spacer()
-						Button {
-							vm.toggleBookmark(article)
-						} label: {
-							Image(systemName: article.isBookmarked ? "bookmark.fill" : "bookmark")
-								.font(.system(size: 16))
-								.foregroundStyle(article.isBookmarked ? Color.accentColor : .white)
-								.shadow(radius: 2)
-								.padding(.top, 8)
-								.padding(.trailing, 4)
-						}
-						.buttonStyle(.plain)
-						.help(article.isBookmarked ? "Remove bookmark" : "Bookmark article")
-						Button {
-							vm.hideArticle(article)
-						} label: {
-							Image(systemName: "xmark.circle.fill")
-								.font(.system(size: 18))
-								.foregroundStyle(.white)
-								.shadow(radius: 2)
-								.padding(8)
-						}
-						.buttonStyle(.plain)
-						.help("Hide this article")
-					}
+			// Top-right action buttons
+			VStack {
+				HStack(spacing: 4) {
 					Spacer()
-				}
-				.transition(.opacity)
-			} else if article.isBookmarked {
-				// Always show bookmark fill when not hovered so saved articles are visible.
-				VStack {
-					HStack {
-						Spacer()
-						Image(systemName: "bookmark.fill")
-							.font(.system(size: 14))
-							.foregroundStyle(Color.accentColor)
-							.padding(8)
+					if isHovered {
+						CardActionButton(
+							icon: article.isBookmarked ? "bookmark.fill" : "bookmark",
+							tint: article.isBookmarked ? Color.accentColor : .white,
+							help: article.isBookmarked ? "Remove bookmark" : "Bookmark"
+						) { vm.toggleBookmark(article) }
+						.transition(.opacity.combined(with: .scale(scale: 0.8)))
+
+						CardActionButton(
+							icon: "xmark",
+							tint: .white,
+							help: "Hide article"
+						) { vm.hideArticle(article) }
+						.transition(.opacity.combined(with: .scale(scale: 0.8)))
+					} else if article.isBookmarked {
+						CardActionButton(
+							icon: "bookmark.fill",
+							tint: Color.accentColor,
+							help: "Bookmarked"
+						) { vm.toggleBookmark(article) }
 					}
-					Spacer()
 				}
+				.padding(8)
+				.animation(.easeOut(duration: 0.15), value: isHovered)
+				Spacer()
 			}
 		}
 		.shadow(color: .black.opacity(isHovered ? 0.15 : 0.06), radius: isHovered ? 8 : 3, y: 2)
@@ -205,6 +190,30 @@ struct ArticleCardView: View {
 				Label("Hide Article", systemImage: "xmark.circle")
 			}
 		}
+	}
+}
+
+// MARK: - Card action button
+
+/// A small circular icon button with a semi-transparent dark background used for
+/// on-card hover actions (bookmark, hide). All instances share identical size and
+/// padding so they stay visually aligned regardless of which combination appears.
+private struct CardActionButton: View {
+	let icon: String
+	let tint: Color
+	let help: String
+	let action: () -> Void
+
+	var body: some View {
+		Button(action: action) {
+			Image(systemName: icon)
+				.font(.system(size: 13, weight: .semibold))
+				.foregroundStyle(tint)
+				.frame(width: 28, height: 28)
+				.background(.black.opacity(0.45), in: Circle())
+		}
+		.buttonStyle(.plain)
+		.help(help)
 	}
 }
 
