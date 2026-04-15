@@ -3,6 +3,10 @@ import GRDB
 
 enum DateRangeFilter: Int, CaseIterable {
 	case all = 0
+	case oneHour = -1
+	case fourHours = -4
+	case sixHours = -6
+	case twelveHours = -12
 	case today = 1
 	case twoDays = 2
 	case week = 7
@@ -10,29 +14,31 @@ enum DateRangeFilter: Int, CaseIterable {
 
 	var label: String {
 		switch self {
-		case .all:     return "All Time"
-		case .today:   return "Today"
-		case .twoDays: return "Past 2 Days"
-		case .week:    return "Past Week"
-		case .month:   return "Past Month"
+		case .all:         return "All Time"
+		case .oneHour:     return "Past Hour"
+		case .fourHours:   return "Past 4 Hours"
+		case .sixHours:    return "Past 6 Hours"
+		case .twelveHours: return "Past 12 Hours"
+		case .today:       return "Today"
+		case .twoDays:     return "Past 2 Days"
+		case .week:        return "Past Week"
+		case .month:       return "Past Month"
 		}
 	}
 
 	/// Returns the oldest date that should be included, or nil for no cutoff.
 	var cutoffDate: Date? {
-		guard self != .all else { return nil }
-		let cal = Calendar.current
+		let now = Date()
 		switch self {
-		case .today:
-			return cal.startOfDay(for: Date())
-		case .twoDays:
-			return cal.date(byAdding: .day, value: -2, to: cal.startOfDay(for: Date()))
-		case .week:
-			return cal.date(byAdding: .day, value: -7, to: Date())
-		case .month:
-			return cal.date(byAdding: .month, value: -1, to: Date())
-		case .all:
-			return nil
+		case .all:         return nil
+		case .oneHour:     return now.addingTimeInterval(-3_600)
+		case .fourHours:   return now.addingTimeInterval(-4 * 3_600)
+		case .sixHours:    return now.addingTimeInterval(-6 * 3_600)
+		case .twelveHours: return now.addingTimeInterval(-12 * 3_600)
+		case .today:       return Calendar.current.startOfDay(for: now)
+		case .twoDays:     return Calendar.current.date(byAdding: .day, value: -2, to: Calendar.current.startOfDay(for: now))
+		case .week:        return now.addingTimeInterval(-7 * 86_400)
+		case .month:       return Calendar.current.date(byAdding: .month, value: -1, to: now)
 		}
 	}
 }
