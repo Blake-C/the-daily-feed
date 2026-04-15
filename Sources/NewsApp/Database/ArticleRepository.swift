@@ -221,11 +221,14 @@ final class ArticleRepository: @unchecked Sendable {
 	func toggleBookmark(id: String) throws -> Bool {
 		try db.write { conn in
 			try conn.execute(
-				sql: "UPDATE articles SET isBookmarked = NOT isBookmarked WHERE id = ?",
+				sql: "UPDATE articles SET isBookmarked = 1 - isBookmarked WHERE id = ?",
 				arguments: [id]
 			)
 			let row = try Row.fetchOne(conn, sql: "SELECT isBookmarked FROM articles WHERE id = ?", arguments: [id])
-			return (row?["isBookmarked"] as? Bool) ?? false
+			// Use a typed annotation so GRDB's DatabaseValueConvertible path runs,
+			// not Swift's `as?` which would cast DatabaseValue → Bool and always return nil.
+			let bookmarked: Bool = row?["isBookmarked"] ?? false
+			return bookmarked
 		}
 	}
 
