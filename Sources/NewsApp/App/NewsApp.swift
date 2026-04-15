@@ -20,6 +20,7 @@ struct NewsApp: App {
 		WindowGroup("The Daily Feed") {
 			ContentView()
 				.environmentObject(appState)
+				.environment(SourceColorStore.shared)
 				.frame(minWidth: 1024, minHeight: 700)
 		}
 		.windowStyle(.titleBar)

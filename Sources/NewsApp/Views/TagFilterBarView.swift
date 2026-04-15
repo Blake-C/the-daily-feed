@@ -54,6 +54,9 @@ private struct TagChip: View {
 		Button(action: action) {
 			Text(name)
 				.font(.system(size: 12, weight: isActive ? .semibold : .regular))
+				.lineLimit(1)
+				.truncationMode(.tail)
+				.frame(maxWidth: 120)
 				.padding(.horizontal, 10)
 				.padding(.vertical, 4)
 				.background(
@@ -63,5 +66,6 @@ private struct TagChip: View {
 				.foregroundStyle(isActive ? .white : .primary)
 		}
 		.buttonStyle(.plain)
+		.help(name)
 	}
 }

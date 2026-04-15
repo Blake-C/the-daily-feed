@@ -10,10 +10,10 @@ struct ArticleCardView: View {
 		article.rewrittenTitle ?? article.title
 	}
 
+	@Environment(SourceColorStore.self) private var colorStore
+
 	private var sourceColor: Color {
-		// Generate a consistent accent color per source
-		let hue = Double(abs(article.sourceId.hashValue) % 360) / 360.0
-		return Color(hue: hue, saturation: 0.55, brightness: 0.75)
+		colorStore.color(for: article.sourceId)
 	}
 
 	var body: some View {
@@ -167,19 +167,23 @@ struct StarRatingView: View {
 	let rating: Int
 	let onRate: (Int) -> Void
 
+	@State private var isHovered = false
+
 	var body: some View {
-		HStack(spacing: 2) {
+		HStack(spacing: isHovered ? 4 : 2) {
 			ForEach(1...5, id: \.self) { star in
 				Button {
 					onRate(star == rating ? 0 : star)
 				} label: {
 					Image(systemName: star <= rating ? "star.fill" : "star")
-						.font(.system(size: 12))
-						.foregroundStyle(star <= rating ? Color.yellow : Color.secondary.opacity(0.4))
+						.font(.system(size: isHovered ? 15 : 12))
+						.foregroundStyle(star <= rating ? Color.yellow : Color.secondary.opacity(isHovered ? 0.6 : 0.4))
 				}
 				.buttonStyle(.plain)
 			}
 		}
+		.onHover { isHovered = $0 }
+		.animation(.easeOut(duration: 0.12), value: isHovered)
 	}
 }
 

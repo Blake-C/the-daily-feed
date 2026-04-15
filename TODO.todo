@@ -36,14 +36,14 @@
 
 ## UI Usability
 
-☐ Article grid uses a single adaptive column (280–400pt) — On a large monitor (27–32"), this results in 3-4 very wide cards. A true multi-column newspaper layout (e.g., 2–3 fixed columns like a broadsheet) would be far more appropriate for the "newspaper" aesthetic.
-☐ Tag chips have no maximum width enforcement — Long tag names can stretch the filter bar awkwardly. Truncating chip labels at ~12 chars with a tooltip would tighten the bar.
-☐ Hover-only hide button is discoverable only by accident — Consider making it always-visible as a faint X, or accessible via right-click context menu.
-☐ Star ratings on the card are too small for confident clicking — 5 star symbols at 14pt article card density are easy to mis-tap. Moving ratings to the detail view (where there's space) or making stars larger on hover would help.
+✔ Article grid uses a single adaptive column (280–400pt) — On a large monitor (27–32"), this results in 3-4 very wide cards. A true multi-column newspaper layout (e.g., 2–3 fixed columns like a broadsheet) would be far more appropriate for the "newspaper" aesthetic. @done(Wed. 04/15/2026 - 12:14:00 AM)
+✔ Tag chips have no maximum width enforcement — Long tag names can stretch the filter bar awkwardly. Truncating chip labels at ~12 chars with a tooltip would tighten the bar. @done(Wed. 04/15/2026 - 12:14:00 AM)
+✔ Star ratings on the card are too small for confident clicking — 5 star symbols at 14pt article card density are easy to mis-tap. Moving ratings to the detail view (where there's space) or making stars larger on hover would help. @done(Wed. 04/15/2026 - 12:14:00 AM)
+✔ Skeleton loading uses fixed 4 cards — If the user has 1-2 articles visible before paginating, 4 skeleton cards will overshoot the visible area. Calculating the visible row count and matching the skeleton count would look cleaner. @done(Wed. 04/15/2026 - 12:14:00 AM)
+✔ Source color assignment via hash is invisible to the user — Users can't customize source colors. A color picker per source in Source Manager would let them create their own visual taxonomy. @done(Wed. 04/15/2026 - 12:14:00 AM)
+✔ Empty state messaging could be more specific — When articles are empty due to a search that returns nothing vs. all sources being disabled vs. no articles fetched yet, the same empty state likely appears. Contextual empty states improve clarity. @done(Wed. 04/15/2026 - 12:14:00 AM)
 ☐ No dark mode thumbnail handling — Dark mode likely inverts some article thumbnails oddly depending on image content. A subtle darkening overlay on thumbnails in dark mode would look more consistent.
-☐ Skeleton loading uses fixed 4 cards — If the user has 1-2 articles visible before paginating, 4 skeleton cards will overshoot the visible area. Calculating the visible row count and matching the skeleton count would look cleaner.
-☐ Source color assignment via hash is invisible to the user — Users can't customize source colors. A color picker per source in Source Manager would let them create their own visual taxonomy.
-☐ Empty state messaging could be more specific — When articles are empty due to a search that returns nothing vs. all sources being disabled vs. no articles fetched yet, the same empty state likely appears. Contextual empty states improve clarity.
+☐ Hover-only hide button is discoverable only by accident — Consider making it always-visible as a faint X, or accessible via right-click context menu.
 
 # Example
 

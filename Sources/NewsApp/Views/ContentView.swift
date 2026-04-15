@@ -19,7 +19,7 @@ struct ContentView: View {
 			VStack(spacing: 0) {
 				NewspaperHeaderView()
 				TagFilterBarView(sourcesVM: sourcesVM, articlesVM: articlesVM)
-				ArticleGridView(vm: articlesVM, sourceName: selectedSourceName)
+				ArticleGridView(vm: articlesVM, sourceName: selectedSourceName, sourcesCount: sourcesVM.sources.count)
 			}
 		}
 		.toolbar {

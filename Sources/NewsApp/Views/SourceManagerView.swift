@@ -193,9 +193,23 @@ struct SourceManagerView: View {
 private struct SourceRow: View {
 	let source: NewsSource
 	@ObservedObject var vm: SourcesViewModel
+	@Environment(SourceColorStore.self) private var colorStore
+
+	@State private var pickerColor: Color = .accentColor
 
 	var body: some View {
-		HStack {
+		HStack(spacing: 8) {
+			// Color swatch — lets the user assign a custom accent color to this source.
+			if let id = source.id {
+				ColorPicker("Source color", selection: $pickerColor, supportsOpacity: false)
+					.labelsHidden()
+					.frame(width: 22, height: 22)
+					.help("Change accent color for \(source.name)")
+					.onChange(of: pickerColor) {
+						colorStore.set(pickerColor, for: id)
+					}
+			}
+
 			VStack(alignment: .leading, spacing: 2) {
 				Text(source.name).font(.system(size: 13, weight: .medium))
 				Text(source.url)
@@ -230,5 +244,10 @@ private struct SourceRow: View {
 			.buttonStyle(.plain)
 		}
 		.padding(.vertical, 4)
+		.onAppear {
+			if let id = source.id {
+				pickerColor = colorStore.color(for: id)
+			}
+		}
 	}
 }
