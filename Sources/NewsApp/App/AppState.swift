@@ -14,6 +14,8 @@ final class AppState: ObservableObject {
 	@AppStorage("autoRefreshInterval") var autoRefreshInterval: Int = 0
 	/// Article retention window in days. 0 = keep forever.
 	@AppStorage("articleRetentionDays") var articleRetentionDays: Int = 30
+	/// Body font size for article detail view, in points.
+	@AppStorage("articleFontSize") var articleFontSize: Int = 17
 
 	// Sensitive credentials — stored in the macOS Keychain, not UserDefaults.
 	@Published var openWeatherApiKey: String {

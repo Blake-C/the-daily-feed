@@ -195,6 +195,7 @@ struct ArticleWebContentView: View {
 
 private struct _ArticleWebView: NSViewRepresentable {
 	let htmlContent: String
+	@AppStorage("articleFontSize") private var fontSize: Int = 17
 
 	func makeNSView(context: Context) -> WKWebView {
 		let config = WKWebViewConfiguration()
@@ -216,7 +217,7 @@ private struct _ArticleWebView: NSViewRepresentable {
 		  :root { color-scheme: light dark; }
 		  body {
 		    font-family: Georgia, "Times New Roman", serif;
-		    font-size: 17px;
+		    font-size: \(fontSize)px;
 		    line-height: 1.75;
 		    max-width: 700px;
 		    margin: 0 auto;
