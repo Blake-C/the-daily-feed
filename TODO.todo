@@ -5,10 +5,10 @@
 ☐ Article bookmarking / read-later queue — Star rating exists (1-5) but there's no dedicated "save for later" or bookmarks list. A simple boolean isBookmarked with a Bookmarks sidebar section would be high-value.
 ☐ Export / share — No way to share article links externally (system share sheet, copy link, etc.). macOS has a native Share button that integrates with Safari, Notes, etc.
 ☐ Keyboard navigation — No apparent keyboard shortcuts for navigating between articles (J/K like classic RSS readers), marking read (M), starring (S), or opening detail (Enter/Space). These are expected by power users.
-☐ Fetch on launch / auto-refresh — There's no background periodic refresh. The app only fetches when the user manually hits Refresh or adds a source. A configurable auto-refresh interval (e.g., every 15/30/60 min) would keep the feed current.
+✔ Fetch on launch / auto-refresh — There's no background periodic refresh. The app only fetches when the user manually hits Refresh or adds a source. A configurable auto-refresh interval (e.g., every 15/30/60 min) would keep the feed current. @done(Tue. 04/14/2026 - 11:16:45 PM)
 ☐ Unread count badges — SidebarView shows unread count for "All Articles" but it's unclear if per-source unread counts appear. Even a small badge per source helps navigation.
 ☐ Mark all read — No bulk "mark all as read" action. Users accumulate hundreds of articles fast.
-☐ OPML import/export — RSS managers conventionally support OPML for migrating feed lists. Without it, switching to/from Reeder, NetNewsWire, etc. is painful.
+✔ OPML import/export — RSS managers conventionally support OPML for migrating feed lists. Without it, switching to/from Reeder, NetNewsWire, etc. is painful. @done(Mon. 04/14/2026 - 11:34:00 PM)
 ☐ Article text size / font controls — ArticleWebContentView hardcodes 17px Georgia. A font-size slider in Settings (or toolbar) would help readability.
 ☐ AI batch processing — Ollama rewrites happen one article at a time, triggered manually. A "rewrite all visible headlines" batch option would make the AI feature much more useful.
 ☐ Image gallery / full-screen image — No way to zoom/expand thumbnail images in article detail.

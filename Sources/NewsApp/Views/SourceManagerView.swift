@@ -1,4 +1,6 @@
+import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SourceManagerView: View {
 	@ObservedObject var vm: SourcesViewModel
@@ -36,6 +38,22 @@ struct SourceManagerView: View {
 			.padding()
 		}
 		.onAppear { vm.load() }
+		.alert("Import Complete", isPresented: Binding(
+			get: { vm.importSummary != nil },
+			set: { if !$0 { vm.importSummary = nil } }
+		)) {
+			Button("OK") { vm.importSummary = nil }
+		} message: {
+			Text(vm.importSummary ?? "")
+		}
+		.alert("Error", isPresented: Binding(
+			get: { vm.errorMessage != nil },
+			set: { if !$0 { vm.errorMessage = nil } }
+		)) {
+			Button("OK") { vm.errorMessage = nil }
+		} message: {
+			Text(vm.errorMessage ?? "")
+		}
 	}
 
 	// MARK: - Sources tab
@@ -75,7 +93,45 @@ struct SourceManagerView: View {
 				}
 			}
 			.listStyle(.inset)
+
+			// OPML import / export
+			HStack(spacing: 8) {
+				Button("Import OPML…") { importOPML() }
+					.buttonStyle(.bordered)
+				Button("Export OPML…") { exportOPML() }
+					.buttonStyle(.bordered)
+					.disabled(vm.sources.isEmpty)
+				Spacer()
+				Text("\(vm.sources.count) source\(vm.sources.count == 1 ? "" : "s")")
+					.font(.caption)
+					.foregroundStyle(.secondary)
+			}
+			.padding(.top, 6)
 		}
+	}
+
+	private func importOPML() {
+		let panel = NSOpenPanel()
+		panel.title = "Import OPML"
+		panel.allowsMultipleSelection = false
+		panel.canChooseDirectories = false
+		panel.allowedContentTypes = opmlContentTypes
+		guard panel.runModal() == .OK, let url = panel.url else { return }
+		vm.importOPML(from: url)
+	}
+
+	private func exportOPML() {
+		let panel = NSSavePanel()
+		panel.title = "Export OPML"
+		panel.nameFieldStringValue = "TheDailyFeed.opml"
+		panel.allowedContentTypes = opmlContentTypes
+		guard panel.runModal() == .OK, let url = panel.url else { return }
+		try? vm.exportOPML().write(to: url)
+	}
+
+	private var opmlContentTypes: [UTType] {
+		let opml = UTType(tag: "opml", tagClass: .filenameExtension, conformingTo: .xml) ?? .xml
+		return [opml]
 	}
 
 	// MARK: - Tags tab

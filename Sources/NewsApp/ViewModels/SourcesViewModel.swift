@@ -5,6 +5,7 @@ final class SourcesViewModel: ObservableObject {
 	@Published var sources: [NewsSource] = []
 	@Published var tags: [Tag] = []
 	@Published var errorMessage: String?
+	@Published var importSummary: String?
 
 	/// Called after a new source is added and its initial fetch completes.
 	var onSourceAdded: (() -> Void)?
@@ -116,5 +117,47 @@ final class SourcesViewModel: ObservableObject {
 		} catch {
 			errorMessage = error.localizedDescription
 		}
+	}
+
+	// MARK: - OPML
+
+	func importOPML(from url: URL) {
+		do {
+			let data = try Data(contentsOf: url)
+			let outlines = try OPMLService().parse(data: data)
+			let existingURLs = Set(sources.map { $0.url.lowercased() })
+			var imported = 0
+			for outline in outlines {
+				guard !existingURLs.contains(outline.xmlUrl.lowercased()) else { continue }
+				var source = NewsSource(
+					id: nil,
+					name: outline.title,
+					url: outline.xmlUrl,
+					type: .rss,
+					faviconURL: nil,
+					rating: 0,
+					isEnabled: true,
+					tags: "",
+					addedAt: Date(),
+					lastFetchedAt: nil,
+					sortOrder: 0,
+					lastError: nil
+				)
+				try sourceRepo.insert(&source)
+				imported += 1
+			}
+			load()
+			let skipped = outlines.count - imported
+			var message = "\(imported) source\(imported == 1 ? "" : "s") imported"
+			if skipped > 0 { message += ", \(skipped) already present" }
+			importSummary = message + "."
+			if imported > 0 { onSourceAdded?() }
+		} catch {
+			errorMessage = error.localizedDescription
+		}
+	}
+
+	func exportOPML() -> Data {
+		OPMLService.generate(sources: sources)
 	}
 }
