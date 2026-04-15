@@ -68,6 +68,11 @@ struct SettingsView: View {
 
 	// MARK: - Ollama
 
+	private var isEndpointLocal: Bool {
+		guard let host = URL(string: appState.ollamaEndpoint)?.host?.lowercased() else { return true }
+		return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]"
+	}
+
 	private var ollamaTab: some View {
 		Form {
 			Section {
@@ -79,6 +84,19 @@ struct SettingsView: View {
 					TextField("gemma4:e4b", text: $appState.ollamaModel)
 						.textFieldStyle(.roundedBorder)
 				}
+
+				if !isEndpointLocal {
+					HStack(alignment: .top, spacing: 6) {
+						Image(systemName: "exclamationmark.triangle.fill")
+							.foregroundStyle(.orange)
+							.font(.system(size: 13))
+						Text("This endpoint is not localhost. Article content will be sent to a remote host. Only use a trusted server you control.")
+							.font(.system(size: 12))
+							.foregroundStyle(.secondary)
+							.fixedSize(horizontal: false, vertical: true)
+					}
+					.padding(.vertical, 4)
+				}
 			} header: {
 				Text("Ollama Connection")
 					.font(.headline)
@@ -89,10 +107,16 @@ struct SettingsView: View {
 			}
 
 			Section {
+				if let status = ollamaTestStatus {
+					Text(status)
+						.font(.system(size: 12))
+						.foregroundStyle(.secondary)
+				}
 				Button("Test Connection") {
 					Task { await testOllama() }
 				}
 				.buttonStyle(.bordered)
+				.disabled(ollamaTestStatus == "Testing…")
 			}
 		}
 		.formStyle(.grouped)
@@ -147,7 +171,7 @@ struct SettingsView: View {
 
 	private var appearanceTab: some View {
 		Form {
-			Section("Display") {
+			Section {
 				LabeledContent("Accent Color") {
 					ColorPicker("Accent Color", selection: Binding(
 						get: { Color.accentColor },
@@ -155,6 +179,45 @@ struct SettingsView: View {
 					))
 					.labelsHidden()
 				}
+			} header: {
+				Text("Display")
+					.font(.headline)
+			}
+
+			Section {
+				VStack(alignment: .leading, spacing: 6) {
+					HStack {
+						Text("Article Font Size")
+						Spacer()
+						Text("\(appState.articleFontSize) pt")
+							.foregroundStyle(.secondary)
+							.monospacedDigit()
+					}
+					Slider(
+						value: Binding(
+							get: { Double(appState.articleFontSize) },
+							set: { appState.articleFontSize = Int($0.rounded()) }
+						),
+						in: 12...28,
+						step: 1
+					)
+					HStack {
+						Text("Smaller")
+							.font(.system(size: 11))
+							.foregroundStyle(.tertiary)
+						Spacer()
+						Text("Larger")
+							.font(.system(size: 11))
+							.foregroundStyle(.tertiary)
+					}
+				}
+			} header: {
+				Text("Reading")
+					.font(.headline)
+			} footer: {
+				Text("Adjusts the body text size in article detail view. Default is 17 pt.")
+					.foregroundStyle(.secondary)
+					.font(.caption)
 			}
 		}
 		.formStyle(.grouped)
