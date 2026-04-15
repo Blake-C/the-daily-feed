@@ -28,6 +28,15 @@ final class ArticlesViewModel: ObservableObject {
 	private var loadTask: Task<Void, Never>?
 	private var searchDebounceTask: Task<Void, Never>?
 
+	private static let selectedSourceKey = "articlesVM.selectedSourceId"
+
+	init() {
+		// Restore last-selected source so the sidebar selection survives restarts.
+		if let stored = UserDefaults.standard.object(forKey: Self.selectedSourceKey) as? Int64 {
+			selectedSourceId = stored
+		}
+	}
+
 	// MARK: - Public
 
 	func initialLoad() async {
@@ -103,6 +112,12 @@ final class ArticlesViewModel: ObservableObject {
 	func filterBySource(_ id: Int64?) {
 		selectedSourceId = id
 		activeTags = []   // Clear tag filters so all articles from the source show
+		// Persist so the selection survives app restarts.
+		if let id {
+			UserDefaults.standard.set(id, forKey: Self.selectedSourceKey)
+		} else {
+			UserDefaults.standard.removeObject(forKey: Self.selectedSourceKey)
+		}
 		reset()
 		loadTask = Task { await loadNextPage() }
 	}
