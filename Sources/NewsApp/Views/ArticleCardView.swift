@@ -23,6 +23,14 @@ struct ArticleCardView: View {
 				.frame(maxWidth: .infinity)
 				.frame(height: 160)
 				.clipped()
+				.overlay {
+					if vm.dimThumbnails {
+						Color.black.opacity(0.5)
+							.allowsHitTesting(false)
+							.transition(.opacity)
+					}
+				}
+				.animation(.easeInOut(duration: 0.25), value: vm.dimThumbnails)
 
 			VStack(alignment: .leading, spacing: 8) {
 				// Tags

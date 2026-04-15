@@ -47,6 +47,15 @@ struct ContentView: View {
 				.help(articlesVM.hideRead ? "Showing unread articles only — click to show all" : "Filter to unread articles only")
 			}
 
+			ToolbarItem(placement: .primaryAction) {
+				Toggle(isOn: $articlesVM.dimThumbnails) {
+					Label("Dim Thumbnails", systemImage: articlesVM.dimThumbnails ? "moon.fill" : "moon")
+				}
+				.toggleStyle(.button)
+				.tint(articlesVM.dimThumbnails ? .accentColor : nil)
+				.help(articlesVM.dimThumbnails ? "Thumbnails dimmed — click to restore" : "Dim thumbnails")
+			}
+
 			ToolbarItem(placement: .principal) {
 				SearchField(text: Binding(
 					get: { articlesVM.searchText },

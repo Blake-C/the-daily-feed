@@ -12,6 +12,7 @@ final class ArticlesViewModel: ObservableObject {
 	@Published var hideRead = false
 	@Published var hasMore = true
 	@Published var errorMessage: String?
+	@Published var dimThumbnails = false
 	/// Increments every time the article list is reset (source/filter change).
 	/// Views observe this to scroll back to the top.
 	@Published private(set) var scrollResetToken = 0
