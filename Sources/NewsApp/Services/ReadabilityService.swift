@@ -5,80 +5,33 @@ import WebKit
 ///
 /// Strategy:
 ///   1. Fetch raw HTML via URLSession (fast, cancellation-safe).
-///   2. Load the HTML string into a hidden WKWebView with the original URL
-///      as base URL so relative links resolve correctly.
-///   3. Inject Readability.js after the DOM is ready and return the result.
+///   2. Inject a restrictive CSP and hand the HTML to a per-call
+///      ReadabilityExtractor that owns its own WKWebView.
+///   3. Readability.js is injected after the DOM is ready; the result is
+///      returned via a checked continuation.
 ///
-/// Using URLSession for the network request avoids NSURLErrorCancelled (-999)
-/// errors that occur when calling WKWebView.stopLoading() on an in-flight
-/// navigation.
+/// Each call gets its own WKWebView so concurrent extractions are fully
+/// isolated — there is no shared state or continuation that a second call
+/// could clobber.
 @MainActor
 final class ReadabilityService: NSObject {
 	static let shared = ReadabilityService()
-
-	private var webView: WKWebView?
-	private var pendingContinuation: CheckedContinuation<ReadabilityResult, Error>?
-
-	private override init() {
-		super.init()
-		let config = WKWebViewConfiguration()
-		config.defaultWebpagePreferences.allowsContentJavaScript = false // static HTML only
-		config.preferences.isElementFullscreenEnabled = false
-		let wv = WKWebView(frame: .zero, configuration: config)
-		wv.navigationDelegate = self
-		webView = wv
-	}
+	private override init() { super.init() }
 
 	func extract(from url: URL) async throws -> ReadabilityResult {
-		// Step 1: fetch HTML with URLSession — no WKWebView navigation involved.
+		// Step 1: fetch HTML off the main actor — URLSession is thread-safe.
 		let html = try await fetchHTML(from: url)
 
-		// Step 2: inject a restrictive Content Security Policy before loading into
-		// WKWebView. This prevents script execution and limits resource origins even
-		// though allowsContentJavaScript is already false, providing defence-in-depth
-		// against XSS from untrusted remote HTML (CWE-79).
+		// Step 2: inject a restrictive CSP before handing HTML to WebKit.
 		let sanitizedHTML = injectCSP(into: html)
 
-		// Step 3: hand off to the WKWebView as a static string.
-		return try await withCheckedThrowingContinuation { continuation in
-			// Discard any leftover continuation from a previous (already-resolved) call.
-			pendingContinuation = continuation
-			webView?.loadHTMLString(sanitizedHTML, baseURL: url)
-		}
+		// Step 3: delegate to a fresh per-call extractor.
+		return try await ReadabilityExtractor(html: sanitizedHTML, baseURL: url).extract()
 	}
 
-	/// Injects a restrictive CSP <meta> tag as the very first child of <head> (or
-	/// prepends a <head> block if none is present). This blocks scripts, inline
-	/// event handlers, and external resource loads beyond images — keeping the HTML
-	/// safe for DOM-only parsing via Readability.js.
-	private func injectCSP(into html: String) -> String {
-		let cspMeta = """
-		<meta http-equiv="Content-Security-Policy" \
-		content="default-src 'none'; img-src * data: blob:; style-src 'unsafe-inline'; \
-		script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';">
-		"""
-		// Insert after opening <head> tag if present.
-		if let headRange = html.range(of: "<head>", options: .caseInsensitive) {
-			var result = html
-			result.insert(contentsOf: "\n" + cspMeta, at: headRange.upperBound)
-			return result
-		}
-		// Insert after <html> tag if present but no <head>.
-		if let htmlRange = html.range(of: "<html", options: .caseInsensitive),
-			let closeAngle = html[htmlRange.upperBound...].firstIndex(of: ">")
-		{
-			var result = html
-			let insertAt = html.index(after: closeAngle)
-			result.insert(contentsOf: "\n<head>\n" + cspMeta + "\n</head>", at: insertAt)
-			return result
-		}
-		// Fallback: prepend a minimal head block.
-		return "<head>\n\(cspMeta)\n</head>\n" + html
-	}
+	// MARK: - HTML fetch
 
-	// MARK: - Private
-
-	private func fetchHTML(from url: URL) async throws -> String {
+	nonisolated func fetchHTML(from url: URL) async throws -> String {
 		var request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 20)
 		request.setValue(
 			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15",
@@ -118,13 +71,95 @@ final class ReadabilityService: NSObject {
 		throw NewsError.parseFailed("Could not decode response from \(url.host ?? url.absoluteString)")
 	}
 
+	// MARK: - CSP injection
+
+	/// Injects a restrictive CSP <meta> tag as the very first child of <head> (or
+	/// prepends a <head> block if none is present). This blocks scripts, inline
+	/// event handlers, and external resource loads beyond images — keeping the HTML
+	/// safe for DOM-only parsing via Readability.js.
+	nonisolated func injectCSP(into html: String) -> String {
+		let cspMeta = """
+		<meta http-equiv="Content-Security-Policy" \
+		content="default-src 'none'; img-src * data: blob:; style-src 'unsafe-inline'; \
+		script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';">
+		"""
+		if let headRange = html.range(of: "<head>", options: .caseInsensitive) {
+			var result = html
+			result.insert(contentsOf: "\n" + cspMeta, at: headRange.upperBound)
+			return result
+		}
+		if let htmlRange = html.range(of: "<html", options: .caseInsensitive),
+			let closeAngle = html[htmlRange.upperBound...].firstIndex(of: ">")
+		{
+			var result = html
+			let insertAt = html.index(after: closeAngle)
+			result.insert(contentsOf: "\n<head>\n" + cspMeta + "\n</head>", at: insertAt)
+			return result
+		}
+		return "<head>\n\(cspMeta)\n</head>\n" + html
+	}
+}
+
+// MARK: - Per-call extractor
+
+/// Owns a single WKWebView for the lifetime of one extraction call.
+/// A temporary retain cycle (retainSelf) keeps the instance alive while
+/// WebKit's weak navigationDelegate reference is the only reference to it.
+/// The cycle is broken in finish(with:) when the continuation is resumed.
+@MainActor
+private final class ReadabilityExtractor: NSObject, WKNavigationDelegate {
+	private let html: String
+	private let baseURL: URL
+	private var webView: WKWebView?
+	private var continuation: CheckedContinuation<ReadabilityResult, Error>?
+	private var retainSelf: ReadabilityExtractor?
+
+	init(html: String, baseURL: URL) {
+		self.html = html
+		self.baseURL = baseURL
+	}
+
+	func extract() async throws -> ReadabilityResult {
+		try await withCheckedThrowingContinuation { continuation in
+			self.continuation = continuation
+			retainSelf = self  // Keep alive while WKWebView holds a weak delegate ref
+
+			let config = WKWebViewConfiguration()
+			config.defaultWebpagePreferences.allowsContentJavaScript = false
+			config.preferences.isElementFullscreenEnabled = false
+			let wv = WKWebView(frame: .zero, configuration: config)
+			wv.navigationDelegate = self
+			webView = wv
+			wv.loadHTMLString(html, baseURL: baseURL)
+		}
+	}
+
+	// MARK: - WKNavigationDelegate
+
+	nonisolated func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+		Task { @MainActor in self.injectReadability() }
+	}
+
+	nonisolated func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+		Task { @MainActor in self.finish(with: .failure(error)) }
+	}
+
+	nonisolated func webView(
+		_ webView: WKWebView,
+		didFailProvisionalNavigation navigation: WKNavigation!,
+		withError error: Error
+	) {
+		Task { @MainActor in self.finish(with: .failure(error)) }
+	}
+
+	// MARK: - Readability injection
+
 	private func injectReadability() {
 		guard
 			let jsURL = Bundle.module.url(forResource: "Readability", withExtension: "js"),
 			let js = try? String(contentsOf: jsURL, encoding: .utf8)
 		else {
-			pendingContinuation?.resume(throwing: NewsError.parseFailed("Readability.js not found in bundle"))
-			pendingContinuation = nil
+			finish(with: .failure(NewsError.parseFailed("Readability.js not found in bundle")))
 			return
 		}
 
@@ -151,12 +186,9 @@ final class ReadabilityService: NSObject {
 
 		webView?.evaluateJavaScript(runner) { [weak self] result, error in
 			guard let self else { return }
-			defer { self.pendingContinuation = nil }
 
 			if let error {
-				self.pendingContinuation?.resume(
-					throwing: NewsError.parseFailed(error.localizedDescription)
-				)
+				self.finish(with: .failure(NewsError.parseFailed(error.localizedDescription)))
 				return
 			}
 
@@ -165,49 +197,33 @@ final class ReadabilityService: NSObject {
 				let data = jsonString.data(using: .utf8),
 				let parsed = try? JSONDecoder().decode(ReadabilityRaw.self, from: data)
 			else {
-				self.pendingContinuation?.resume(
-					throwing: NewsError.parseFailed("Unexpected Readability output")
-				)
+				self.finish(with: .failure(NewsError.parseFailed("Unexpected Readability output")))
 				return
 			}
 
 			if let err = parsed.error {
-				self.pendingContinuation?.resume(throwing: NewsError.parseFailed(err))
+				self.finish(with: .failure(NewsError.parseFailed(err)))
 			} else {
-				self.pendingContinuation?.resume(returning: ReadabilityResult(
+				self.finish(with: .success(ReadabilityResult(
 					title: parsed.title ?? "",
 					byline: parsed.byline,
 					htmlContent: parsed.content ?? "",
 					textContent: parsed.textContent ?? "",
 					excerpt: parsed.excerpt
-				))
+				)))
 			}
 		}
 	}
-}
 
-// MARK: - WKNavigationDelegate
-
-extension ReadabilityService: WKNavigationDelegate {
-	nonisolated func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-		Task { @MainActor in self.injectReadability() }
-	}
-
-	nonisolated func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-		Task { @MainActor in
-			self.pendingContinuation?.resume(throwing: error)
-			self.pendingContinuation = nil
-		}
-	}
-
-	nonisolated func webView(
-		_ webView: WKWebView,
-		didFailProvisionalNavigation navigation: WKNavigation!,
-		withError error: Error
-	) {
-		Task { @MainActor in
-			self.pendingContinuation?.resume(throwing: error)
-			self.pendingContinuation = nil
+	private func finish(with result: Result<ReadabilityResult, Error>) {
+		webView?.navigationDelegate = nil
+		webView = nil
+		let c = continuation
+		continuation = nil
+		retainSelf = nil  // Break retain cycle — self may dealloc after this line
+		switch result {
+		case .success(let r): c?.resume(returning: r)
+		case .failure(let e): c?.resume(throwing: e)
 		}
 	}
 }
