@@ -203,6 +203,7 @@ private struct _ArticleWebView: NSViewRepresentable {
 		<html>
 		<head>
 		<meta charset="UTF-8">
+		<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src * data: blob:; style-src 'unsafe-inline'; script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';">
 		<meta name="color-scheme" content="light dark">
 		<style>
 		  :root { color-scheme: light dark; }
