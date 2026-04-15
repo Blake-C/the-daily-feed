@@ -49,12 +49,14 @@ struct ArticleDetailView: View {
 				.controlSize(.small)
 				.disabled(detailVM.isProcessingAI)
 
-				Link(destination: URL(string: article.articleURL)!) {
-					Label("Open in Browser", systemImage: "arrow.up.right.square")
-						.font(.system(size: 12))
+				if let articleURL = URL(string: article.articleURL) {
+					Link(destination: articleURL) {
+						Label("Open in Browser", systemImage: "arrow.up.right.square")
+							.font(.system(size: 12))
+					}
+					.buttonStyle(.bordered)
+					.controlSize(.small)
 				}
-				.buttonStyle(.bordered)
-				.controlSize(.small)
 			}
 			.padding(.horizontal, 20)
 			.padding(.vertical, 12)
