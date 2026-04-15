@@ -6,6 +6,11 @@ final class SourcesViewModel: ObservableObject {
 	@Published var tags: [Tag] = []
 	@Published var errorMessage: String?
 	@Published var importSummary: String?
+	/// Non-nil while feed autodiscovery is running.
+	@Published var discoveryInProgress = false
+	/// Set when discovery finds a different URL than the one the user typed.
+	/// The UI presents a confirmation before adding.
+	@Published var pendingDiscovery: FeedDiscoveryService.DiscoveryResult?
 
 	/// Called after a new source is added and its initial fetch completes.
 	var onSourceAdded: (() -> Void)?
@@ -59,6 +64,36 @@ final class SourcesViewModel: ObservableObject {
 		} catch {
 			errorMessage = error.localizedDescription
 		}
+	}
+
+	/// Runs feed autodiscovery on `urlString`, then either adds the source
+	/// immediately (if the URL is already a valid feed) or sets
+	/// `pendingDiscovery` so the UI can confirm before using the discovered URL.
+	func discoverAndAddSource(name: String, urlString: String, sourceTags: [String]) {
+		discoveryInProgress = true
+		Task {
+			defer { discoveryInProgress = false }
+			guard let result = await FeedDiscoveryService.shared.discover(urlString: urlString) else {
+				errorMessage = "Could not find a feed at that URL. Try pasting the RSS/Atom feed URL directly."
+				return
+			}
+			if result.wasDiscovered {
+				// A different feed URL was found — surface it for user confirmation.
+				pendingDiscovery = result
+			} else {
+				// URL was already a valid feed — add it straight away.
+				let resolvedName = name.isEmpty ? (result.suggestedName ?? urlString) : name
+				addSource(name: resolvedName, url: result.feedURL, type: .rss, sourceTags: sourceTags)
+			}
+		}
+	}
+
+	/// Confirms a pending autodiscovery result and adds the source.
+	func confirmPendingDiscovery(name: String, sourceTags: [String]) {
+		guard let discovery = pendingDiscovery else { return }
+		pendingDiscovery = nil
+		let resolvedName = name.isEmpty ? (discovery.suggestedName ?? discovery.feedURL) : name
+		addSource(name: resolvedName, url: discovery.feedURL, type: .rss, sourceTags: sourceTags)
 	}
 
 	func deleteSource(id: Int64) {

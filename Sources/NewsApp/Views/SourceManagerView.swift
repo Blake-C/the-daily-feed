@@ -8,7 +8,6 @@ struct SourceManagerView: View {
 
 	@State private var newSourceName = ""
 	@State private var newSourceURL = ""
-	@State private var newSourceType = SourceType.rss
 	@State private var newSourceTags = ""
 	@State private var showAddSource = false
 
@@ -63,27 +62,47 @@ struct SourceManagerView: View {
 			// Add source form
 			GroupBox("Add New Source") {
 				VStack(alignment: .leading, spacing: 8) {
-					HStack {
-						TextField("Source name", text: $newSourceName)
-						Picker("Type", selection: $newSourceType) {
-							Text("RSS").tag(SourceType.rss)
-							Text("Website").tag(SourceType.website)
-						}
-						.pickerStyle(.segmented)
-						.frame(width: 140)
-					}
+					TextField("Source name (optional — auto-detected)", text: $newSourceName)
 					TextField("URL (RSS feed or website)", text: $newSourceURL)
 					TextField("Tags (comma-separated)", text: $newSourceTags)
-					Button("Add Source") {
-						guard !newSourceName.isEmpty, !newSourceURL.isEmpty else { return }
-						let tags = newSourceTags.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-						vm.addSource(name: newSourceName, url: newSourceURL, type: newSourceType, sourceTags: tags)
-						newSourceName = ""; newSourceURL = ""; newSourceTags = ""
+
+					HStack(spacing: 8) {
+						Button("Add Source") {
+							guard !newSourceURL.isEmpty else { return }
+							let tags = newSourceTags.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+							vm.discoverAndAddSource(name: newSourceName, urlString: newSourceURL, sourceTags: tags)
+							newSourceName = ""; newSourceURL = ""; newSourceTags = ""
+						}
+						.buttonStyle(.borderedProminent)
+						.disabled(newSourceURL.isEmpty || vm.discoveryInProgress)
+
+						if vm.discoveryInProgress {
+							ProgressView()
+								.scaleEffect(0.7)
+							Text("Checking feed…")
+								.font(.system(size: 12))
+								.foregroundStyle(.secondary)
+						}
 					}
-					.buttonStyle(.borderedProminent)
-					.disabled(newSourceName.isEmpty || newSourceURL.isEmpty)
 				}
 				.textFieldStyle(.roundedBorder)
+			}
+			// Autodiscovery confirmation: shown when a website URL was entered and a
+			// feed was found at a different address.
+			.alert("Feed Found", isPresented: Binding(
+				get: { vm.pendingDiscovery != nil },
+				set: { if !$0 { vm.pendingDiscovery = nil } }
+			)) {
+				Button("Use This Feed") {
+					let tags = newSourceTags.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+					vm.confirmPendingDiscovery(name: newSourceName, sourceTags: tags)
+					newSourceName = ""; newSourceTags = ""
+				}
+				Button("Cancel", role: .cancel) { vm.pendingDiscovery = nil }
+			} message: {
+				if let d = vm.pendingDiscovery {
+					Text("A feed was discovered at:\n\(d.feedURL)\n\nWould you like to subscribe to it?")
+				}
 			}
 
 			// Source list
