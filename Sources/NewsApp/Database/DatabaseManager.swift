@@ -151,6 +151,15 @@ final class DatabaseManager: @unchecked Sendable {
 				""")
 		}
 
+		migrator.registerMigration("v4_bookmarks_badge") { db in
+			try db.alter(table: "articles") { t in
+				t.add(column: "isBookmarked", .boolean).notNull().defaults(to: false)
+			}
+			try db.alter(table: "news_sources") { t in
+				t.add(column: "badgeClearedAt", .datetime)
+			}
+		}
+
 		try migrator.migrate(dbQueue)
 	}
 }

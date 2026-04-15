@@ -49,6 +49,7 @@ final class RSSService: @unchecked Sendable {
 					tags: sourceTags,
 					isRead: false,
 					isHidden: false,
+					isBookmarked: false,
 					starRating: 0,
 					rawContent: nil,
 					readableContent: nil
@@ -73,6 +74,7 @@ final class RSSService: @unchecked Sendable {
 					tags: sourceTags,
 					isRead: false,
 					isHidden: false,
+					isBookmarked: false,
 					starRating: 0,
 					rawContent: nil,
 					readableContent: nil
@@ -97,6 +99,7 @@ final class RSSService: @unchecked Sendable {
 					tags: sourceTags,
 					isRead: false,
 					isHidden: false,
+					isBookmarked: false,
 					starRating: 0,
 					rawContent: nil,
 					readableContent: nil

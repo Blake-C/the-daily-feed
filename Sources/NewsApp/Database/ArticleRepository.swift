@@ -63,7 +63,7 @@ final class ArticleRepository: @unchecked Sendable {
 			let selectClause = """
 				SELECT id, sourceId, title, rewrittenTitle, author, summary,
 				       thumbnailURL, articleURL, publishedAt, fetchedAt,
-				       tags, isRead, isHidden, starRating,
+				       tags, isRead, isHidden, isBookmarked, starRating,
 				       NULL AS rawContent, NULL AS readableContent
 				FROM articles
 				"""
@@ -134,9 +134,9 @@ final class ArticleRepository: @unchecked Sendable {
 					INSERT INTO articles
 					  (id, sourceId, title, rewrittenTitle, author, summary,
 					   thumbnailURL, articleURL, publishedAt, fetchedAt,
-					   tags, isRead, isHidden, starRating, rawContent, readableContent)
+					   tags, isRead, isHidden, isBookmarked, starRating, rawContent, readableContent)
 					VALUES
-					  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, NULL, NULL)
+					  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, NULL, NULL)
 					ON CONFLICT(id) DO UPDATE SET
 					  title        = excluded.title,
 					  author       = excluded.author,

@@ -19,6 +19,7 @@ struct NewsSource: Identifiable, Codable, FetchableRecord, PersistableRecord {
 	var lastFetchedAt: Date?
 	var sortOrder: Int       // User-defined display order
 	var lastError: String?   // Last fetch error message, nil if last fetch succeeded
+	var badgeClearedAt: Date? // When user last dismissed new-article badge for this source
 
 	static let databaseTableName = "news_sources"
 
@@ -28,7 +29,7 @@ struct NewsSource: Identifiable, Codable, FetchableRecord, PersistableRecord {
 
 	enum Columns: String, ColumnExpression {
 		case id, name, url, type, faviconURL, rating, isEnabled, tags, addedAt, lastFetchedAt
-		case sortOrder, lastError
+		case sortOrder, lastError, badgeClearedAt
 	}
 
 	var tagList: [String] {
