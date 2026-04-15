@@ -20,7 +20,16 @@ final class ArticleRepository: @unchecked Sendable {
 
 	func fetch(query: ArticleQuery) throws -> [Article] {
 		try db.read { conn in
-			var sql = "SELECT * FROM articles WHERE 1=1"
+			// Exclude rawContent / readableContent from the grid query — these can
+			// be large HTML blobs that the card view never uses. They are fetched
+			// on-demand via fetchReadableContent(id:) when the detail view opens.
+			var sql = """
+				SELECT id, sourceId, title, rewrittenTitle, author, summary,
+				       thumbnailURL, articleURL, publishedAt, fetchedAt,
+				       tags, isRead, isHidden, starRating,
+				       NULL AS rawContent, NULL AS readableContent
+				FROM articles WHERE 1=1
+				"""
 			var args: [DatabaseValueConvertible] = []
 
 			if query.hideHidden {
@@ -48,6 +57,20 @@ final class ArticleRepository: @unchecked Sendable {
 			args += [query.limit, query.offset]
 
 			return try Article.fetchAll(conn, sql: sql, arguments: StatementArguments(args))
+		}
+	}
+
+	/// Returns only the cached Readability HTML for a single article, or nil if
+	/// it hasn't been extracted yet. Used by the detail view to short-circuit
+	/// the WKWebView pipeline when content is already available.
+	func fetchReadableContent(id: String) throws -> String? {
+		try db.read { conn in
+			let row = try Row.fetchOne(
+				conn,
+				sql: "SELECT readableContent FROM articles WHERE id = ? AND readableContent IS NOT NULL",
+				arguments: [id]
+			)
+			return row?["readableContent"]
 		}
 	}
 

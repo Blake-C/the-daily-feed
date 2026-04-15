@@ -7,10 +7,21 @@ final class ArticleDetailViewModel: ObservableObject {
 	@Published var errorMessage: String?
 
 	private let articleRepo = ArticleRepository()
+	private var rewriteTask: Task<OllamaArticleResult?, Never>?
 
 	func loadContent(for article: Article) async -> ReadabilityResult? {
-		// Return cached content if available
-		if article.readableContent != nil { return nil }
+		// Fast path: return cached Readability HTML from DB without touching WKWebView.
+		do {
+			if let html = try articleRepo.fetchReadableContent(id: article.id) {
+				return ReadabilityResult(
+					title: article.title,
+					byline: article.author,
+					htmlContent: html,
+					textContent: html.strippingHTML,
+					excerpt: article.summary
+				)
+			}
+		} catch {}
 
 		guard let url = URL(string: article.articleURL) else { return nil }
 
@@ -19,6 +30,12 @@ final class ArticleDetailViewModel: ObservableObject {
 
 		do {
 			let result = try await ReadabilityService.shared.extract(from: url)
+			// Persist for future opens so WKWebView is never needed again for this article.
+			try? articleRepo.updateContent(
+				id: article.id,
+				rawContent: result.htmlContent,
+				readableContent: result.htmlContent
+			)
 			return result
 		} catch {
 			errorMessage = "Could not load article: \(error.localizedDescription)"
@@ -32,20 +49,29 @@ final class ArticleDetailViewModel: ObservableObject {
 		endpoint: String,
 		model: String
 	) async -> OllamaArticleResult? {
+		// Cancel any in-flight rewrite before starting a new one so rapid successive
+		// taps don't queue up multiple Ollama requests.
+		rewriteTask?.cancel()
+
 		isProcessingAI = true
 		defer { isProcessingAI = false }
 
-		do {
-			let result = try await OllamaService.shared.rewriteAndSummarize(
-				title: article.title,
-				content: content,
-				endpoint: endpoint,
-				model: model
-			)
-			return result
-		} catch {
-			errorMessage = "AI rewrite failed: \(error.localizedDescription)"
-			return nil
+		let task: Task<OllamaArticleResult?, Never> = Task {
+			do {
+				return try await OllamaService.shared.rewriteAndSummarize(
+					title: article.title,
+					content: content,
+					endpoint: endpoint,
+					model: model
+				)
+			} catch {
+				if !Task.isCancelled {
+					self.errorMessage = "AI rewrite failed: \(error.localizedDescription)"
+				}
+				return nil
+			}
 		}
+		rewriteTask = task
+		return await task.value
 	}
 }

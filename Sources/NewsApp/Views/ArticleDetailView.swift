@@ -131,12 +131,6 @@ struct ArticleDetailView: View {
 							accessibilityText: result.textContent
 						)
 						.frame(minHeight: 400)
-					} else if let cached = article.readableContent {
-						ArticleWebContentView(
-							htmlContent: cached,
-							accessibilityText: cached.strippingHTML
-						)
-						.frame(minHeight: 400)
 					} else {
 						Text("Loading article content…")
 							.foregroundStyle(.secondary)
@@ -152,14 +146,7 @@ struct ArticleDetailView: View {
 		}
 		.task {
 			vm.markRead(article)
-			if let result = await detailVM.loadContent(for: article) {
-				readabilityResult = result
-				vm.cacheContent(
-					id: article.id,
-					rawContent: result.htmlContent,
-					readableContent: result.htmlContent
-				)
-			}
+			readabilityResult = await detailVM.loadContent(for: article)
 		}
 		.alert("Error", isPresented: Binding(
 			get: { detailVM.errorMessage != nil },

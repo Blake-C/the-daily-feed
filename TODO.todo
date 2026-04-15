@@ -27,24 +27,22 @@
 
 ## Performance
 
-☐ ReadabilityService uses WKWebView on every detail open — Even for cached articles, loadContent() in ArticleDetailViewModel still invokes the Readability pipeline if readableContent is nil. Cached content should short-circuit immediately without touching WKWebView at all.
-☐ Image loading has no explicit cache policy — AsyncImage uses the default URL cache. For a news app where the same thumbnail may appear on the grid card and in the detail view, using URLCache with a defined size limit or a proper image cache (e.g., NSCache) would reduce redundant network hits.
-☐ Tag filtering runs a full DB query on every keypress in search — applySearch in ArticlesViewModel triggers initialLoad(). A debounce (e.g., 300ms) on searchText changes would reduce needless DB hits.
-☐ Parallel feed refresh with no concurrency cap — FeedRefreshService uses TaskGroup to fetch all enabled sources simultaneously. With 30+ sources enabled, this spawns 30+ concurrent network requests. A bounded semaphore or withTaskGroup with a max parallelism of ~5-8 would be more resource-friendly.
-☐ rewriteWithAI is called on a per-article basis with no queue — If a user triggers multiple AI rewrites in rapid succession, they go to Ollama serially and each blocks on a response. An AsyncStream-based queue with cancellation support would be cleaner.
-☐ Pagination prefetch threshold of 10 items — With 40-item pages, triggering prefetch at 10 items remaining is probably fine, but the next page load is synchronous-feeling. Pre-fetching at 15-20 items with smooth skeleton insertion would eliminate visible load pauses.
+✔ ReadabilityService uses WKWebView on every detail open — Even for cached articles, loadContent() in ArticleDetailViewModel still invokes the Readability pipeline if readableContent is nil. Cached content should short-circuit immediately without touching WKWebView at all. @done(Mon. 04/14/2026 - 11:52:00 PM)
+✔ Image loading has no explicit cache policy — AsyncImage uses the default URL cache. For a news app where the same thumbnail may appear on the grid card and in the detail view, using URLCache with a defined size limit or a proper image cache (e.g., NSCache) would reduce redundant network hits. @done(Mon. 04/14/2026 - 11:52:00 PM)
+✔ Tag filtering runs a full DB query on every keypress in search — applySearch in ArticlesViewModel triggers initialLoad(). A debounce (e.g., 300ms) on searchText changes would reduce needless DB hits. @done(Mon. 04/14/2026 - 11:52:00 PM)
+✔ Parallel feed refresh with no concurrency cap — FeedRefreshService uses TaskGroup to fetch all enabled sources simultaneously. With 30+ sources enabled, this spawns 30+ concurrent network requests. A bounded semaphore or withTaskGroup with a max parallelism of ~5-8 would be more resource-friendly. @done(Mon. 04/14/2026 - 11:52:00 PM)
+✔ rewriteWithAI is called on a per-article basis with no queue — If a user triggers multiple AI rewrites in rapid succession, they go to Ollama serially and each blocks on a response. An AsyncStream-based queue with cancellation support would be cleaner. @done(Mon. 04/14/2026 - 11:52:00 PM)
+✔ Pagination prefetch threshold of 10 items — With 40-item pages, triggering prefetch at 10 items remaining is probably fine, but the next page load is synchronous-feeling. Pre-fetching at 15-20 items with smooth skeleton insertion would eliminate visible load pauses. @done(Mon. 04/14/2026 - 11:52:00 PM)
 
 ## UI Usability
 
 ☐ Article grid uses a single adaptive column (280–400pt) — On a large monitor (27–32"), this results in 3-4 very wide cards. A true multi-column newspaper layout (e.g., 2–3 fixed columns like a broadsheet) would be far more appropriate for the "newspaper" aesthetic.
 ☐ Tag chips have no maximum width enforcement — Long tag names can stretch the filter bar awkwardly. Truncating chip labels at ~12 chars with a tooltip would tighten the bar.
 ☐ Hover-only hide button is discoverable only by accident — Consider making it always-visible as a faint X, or accessible via right-click context menu.
-☐ NewspaperHeaderView masthead disappears on scroll — The header likely scrolls away with the grid. Keeping the masthead pinned (sticky header) would reinforce the newspaper identity and keep weather + date visible.
 ☐ Star ratings on the card are too small for confident clicking — 5 star symbols at 14pt article card density are easy to mis-tap. Moving ratings to the detail view (where there's space) or making stars larger on hover would help.
 ☐ No dark mode thumbnail handling — Dark mode likely inverts some article thumbnails oddly depending on image content. A subtle darkening overlay on thumbnails in dark mode would look more consistent.
 ☐ Skeleton loading uses fixed 4 cards — If the user has 1-2 articles visible before paginating, 4 skeleton cards will overshoot the visible area. Calculating the visible row count and matching the skeleton count would look cleaner.
 ☐ Source color assignment via hash is invisible to the user — Users can't customize source colors. A color picker per source in Source Manager would let them create their own visual taxonomy.
-☐ "THE DAILY FEED" masthead is always the same regardless of filter — When the user is viewing a single source or a tag filter, the header could reflect that context (e.g., "THE DAILY FEED / Technology" or the source's name).
 ☐ Empty state messaging could be more specific — When articles are empty due to a search that returns nothing vs. all sources being disabled vs. no articles fetched yet, the same empty state likely appears. Contextual empty states improve clarity.
 
 # Example

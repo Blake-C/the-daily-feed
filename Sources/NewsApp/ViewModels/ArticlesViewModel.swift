@@ -21,6 +21,7 @@ final class ArticlesViewModel: ObservableObject {
 	private let pageSize = 40
 	private var currentOffset = 0
 	private var loadTask: Task<Void, Never>?
+	private var searchDebounceTask: Task<Void, Never>?
 
 	// MARK: - Public
 
@@ -49,7 +50,7 @@ final class ArticlesViewModel: ObservableObject {
 
 	/// Call when the user scrolls near the last visible article.
 	func prefetchIfNeeded(currentIndex: Int) {
-		let threshold = articles.count - 10
+		let threshold = articles.count - 20
 		guard currentIndex >= threshold, !isLoading, hasMore else { return }
 		loadTask?.cancel()
 		loadTask = Task { await loadNextPage() }
@@ -65,8 +66,15 @@ final class ArticlesViewModel: ObservableObject {
 
 	func applySearch(_ text: String) {
 		searchText = text
-		reset()
-		loadTask = Task { await loadNextPage() }
+		// Debounce: cancel any pending query and wait 300 ms before hitting the DB,
+		// so rapid keystrokes don't fire a full query on every character.
+		searchDebounceTask?.cancel()
+		searchDebounceTask = Task {
+			try? await Task.sleep(for: .milliseconds(300))
+			guard !Task.isCancelled else { return }
+			reset()
+			await loadNextPage()
+		}
 	}
 
 	func toggleTag(_ tag: String) {

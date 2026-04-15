@@ -22,26 +22,22 @@ final class FeedRefreshService: @unchecked Sendable {
 		var totalFetched = 0
 		var sourceErrors: [Int64: String] = [:]
 
+		// Cap concurrent network requests to avoid overwhelming sources or the
+		// local network stack when many feeds are enabled (30+).
+		let maxConcurrency = 6
+		var pending = sources.makeIterator()
+
 		await withTaskGroup(of: (Int64?, Result<Int, Error>).self) { group in
-			for source in sources {
-				group.addTask {
-					do {
-						let articles = try await self.rssService.fetchArticles(from: source)
-						try self.articleRepo.upsert(articles)
-						if let id = source.id {
-							try self.sourceRepo.updateLastFetched(id: id, date: Date())
-						}
-						return (source.id, .success(articles.count))
-					} catch {
-						if let id = source.id {
-							try? self.sourceRepo.setError(id: id, message: error.localizedDescription)
-						}
-						return (source.id, .failure(error))
-					}
+			// Seed the initial batch.
+			for _ in 0..<min(maxConcurrency, sources.count) {
+				if let source = pending.next() {
+					let s = source
+					group.addTask { await self.fetchOne(source: s) }
 				}
 			}
 
-			for await (sourceId, result) in group {
+			// As each slot frees up, feed in the next source.
+			while let (sourceId, result) = await group.next() {
 				switch result {
 				case .success(let count):
 					totalFetched += count
@@ -50,10 +46,30 @@ final class FeedRefreshService: @unchecked Sendable {
 						sourceErrors[id] = friendlyError(error, sourceId: id, sources: sources)
 					}
 				}
+				if let source = pending.next() {
+					let s = source
+					group.addTask { await self.fetchOne(source: s) }
+				}
 			}
 		}
 
 		return RefreshResult(fetched: totalFetched, sourceErrors: sourceErrors)
+	}
+
+	private func fetchOne(source: NewsSource) async -> (Int64?, Result<Int, Error>) {
+		do {
+			let articles = try await rssService.fetchArticles(from: source)
+			try articleRepo.upsert(articles)
+			if let id = source.id {
+				try sourceRepo.updateLastFetched(id: id, date: Date())
+			}
+			return (source.id, .success(articles.count))
+		} catch {
+			if let id = source.id {
+				try? sourceRepo.setError(id: id, message: error.localizedDescription)
+			}
+			return (source.id, .failure(error))
+		}
 	}
 
 	func refresh(source: NewsSource) async throws -> Int {
