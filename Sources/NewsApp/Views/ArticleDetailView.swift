@@ -246,11 +246,16 @@ private struct _ArticleWebView: NSViewRepresentable {
 			decidePolicyFor navigationAction: WKNavigationAction,
 			decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
 		) {
-			// Only allow the initial HTML load; open external links in browser
+			// Only allow the initial HTML load; open external links in the system browser.
+			// Restrict to http/https to prevent custom URL schemes, file://, or
+			// applescript: links embedded in feed content from being dispatched.
 			if navigationAction.navigationType == .linkActivated,
 				let url = navigationAction.request.url
 			{
-				NSWorkspace.shared.open(url)
+				let scheme = url.scheme?.lowercased() ?? ""
+				if scheme == "http" || scheme == "https" {
+					NSWorkspace.shared.open(url)
+				}
 				decisionHandler(.cancel)
 			} else {
 				decisionHandler(.allow)
