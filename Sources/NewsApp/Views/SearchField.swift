@@ -9,9 +9,10 @@ struct SearchField: View {
 				.foregroundStyle(.secondary)
 				.font(.system(size: 13))
 
-			TextField("Search articles…", text: $text)
+			TextField("Search title, author, body…", text: $text)
 				.textFieldStyle(.plain)
 				.font(.system(size: 13))
+				.help("Searches article title, author, summary, and full extracted text")
 
 			if !text.isEmpty {
 				Button {
