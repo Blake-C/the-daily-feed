@@ -4,6 +4,7 @@ import WebKit
 struct ArticleDetailView: View {
 	let article: Article
 	@ObservedObject var vm: ArticlesViewModel
+	var sourceName: String?
 	@EnvironmentObject var appState: AppState
 	@StateObject private var detailVM = ArticleDetailViewModel()
 	@Environment(\.dismiss) private var dismiss
@@ -12,9 +13,10 @@ struct ArticleDetailView: View {
 	@State private var displayTitle: String
 	@State private var displaySummary: String
 
-	init(article: Article, vm: ArticlesViewModel) {
+	init(article: Article, vm: ArticlesViewModel, sourceName: String? = nil) {
 		self.article = article
 		self.vm = vm
+		self.sourceName = sourceName
 		_displayTitle = State(initialValue: article.rewrittenTitle ?? article.title)
 		_displaySummary = State(initialValue: article.summary ?? "")
 	}
@@ -99,9 +101,9 @@ struct ArticleDetailView: View {
 
 						HStack {
 							Text(article.publishedAt, style: .date)
-							if let sourceName = readabilityResult?.title, sourceName != displayTitle {
+							if let name = sourceName {
 								Text("·")
-								Text(sourceName)
+								Text(name)
 									.lineLimit(1)
 							}
 						}

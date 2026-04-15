@@ -5,6 +5,8 @@ struct ArticleGridView: View {
 	var sourceName: String?
 	/// Total number of configured sources — used to produce contextual empty states.
 	var sourcesCount: Int
+	/// Source name keyed by source ID — passed down to each card and the detail view.
+	var sourceNames: [Int64: String] = [:]
 
 	@State private var selectedArticle: Article?
 
@@ -35,7 +37,7 @@ struct ArticleGridView: View {
 						// Article grid
 						LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 16) {
 							ForEach(Array(vm.articles.enumerated()), id: \.element.id) { index, article in
-								ArticleCardView(article: article, vm: vm)
+								ArticleCardView(article: article, vm: vm, sourceName: sourceNames[article.sourceId])
 									.frame(maxHeight: .infinity, alignment: .top)
 									.onTapGesture { selectedArticle = article }
 									.onAppear { vm.prefetchIfNeeded(currentIndex: index) }
@@ -63,7 +65,7 @@ struct ArticleGridView: View {
 			}
 		}
 		.sheet(item: $selectedArticle) { article in
-			ArticleDetailView(article: article, vm: vm)
+			ArticleDetailView(article: article, vm: vm, sourceName: sourceNames[article.sourceId])
 				.frame(minWidth: 860, minHeight: 700)
 		}
 		.refreshable {

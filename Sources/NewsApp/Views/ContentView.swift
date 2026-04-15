@@ -11,6 +11,12 @@ struct ContentView: View {
 		return sourcesVM.sources.first { $0.id == id }?.name
 	}
 
+	private var sourceNames: [Int64: String] {
+		sourcesVM.sources.reduce(into: [:]) { dict, source in
+			if let id = source.id { dict[id] = source.name }
+		}
+	}
+
 	var body: some View {
 		NavigationSplitView {
 			SidebarView(sourcesVM: sourcesVM, articlesVM: articlesVM)
@@ -19,7 +25,7 @@ struct ContentView: View {
 			VStack(spacing: 0) {
 				NewspaperHeaderView()
 				TagFilterBarView(sourcesVM: sourcesVM, articlesVM: articlesVM)
-				ArticleGridView(vm: articlesVM, sourceName: selectedSourceName, sourcesCount: sourcesVM.sources.count)
+				ArticleGridView(vm: articlesVM, sourceName: selectedSourceName, sourcesCount: sourcesVM.sources.count, sourceNames: sourceNames)
 			}
 		}
 		.toolbar {

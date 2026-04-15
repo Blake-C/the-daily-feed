@@ -4,6 +4,7 @@ import SwiftUI
 struct ArticleCardView: View {
 	let article: Article
 	@ObservedObject var vm: ArticlesViewModel
+	var sourceName: String?
 
 	@State private var isHovered = false
 
@@ -67,7 +68,7 @@ struct ArticleCardView: View {
 
 				Spacer(minLength: 0)
 
-				// Bottom row: read badge + author (left) + publish time (right)
+				// Bottom row: read badge + author (left) + source · time (right)
 				HStack(spacing: 4) {
 					if article.isRead {
 						Image(systemName: "checkmark.circle.fill")
@@ -81,6 +82,15 @@ struct ArticleCardView: View {
 							.lineLimit(1)
 					}
 					Spacer(minLength: 0)
+					if let name = sourceName {
+						Text(name)
+							.font(.system(size: 11))
+							.foregroundStyle(sourceColor.opacity(0.8))
+							.lineLimit(1)
+						Text("·")
+							.font(.system(size: 11))
+							.foregroundStyle(.quaternary)
+					}
 					Text(relativePublishTime)
 						.font(.system(size: 11))
 						.foregroundStyle(.tertiary)
