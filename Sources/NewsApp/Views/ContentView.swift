@@ -65,9 +65,20 @@ struct ContentView: View {
 			}
 			sourcesVM.load()
 			await seedIfNeeded()
+			// Load cached articles immediately, then fetch fresh content from the network.
 			await articlesVM.initialLoad()
+			await articlesVM.refresh()
 			if appState.hasWeather {
 				await weatherService.fetchWeather(apiKey: appState.openWeatherApiKey)
+			}
+		}
+		.task(id: appState.autoRefreshInterval) {
+			guard appState.autoRefreshInterval > 0 else { return }
+			let interval = TimeInterval(appState.autoRefreshInterval * 60)
+			while !Task.isCancelled {
+				try? await Task.sleep(for: .seconds(interval))
+				guard !Task.isCancelled else { break }
+				await articlesVM.refresh()
 			}
 		}
 		.alert("Error", isPresented: Binding(

@@ -5,20 +5,48 @@ struct SettingsView: View {
 
 	var body: some View {
 		TabView {
+			feedTab
+				.tabItem { Label("Feed", systemImage: "newspaper") }
+				.tag(0)
+
 			ollamaTab
 				.tabItem { Label("AI / Ollama", systemImage: "brain") }
-				.tag(0)
+				.tag(1)
 
 			weatherTab
 				.tabItem { Label("Weather", systemImage: "cloud.sun") }
-				.tag(1)
+				.tag(2)
 
 			appearanceTab
 				.tabItem { Label("Appearance", systemImage: "paintpalette") }
-				.tag(2)
+				.tag(3)
 		}
 		.frame(width: 480)
 		.padding(20)
+	}
+
+	// MARK: - Feed
+
+	private var feedTab: some View {
+		Form {
+			Section {
+				Picker("Auto-Refresh Interval", selection: $appState.autoRefreshInterval) {
+					Text("Off").tag(0)
+					Text("Every 15 minutes").tag(15)
+					Text("Every 30 minutes").tag(30)
+					Text("Every hour").tag(60)
+				}
+				.pickerStyle(.radioGroup)
+			} header: {
+				Text("Refresh")
+					.font(.headline)
+			} footer: {
+				Text("Automatically fetch new articles in the background. Articles are also fetched each time the app launches.")
+					.foregroundStyle(.secondary)
+					.font(.caption)
+			}
+		}
+		.formStyle(.grouped)
 	}
 
 	// MARK: - Ollama
