@@ -119,12 +119,17 @@ struct ArticleCardView: View {
 						) { vm.hideArticle(article) }
 						.transition(.opacity.combined(with: .scale(scale: 0.8)))
 					}
-					CardActionButton(
-						icon: article.isBookmarked ? "bookmark.fill" : "bookmark",
-						tint: article.isBookmarked ? Color.accentColor : .white,
-						help: article.isBookmarked ? "Remove bookmark" : "Bookmark"
-					) { vm.toggleBookmark(article) }
-					.opacity(isHovered || article.isBookmarked ? 1 : 0)
+					if isHovered || article.isBookmarked {
+						CardActionButton(
+							icon: article.isBookmarked ? "bookmark.fill" : "bookmark",
+							tint: article.isBookmarked ? Color.accentColor : .white,
+							help: article.isBookmarked ? "Remove bookmark" : "Bookmark"
+						) { vm.toggleBookmark(article) }
+						.transition(.opacity.combined(with: .scale(scale: 0.8)))
+					} else {
+						// Reserve space so the layout doesn't shift when the button appears.
+						Color.clear.frame(width: 28, height: 28)
+					}
 				}
 				.padding(8)
 				.animation(.easeOut(duration: 0.15), value: isHovered)
