@@ -91,7 +91,7 @@ struct ArticleDetailView: View {
 							.textSelection(.enabled)
 
 						// Byline / summary row
-						if let byline = readabilityResult?.byline ?? article.author {
+						if let byline = readabilityResult?.byline ?? article.author, !byline.trimmingCharacters(in: .whitespaces).isEmpty {
 							Text("By \(byline)")
 								.font(.system(size: 13, weight: .medium))
 								.foregroundStyle(.secondary)

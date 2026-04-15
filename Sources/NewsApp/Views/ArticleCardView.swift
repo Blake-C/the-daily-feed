@@ -74,7 +74,7 @@ struct ArticleCardView: View {
 							.foregroundStyle(.green)
 							.font(.caption)
 					}
-					if let author = article.author {
+					if let author = article.author, !author.trimmingCharacters(in: .whitespaces).isEmpty {
 						Text(author)
 							.font(.system(size: 11))
 							.foregroundStyle(.secondary)
