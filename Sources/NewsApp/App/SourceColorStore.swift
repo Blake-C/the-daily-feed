@@ -6,6 +6,7 @@ import SwiftUI
 ///
 /// Colors are persisted to UserDefaults and exposed as an @Observable so any
 /// view that reads ``color(for:)`` automatically re-renders when a color changes.
+@MainActor
 @Observable
 final class SourceColorStore {
 	static let shared = SourceColorStore()
