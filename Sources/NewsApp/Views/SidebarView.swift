@@ -55,6 +55,15 @@ struct SidebarView: View {
 					) {
 						articlesVM.filterBySource(nil)
 					}
+					.contextMenu {
+						if totalUnread > 0 {
+							Button {
+								articlesVM.markAllRead(sourceId: nil)
+							} label: {
+								Label("Mark All as Read", systemImage: "checkmark.circle")
+							}
+						}
+					}
 
 					ForEach(filteredSources) { source in
 						let unread = sourcesVM.unreadCounts[source.id ?? -1] ?? 0
@@ -78,6 +87,14 @@ struct SidebarView: View {
 								}
 								Text(error)
 									.font(.caption)
+								Divider()
+							}
+							if unread > 0 {
+								Button {
+									articlesVM.markAllRead(sourceId: source.id)
+								} label: {
+									Label("Mark All as Read", systemImage: "checkmark.circle")
+								}
 								Divider()
 							}
 							Button(source.isEnabled ? "Disable Source" : "Enable Source") {

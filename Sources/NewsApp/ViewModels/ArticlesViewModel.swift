@@ -17,6 +17,10 @@ final class ArticlesViewModel: ObservableObject {
 	/// Views observe this to scroll back to the top.
 	@Published private(set) var scrollResetToken = 0
 
+	/// Called whenever one or more articles are marked read so external observers
+	/// (e.g. the sidebar unread badge) can update without polling.
+	var onArticleRead: (() -> Void)?
+
 	private let articleRepo = ArticleRepository()
 	private let refreshService = FeedRefreshService.shared
 	private let pageSize = 40
@@ -140,6 +144,24 @@ final class ArticlesViewModel: ObservableObject {
 			if let idx = articles.firstIndex(where: { $0.id == article.id }) {
 				articles[idx].isRead = true
 			}
+			onArticleRead?()
+		} catch {
+			errorMessage = error.localizedDescription
+		}
+	}
+
+	/// Marks all unread articles as read, optionally scoped to a single source.
+	/// Updates both the database and the in-memory articles array, then fires
+	/// `onArticleRead` so the sidebar badge refreshes immediately.
+	func markAllRead(sourceId: Int64?) {
+		do {
+			try articleRepo.markAllRead(sourceId: sourceId)
+			for idx in articles.indices {
+				if sourceId == nil || articles[idx].sourceId == sourceId {
+					articles[idx].isRead = true
+				}
+			}
+			onArticleRead?()
 		} catch {
 			errorMessage = error.localizedDescription
 		}

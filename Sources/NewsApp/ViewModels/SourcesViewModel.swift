@@ -31,6 +31,12 @@ final class SourcesViewModel: ObservableObject {
 		}
 	}
 
+	/// Lightweight re-query of unread counts without reloading sources or tags.
+	/// Called whenever an article is marked read so the badge updates immediately.
+	func refreshUnreadCounts() {
+		unreadCounts = (try? articleRepo.fetchUnreadCountsBySource()) ?? [:]
+	}
+
 	func moveSources(from offsets: IndexSet, to destination: Int) {
 		sources.move(fromOffsets: offsets, toOffset: destination)
 		let ids = sources.compactMap { $0.id }

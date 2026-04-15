@@ -79,6 +79,10 @@ struct ContentView: View {
 					sourcesVM?.load()
 				}
 			}
+			// Keep sidebar badges in sync whenever an article is marked read.
+			articlesVM.onArticleRead = { [weak sourcesVM] in
+				sourcesVM?.refreshUnreadCounts()
+			}
 			sourcesVM.load()
 			await seedIfNeeded()
 			// Load cached articles immediately, then fetch fresh content from the network.

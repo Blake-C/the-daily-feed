@@ -243,13 +243,21 @@ final class ArticleRepository: @unchecked Sendable {
 		}
 	}
 
-	/// Returns a dictionary mapping source ID → unread article count.
-	/// Only counts visible (non-hidden) unread articles.
+	/// Returns a dictionary mapping source ID → unread article count for today.
+	/// "Today" is defined as midnight-to-now in the device's local timezone, so
+	/// the badge automatically reflects only the current day's new articles and
+	/// clears itself after midnight without any explicit cleanup.
 	func fetchUnreadCountsBySource() throws -> [Int64: Int] {
-		try db.read { conn in
+		let startOfToday = Calendar.current.startOfDay(for: Date())
+		return try db.read { conn in
 			let rows = try Row.fetchAll(
 				conn,
-				sql: "SELECT sourceId, COUNT(*) AS cnt FROM articles WHERE isRead = 0 AND isHidden = 0 GROUP BY sourceId"
+				sql: """
+					SELECT sourceId, COUNT(*) AS cnt FROM articles
+					WHERE isRead = 0 AND isHidden = 0 AND publishedAt >= ?
+					GROUP BY sourceId
+					""",
+				arguments: [startOfToday]
 			)
 			var result: [Int64: Int] = [:]
 			for row in rows {
@@ -258,6 +266,21 @@ final class ArticleRepository: @unchecked Sendable {
 				result[sourceId] = count
 			}
 			return result
+		}
+	}
+
+	/// Marks all unread articles as read, optionally scoped to a single source.
+	/// Pass `nil` for `sourceId` to mark every article in the database as read.
+	func markAllRead(sourceId: Int64?) throws {
+		try db.write { conn in
+			if let sourceId {
+				try conn.execute(
+					sql: "UPDATE articles SET isRead = 1 WHERE sourceId = ? AND isRead = 0",
+					arguments: [sourceId]
+				)
+			} else {
+				try conn.execute(sql: "UPDATE articles SET isRead = 1 WHERE isRead = 0")
+			}
 		}
 	}
 
