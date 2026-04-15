@@ -15,6 +15,9 @@ final class ArticlesViewModel: ObservableObject {
 	@Published var dimThumbnails = false
 	@Published var dateRangeFilter: DateRangeFilter = .all
 	@Published var showBookmarksOnly = false
+	/// Tag names that have at least one article in the current source+dateRange context.
+	/// The filter bar uses this to hide chips that would return zero results.
+	@Published private(set) var availableTagNames: Set<String> = []
 	/// Increments every time the article list is reset (source/filter change).
 	/// Views observe this to scroll back to the top.
 	@Published private(set) var scrollResetToken = 0
@@ -50,6 +53,15 @@ final class ArticlesViewModel: ObservableObject {
 		guard !isLoading, hasMore else { return }
 		isLoading = true
 		defer { isLoading = false }
+
+		// Refresh available tag names on the first page of each new query context
+		// so the filter bar hides chips with no matching articles.
+		if currentOffset == 0 {
+			availableTagNames = (try? articleRepo.fetchAvailableTagNames(
+				sourceId: selectedSourceId,
+				dateRange: dateRangeFilter
+			)) ?? []
+		}
 
 		let query = buildQuery(offset: currentOffset)
 		do {

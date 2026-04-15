@@ -355,6 +355,36 @@ final class ArticleRepository: @unchecked Sendable {
 		}
 	}
 
+	/// Returns the set of individual tag names that appear on at least one non-hidden
+	/// article matching the given context filters. Used to hide tag chips that have
+	/// no articles in the current view.
+	func fetchAvailableTagNames(sourceId: Int64?, dateRange: DateRangeFilter) throws -> Set<String> {
+		try db.read { conn in
+			var sql = "SELECT DISTINCT tags FROM articles WHERE isHidden = 0 AND tags != ''"
+			var args: [DatabaseValueConvertible] = []
+
+			if let sourceId {
+				sql += " AND sourceId = ?"
+				args.append(sourceId)
+			}
+			if let cutoff = dateRange.cutoffDate {
+				sql += " AND publishedAt >= ?"
+				args.append(cutoff)
+			}
+
+			let rows = try String.fetchAll(conn, sql: sql, arguments: StatementArguments(args))
+			var result: Set<String> = []
+			for tagString in rows {
+				let names = tagString
+					.split(separator: ",")
+					.map { $0.trimmingCharacters(in: .whitespaces) }
+					.filter { !$0.isEmpty }
+				result.formUnion(names)
+			}
+			return result
+		}
+	}
+
 	func count(query: ArticleQuery) throws -> Int {
 		try db.read { conn in
 			var sql: String
