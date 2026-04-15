@@ -124,6 +124,33 @@ final class DatabaseManager: @unchecked Sendable {
 			}
 		}
 
+		migrator.registerMigration("v3_fts5") { db in
+			// Standalone FTS5 table for full-text search across title, author,
+			// summary, and extracted readable body. article_id is UNINDEXED so it
+			// acts as a foreign key without being tokenised.
+			try db.execute(sql: """
+				CREATE VIRTUAL TABLE IF NOT EXISTS articles_fts USING fts5(
+					article_id UNINDEXED,
+					title,
+					author,
+					summary,
+					body,
+					tokenize = 'unicode61 remove_diacritics 2'
+				)
+				""")
+
+			// Backfill existing articles into the FTS index.
+			try db.execute(sql: """
+				INSERT INTO articles_fts (article_id, title, author, summary, body)
+				SELECT id,
+				       COALESCE(title, ''),
+				       COALESCE(author, ''),
+				       COALESCE(summary, ''),
+				       COALESCE(readableContent, '')
+				FROM articles
+				""")
+		}
+
 		try migrator.migrate(dbQueue)
 	}
 }

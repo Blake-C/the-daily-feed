@@ -23,25 +23,33 @@ final class ArticleRepository: @unchecked Sendable {
 			// Exclude rawContent / readableContent from the grid query — these can
 			// be large HTML blobs that the card view never uses. They are fetched
 			// on-demand via fetchReadableContent(id:) when the detail view opens.
-			var sql = """
+			let selectClause = """
 				SELECT id, sourceId, title, rewrittenTitle, author, summary,
 				       thumbnailURL, articleURL, publishedAt, fetchedAt,
 				       tags, isRead, isHidden, starRating,
 				       NULL AS rawContent, NULL AS readableContent
-				FROM articles WHERE 1=1
+				FROM articles
 				"""
+
+			var sql: String
 			var args: [DatabaseValueConvertible] = []
+
+			if !query.searchText.isEmpty {
+				// Route through the FTS index when a search term is present.
+				// The subquery returns matching article IDs; the outer query applies
+				// all remaining filters and the standard sort.
+				let ftsQuery = makeFTSQuery(query.searchText)
+				sql = selectClause + " WHERE id IN (SELECT article_id FROM articles_fts WHERE articles_fts MATCH ?)"
+				args.append(ftsQuery)
+			} else {
+				sql = selectClause + " WHERE 1=1"
+			}
 
 			if query.hideHidden {
 				sql += " AND isHidden = 0"
 			}
 			if query.hideRead {
 				sql += " AND isRead = 0"
-			}
-			if !query.searchText.isEmpty {
-				sql += " AND (title LIKE ? OR author LIKE ? OR summary LIKE ?)"
-				let pattern = "%\(query.searchText)%"
-				args += [pattern, pattern, pattern]
 			}
 			if let sourceId = query.sourceId {
 				sql += " AND sourceId = ?"
@@ -103,6 +111,28 @@ final class ArticleRepository: @unchecked Sendable {
 						article.publishedAt, article.fetchedAt, article.tags,
 					]
 				)
+
+				// Keep the FTS index in sync. FTS5 does not support UPDATE, so
+				// we delete the old entry and re-insert. readableContent is omitted
+				// here since it's fetched lazily — updateContent() handles FTS sync
+				// when Readability content is available.
+				try conn.execute(
+					sql: "DELETE FROM articles_fts WHERE article_id = ?",
+					arguments: [article.id]
+				)
+				try conn.execute(
+					sql: """
+					INSERT INTO articles_fts (article_id, title, author, summary, body)
+					VALUES (?, ?, ?, ?, ?)
+					""",
+					arguments: [
+						article.id,
+						article.title,
+						article.author ?? "",
+						article.summary ?? "",
+						"",
+					]
+				)
 			}
 		}
 	}
@@ -140,6 +170,32 @@ final class ArticleRepository: @unchecked Sendable {
 				sql: "UPDATE articles SET rawContent = ?, readableContent = ? WHERE id = ?",
 				arguments: [rawContent, readableContent, id]
 			)
+
+			// Sync FTS: re-index with the now-available body text.
+			// Read current title/author/summary within the same transaction so the
+			// FTS record stays consistent even if something else is updating the row.
+			if let row = try Row.fetchOne(
+				conn,
+				sql: "SELECT title, author, summary FROM articles WHERE id = ?",
+				arguments: [id]
+			) {
+				let title: String = row["title"] ?? ""
+				let author: String = row["author"] ?? ""
+				let summary: String = row["summary"] ?? ""
+				let body = readableContent ?? ""
+
+				try conn.execute(
+					sql: "DELETE FROM articles_fts WHERE article_id = ?",
+					arguments: [id]
+				)
+				try conn.execute(
+					sql: """
+					INSERT INTO articles_fts (article_id, title, author, summary, body)
+					VALUES (?, ?, ?, ?, ?)
+					""",
+					arguments: [id, title, author, summary, body]
+				)
+			}
 		}
 	}
 
@@ -152,18 +208,56 @@ final class ArticleRepository: @unchecked Sendable {
 		}
 	}
 
+	/// Deletes read, unstarred articles published before `cutoff`.
+	/// Unread articles and articles with a star rating are always preserved.
+	/// Returns the number of articles removed.
+	@discardableResult
+	func pruneArticles(olderThan cutoff: Date) throws -> Int {
+		try db.write { conn in
+			// Capture IDs first so we can clean up the FTS index in the same
+			// transaction without a separate DELETE … WHERE article_id IN (subquery).
+			let ids = try String.fetchAll(
+				conn,
+				sql: """
+				SELECT id FROM articles
+				WHERE publishedAt < ? AND isRead = 1 AND starRating = 0
+				""",
+				arguments: [cutoff]
+			)
+			guard !ids.isEmpty else { return 0 }
+
+			for id in ids {
+				try conn.execute(
+					sql: "DELETE FROM articles_fts WHERE article_id = ?",
+					arguments: [id]
+				)
+			}
+			try conn.execute(
+				sql: """
+				DELETE FROM articles
+				WHERE publishedAt < ? AND isRead = 1 AND starRating = 0
+				""",
+				arguments: [cutoff]
+			)
+			return ids.count
+		}
+	}
+
 	func count(query: ArticleQuery) throws -> Int {
 		try db.read { conn in
-			var sql = "SELECT COUNT(*) FROM articles WHERE 1=1"
+			var sql: String
 			var args: [DatabaseValueConvertible] = []
+
+			if !query.searchText.isEmpty {
+				let ftsQuery = makeFTSQuery(query.searchText)
+				sql = "SELECT COUNT(*) FROM articles WHERE id IN (SELECT article_id FROM articles_fts WHERE articles_fts MATCH ?)"
+				args.append(ftsQuery)
+			} else {
+				sql = "SELECT COUNT(*) FROM articles WHERE 1=1"
+			}
 
 			if query.hideHidden { sql += " AND isHidden = 0" }
 			if query.hideRead   { sql += " AND isRead = 0" }
-			if !query.searchText.isEmpty {
-				sql += " AND (title LIKE ? OR author LIKE ? OR summary LIKE ?)"
-				let pattern = "%\(query.searchText)%"
-				args += [pattern, pattern, pattern]
-			}
 			if let sourceId = query.sourceId {
 				sql += " AND sourceId = ?"
 				args.append(sourceId)
@@ -176,5 +270,18 @@ final class ArticleRepository: @unchecked Sendable {
 
 			return try Int.fetchOne(conn, sql: sql, arguments: StatementArguments(args)) ?? 0
 		}
+	}
+
+	// MARK: - Private
+
+	/// Converts a raw search string into a safe FTS5 MATCH expression.
+	/// Each whitespace-delimited word becomes a quoted phrase (prevents FTS5
+	/// syntax injection from user input like `"` or `*`).
+	private func makeFTSQuery(_ text: String) -> String {
+		let words = text.split(whereSeparator: \.isWhitespace).map(String.init).filter { !$0.isEmpty }
+		guard !words.isEmpty else { return "\"\"" }
+		return words
+			.map { "\"\($0.replacingOccurrences(of: "\"", with: "\"\""))\"" }
+			.joined(separator: " ")
 	}
 }
