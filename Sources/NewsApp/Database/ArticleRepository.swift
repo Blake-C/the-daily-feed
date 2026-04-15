@@ -315,12 +315,18 @@ final class ArticleRepository: @unchecked Sendable {
 	func fetchUnreadCountsBySource() throws -> [Int64: Int] {
 		let startOfToday = Calendar.current.startOfDay(for: Date())
 		return try db.read { conn in
+			// Join with news_sources to respect badgeClearedAt: articles dismissed via
+			// "Dismiss New" are excluded from the badge even if still unread.
 			let rows = try Row.fetchAll(
 				conn,
 				sql: """
-					SELECT sourceId, COUNT(*) AS cnt FROM articles
-					WHERE isRead = 0 AND isHidden = 0 AND publishedAt >= ?
-					GROUP BY sourceId
+					SELECT a.sourceId, COUNT(*) AS cnt
+					FROM articles a
+					LEFT JOIN news_sources s ON a.sourceId = s.id
+					WHERE a.isRead = 0 AND a.isHidden = 0
+					  AND a.publishedAt >= ?
+					  AND (s.badgeClearedAt IS NULL OR a.publishedAt > s.badgeClearedAt)
+					GROUP BY a.sourceId
 					""",
 				arguments: [startOfToday]
 			)

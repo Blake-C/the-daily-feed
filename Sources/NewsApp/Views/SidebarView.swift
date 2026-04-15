@@ -72,9 +72,9 @@ struct SidebarView: View {
 					.contextMenu {
 						if totalUnread > 0 {
 							Button {
-								articlesVM.markAllRead(sourceId: nil)
+								sourcesVM.dismissBadge(sourceId: nil)
 							} label: {
-								Label("Mark All as Read", systemImage: "checkmark.circle")
+								Label("Dismiss New", systemImage: "bell.slash")
 							}
 						}
 					}
@@ -105,9 +105,9 @@ struct SidebarView: View {
 							}
 							if unread > 0 {
 								Button {
-									articlesVM.markAllRead(sourceId: source.id)
+									sourcesVM.dismissBadge(sourceId: source.id)
 								} label: {
-									Label("Mark All as Read", systemImage: "checkmark.circle")
+									Label("Dismiss New", systemImage: "bell.slash")
 								}
 								Divider()
 							}

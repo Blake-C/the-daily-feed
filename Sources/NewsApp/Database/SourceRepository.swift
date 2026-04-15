@@ -71,6 +71,26 @@ final class SourceRepository: @unchecked Sendable {
 		}
 	}
 
+	/// Sets badgeClearedAt = now for one or all sources, causing the unread badge
+	/// to show only articles published after this timestamp going forward.
+	/// Pass nil for sourceId to clear badges for every source.
+	func clearBadge(sourceId: Int64?) throws {
+		let now = Date()
+		try db.write { conn in
+			if let sourceId {
+				try conn.execute(
+					sql: "UPDATE news_sources SET badgeClearedAt = ? WHERE id = ?",
+					arguments: [now, sourceId]
+				)
+			} else {
+				try conn.execute(
+					sql: "UPDATE news_sources SET badgeClearedAt = ?",
+					arguments: [now]
+				)
+			}
+		}
+	}
+
 	/// Persist a new sort order after drag-and-drop reordering.
 	func reorder(ids: [Int64]) throws {
 		try db.write { conn in

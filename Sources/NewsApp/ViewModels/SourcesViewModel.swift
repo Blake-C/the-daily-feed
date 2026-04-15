@@ -37,6 +37,17 @@ final class SourcesViewModel: ObservableObject {
 		unreadCounts = (try? articleRepo.fetchUnreadCountsBySource()) ?? [:]
 	}
 
+	/// Clears the new-article badge for one source (or all when sourceId is nil)
+	/// without touching any article's read status.
+	func dismissBadge(sourceId: Int64?) {
+		do {
+			try sourceRepo.clearBadge(sourceId: sourceId)
+			refreshUnreadCounts()
+		} catch {
+			errorMessage = error.localizedDescription
+		}
+	}
+
 	func moveSources(from offsets: IndexSet, to destination: Int) {
 		sources.move(fromOffsets: offsets, toOffset: destination)
 		let ids = sources.compactMap { $0.id }
