@@ -227,6 +227,7 @@ private struct SourceRow: View {
 					.onChange(of: pickerColor) {
 						colorStore.set(pickerColor, for: id)
 					}
+					.padding(.trailing, 6)
 			}
 
 			VStack(alignment: .leading, spacing: 2) {
