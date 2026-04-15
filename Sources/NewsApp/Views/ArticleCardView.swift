@@ -10,6 +10,14 @@ struct ArticleCardView: View {
 		article.rewrittenTitle ?? article.title
 	}
 
+	private var relativePublishTime: String {
+		let interval = Date().timeIntervalSince(article.publishedAt)
+		if interval < 60 { return "1 minute ago" }
+		let formatter = RelativeDateTimeFormatter()
+		formatter.unitsStyle = .full
+		return formatter.localizedString(for: article.publishedAt, relativeTo: Date())
+	}
+
 	@Environment(SourceColorStore.self) private var colorStore
 
 	private var sourceColor: Color {
@@ -58,8 +66,13 @@ struct ArticleCardView: View {
 
 				Spacer(minLength: 0)
 
-				// Meta row
-				HStack(spacing: 6) {
+				// Bottom row: read badge + author (left) + publish time (right)
+				HStack(spacing: 4) {
+					if article.isRead {
+						Image(systemName: "checkmark.circle.fill")
+							.foregroundStyle(.green)
+							.font(.caption)
+					}
 					if let author = article.author {
 						Text(author)
 							.font(.system(size: 11))
@@ -67,15 +80,9 @@ struct ArticleCardView: View {
 							.lineLimit(1)
 					}
 					Spacer(minLength: 0)
-					Text(article.publishedAt, style: .relative)
+					Text(relativePublishTime)
 						.font(.system(size: 11))
 						.foregroundStyle(.tertiary)
-				}
-
-				if article.isRead {
-					Image(systemName: "checkmark.circle.fill")
-						.foregroundStyle(.green)
-						.font(.caption)
 				}
 			}
 			.frame(maxHeight: .infinity, alignment: .top)
