@@ -9,15 +9,15 @@
 ☐ Unread count badges — SidebarView shows unread count for "All Articles" but it's unclear if per-source unread counts appear. Even a small badge per source helps navigation.
 ☐ Mark all read — No bulk "mark all as read" action. Users accumulate hundreds of articles fast.
 ✔ OPML import/export — RSS managers conventionally support OPML for migrating feed lists. Without it, switching to/from Reeder, NetNewsWire, etc. is painful. @done(Mon. 04/14/2026 - 11:34:00 PM)
-☐ Article text size / font controls — ArticleWebContentView hardcodes 17px Georgia. A font-size slider in Settings (or toolbar) would help readability.
-☐ AI batch processing — Ollama rewrites happen one article at a time, triggered manually. A "rewrite all visible headlines" batch option would make the AI feature much more useful.
-☐ Image gallery / full-screen image — No way to zoom/expand thumbnail images in article detail.
+✔ Article text size / font controls — ArticleWebContentView hardcodes 17px Georgia. A font-size slider in Settings (or toolbar) would help readability. @done(Wed. 04/15/2026 - 02:00:00 PM)
+✘ AI batch processing — Ollama rewrites happen one article at a time, triggered manually. A "rewrite all visible headlines" batch option would make the AI feature much more useful. @cancelled(Wed. 04/15/2026 - 11:35:03 AM)
+✘ Image gallery / full-screen image — No way to zoom/expand thumbnail images in article detail. @cancelled(Wed. 04/15/2026 - 11:34:53 AM)
 
 ## Usability
 
-☐ Article detail is a sheet, not a split panel — On a large macOS display, a NavigationSplitView with a third detail column would be far more natural than a full-screen modal sheet. The current sheet covers the entire grid and kills browsing momentum.
-☐ Read articles don't persist scroll position — When the user returns from article detail, the grid likely resets. Scroll position should be preserved across detail open/close.
-☐ No "next article" / "previous article" navigation in detail — Users have to close the sheet and reopen the next card. An arrow button (or swipe gesture) to step through articles sequentially is a basic reader feature.
+✘ Article detail is a sheet, not a split panel — On a large macOS display, a NavigationSplitView with a third detail column would be far more natural than a full-screen modal sheet. The current sheet covers the entire grid and kills browsing momentum. @cancelled(Wed. 04/15/2026 - 11:04:14 AM)
+✘ Read articles don't persist scroll position — When the user returns from article detail, the grid likely resets. Scroll position should be preserved across detail open/close. @cancelled(Wed. 04/15/2026 - 11:04:19 AM)
+✘ No "next article" / "previous article" navigation in detail — Users have to close the sheet and reopen the next card. An arrow button (or swipe gesture) to step through articles sequentially is a basic reader feature. @cancelled(Wed. 04/15/2026 - 11:04:20 AM)
 ☐ Tag filter is all-or-nothing — Tags appear to be AND or OR but it's not communicated. Clarifying the filter logic (or letting users toggle it) prevents confusion.
 ☐ Source error is in context menu only — The warning icon on a source with lastError only reveals the error via right-click. Hovering to show a tooltip with the error text would be much more discoverable.
 ☐ No confirmation on "Hide article" — The hide button appears on hover with no undo. A brief "Undo" toast/notification would prevent accidental hides.
@@ -42,10 +42,43 @@
 ✔ Skeleton loading uses fixed 4 cards — If the user has 1-2 articles visible before paginating, 4 skeleton cards will overshoot the visible area. Calculating the visible row count and matching the skeleton count would look cleaner. @done(Wed. 04/15/2026 - 12:14:00 AM)
 ✔ Source color assignment via hash is invisible to the user — Users can't customize source colors. A color picker per source in Source Manager would let them create their own visual taxonomy. @done(Wed. 04/15/2026 - 12:14:00 AM)
 ✔ Empty state messaging could be more specific — When articles are empty due to a search that returns nothing vs. all sources being disabled vs. no articles fetched yet, the same empty state likely appears. Contextual empty states improve clarity. @done(Wed. 04/15/2026 - 12:14:00 AM)
-☐ No dark mode thumbnail handling — Dark mode likely inverts some article thumbnails oddly depending on image content. A subtle darkening overlay on thumbnails in dark mode would look more consistent.
-☐ Hover-only hide button is discoverable only by accident — Consider making it always-visible as a faint X, or accessible via right-click context menu.
+✔ No dark mode thumbnail handling — Dark mode likely inverts some article thumbnails oddly depending on image content. A subtle darkening overlay on thumbnails in dark mode would look more consistent. @done(Wed. 04/15/2026 - 11:03:40 AM)
+✘ Hover-only hide button is discoverable only by accident — Consider making it always-visible as a faint X, or accessible via right-click context menu. @cancelled(Wed. 04/15/2026 - 11:03:53 AM)
 
-# Example
 
-☐ Here is a task
-✔ Here is a completed task @done(Tue. 04/14/2026 - 06:51:19 PM)
+Highest impact (core reader experience):
+
+☐ Keyboard navigation is the biggest gap for a desktop news app. Power users expect J/K to move between articles, Enter to open, M to mark read, O to open in browser. Without it the app feels like it hasn't committed to being a Mac app.
+
+✔ "Mark all read" — articles accumulate fast. Without a bulk action the read-status feature becomes useless noise after a few days. @done(Wed. 04/15/2026 - 01:03:36 PM)
+
+☐ Article bookmarking — the star ratings exist but a simple dedicated Bookmarks queue (isBookmarked + sidebar section) is more intuitive than a rating for "save this." Ratings and bookmarks serve different purposes.
+
+Architecture gaps not yet in the TODO:
+
+✔ Article aging / database cleanup — there's no mechanism to prune old articles. The DB will grow unbounded over time. A configurable retention window (e.g., keep last 30/60/90 days, always keep unread and bookmarked) would prevent this. @done(Wed. 04/15/2026 - 12:39:05 PM)
+
+✔ Full-text search — ArticleRepository.fetch() searches title, author, and summary only. Readable content is cached in readableContent but isn't searched. FTS5 (SQLite full-text search, which GRDB supports natively) would make search dramatically more useful. @done(Wed. 04/15/2026 - 12:39:08 PM)
+
+✔ ReadabilityService has a concurrency hazard — it's a singleton with a single pendingContinuation. If two articles are opened quickly (or the same article opened twice), the second call overwrites pendingContinuation and the first caller's continuation is leaked/never resumed. It needs a queue or per-call WebView instances. @done(Wed. 04/15/2026 - 12:39:10 PM)
+
+✔ Feed discovery — when a user adds a website URL (not a feed URL), the app currently marks it as a "website" type but doesn't attempt RSS autodiscovery (parsing <link rel="alternate" type="application/rss+xml"> from the homepage). NetNewsWire and Reeder both do this; it dramatically lowers the friction of adding sources. @done(Wed. 04/15/2026 - 12:39:12 PM)
+
+Polish that would matter for going public:
+
+✔ Share sheet / Copy Link — there's no way to share an article. A toolbar button with NSSharingServicePicker or a right-click context menu with "Copy Link" is a one-liner and covers the most common action. @done(Wed. 04/15/2026 - 12:49:05 PM)
+
+✔ Search scope label — the search bar gives no indication what it searches. A small (title, author, summary) footer hint or a scope picker would eliminate confusion. @done(Wed. 04/15/2026 - 12:49:03 PM)
+
+✔ Per-source unread badges — you track unread per article but the sidebar source rows don't show counts. This is how users decide which source to read first. @done(Wed. 04/15/2026 - 12:49:00 PM)
+
+✔ Notification on new articles — a UNUserNotificationCenter post when a background refresh finds new articles (opt-in, with a count) is a standard expectation for any feed reader. @done(Wed. 04/15/2026 - 12:48:59 PM)
+
+Lower priority but worth noting:
+
+
+☐ iCloud/CloudKit sync — UserDefaults settings and Keychain are local-only. If someone runs the app on two Macs there's no sync. Complex to add but worth planning the data model for.
+
+✔ Ollama endpoint validation — currently accepts any URL; a user (or someone with local access) could point it at an arbitrary remote host. A simple localhost-only warning would be a sensible guardrail. @done(Wed. 04/15/2026 - 02:00:00 PM)
+
+✔ Font size controls — already in your TODO; easy win, big readability impact. @done(Wed. 04/15/2026 - 02:00:00 PM)
