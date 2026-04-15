@@ -41,6 +41,20 @@ struct SidebarView: View {
 			.padding(.bottom, 4)
 
 			List {
+				Section("Library") {
+					SidebarRow(
+						title: "Bookmarks",
+						icon: "bookmark",
+						selectedIcon: "bookmark.fill",
+						isSelected: articlesVM.showBookmarksOnly,
+						unreadCount: 0,
+						badge: nil,
+						error: nil
+					) {
+						articlesVM.filterByBookmarks(!articlesVM.showBookmarksOnly)
+					}
+				}
+
 				Section("Feeds") {
 					// All Articles
 					let totalUnread = sourcesVM.unreadCounts.values.reduce(0, +)

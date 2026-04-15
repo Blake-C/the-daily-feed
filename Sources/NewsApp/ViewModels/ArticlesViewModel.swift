@@ -14,6 +14,7 @@ final class ArticlesViewModel: ObservableObject {
 	@Published var errorMessage: String?
 	@Published var dimThumbnails = false
 	@Published var dateRangeFilter: DateRangeFilter = .all
+	@Published var showBookmarksOnly = false
 	/// Increments every time the article list is reset (source/filter change).
 	/// Views observe this to scroll back to the top.
 	@Published private(set) var scrollResetToken = 0
@@ -235,6 +236,28 @@ final class ArticlesViewModel: ObservableObject {
 		loadTask = Task { await loadNextPage() }
 	}
 
+	func filterByBookmarks(_ on: Bool) {
+		showBookmarksOnly = on
+		if on { selectedSourceId = nil }
+		reset()
+		loadTask = Task { await loadNextPage() }
+	}
+
+	func toggleBookmark(_ article: Article) {
+		do {
+			let nowBookmarked = try articleRepo.toggleBookmark(id: article.id)
+			if let idx = articles.firstIndex(where: { $0.id == article.id }) {
+				articles[idx].isBookmarked = nowBookmarked
+			}
+			// If we are in bookmarks-only mode and the article was un-bookmarked, remove it.
+			if showBookmarksOnly && !nowBookmarked {
+				articles.removeAll { $0.id == article.id }
+			}
+		} catch {
+			errorMessage = error.localizedDescription
+		}
+	}
+
 	private func buildQuery(offset: Int) -> ArticleQuery {
 		ArticleQuery(
 			tags: Array(activeTags),
@@ -242,6 +265,7 @@ final class ArticlesViewModel: ObservableObject {
 			sourceId: selectedSourceId,
 			hideRead: hideRead,
 			hideHidden: true,
+			bookmarksOnly: showBookmarksOnly,
 			dateRange: dateRangeFilter,
 			limit: pageSize,
 			offset: offset

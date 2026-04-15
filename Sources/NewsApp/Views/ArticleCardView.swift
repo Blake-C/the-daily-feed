@@ -106,11 +106,23 @@ struct ArticleCardView: View {
 			RoundedRectangle(cornerRadius: 10)
 				.strokeBorder(isHovered ? Color.accentColor.opacity(0.6) : Color.clear, lineWidth: 1.5)
 
-			// Hide button — top-right corner, visible on hover
+			// Top-right action buttons — visible on hover
 			if isHovered {
 				VStack {
 					HStack {
 						Spacer()
+						Button {
+							vm.toggleBookmark(article)
+						} label: {
+							Image(systemName: article.isBookmarked ? "bookmark.fill" : "bookmark")
+								.font(.system(size: 16))
+								.foregroundStyle(article.isBookmarked ? Color.accentColor : .white)
+								.shadow(radius: 2)
+								.padding(.top, 8)
+								.padding(.trailing, 4)
+						}
+						.buttonStyle(.plain)
+						.help(article.isBookmarked ? "Remove bookmark" : "Bookmark article")
 						Button {
 							vm.hideArticle(article)
 						} label: {
@@ -126,6 +138,18 @@ struct ArticleCardView: View {
 					Spacer()
 				}
 				.transition(.opacity)
+			} else if article.isBookmarked {
+				// Always show bookmark fill when not hovered so saved articles are visible.
+				VStack {
+					HStack {
+						Spacer()
+						Image(systemName: "bookmark.fill")
+							.font(.system(size: 14))
+							.foregroundStyle(Color.accentColor)
+							.padding(8)
+					}
+					Spacer()
+				}
 			}
 		}
 		.shadow(color: .black.opacity(isHovered ? 0.15 : 0.06), radius: isHovered ? 8 : 3, y: 2)
@@ -134,6 +158,15 @@ struct ArticleCardView: View {
 		.onHover { isHovered = $0 }
 		.opacity(article.isRead ? 0.75 : 1.0)
 		.contextMenu {
+			Button {
+				vm.toggleBookmark(article)
+			} label: {
+				Label(
+					article.isBookmarked ? "Remove Bookmark" : "Bookmark",
+					systemImage: article.isBookmarked ? "bookmark.slash" : "bookmark"
+				)
+			}
+			Divider()
 			if let articleURL = URL(string: article.articleURL) {
 				ShareLink(item: articleURL) {
 					Label("Share…", systemImage: "square.and.arrow.up")

@@ -43,6 +43,7 @@ struct ArticleQuery {
 	var sourceId: Int64? = nil
 	var hideRead: Bool = false
 	var hideHidden: Bool = true   // always filter dismissed articles by default
+	var bookmarksOnly: Bool = false
 	var dateRange: DateRangeFilter = .all
 	var limit: Int = 40
 	var offset: Int = 0
@@ -87,6 +88,9 @@ final class ArticleRepository: @unchecked Sendable {
 			}
 			if query.hideRead {
 				sql += " AND isRead = 0"
+			}
+			if query.bookmarksOnly {
+				sql += " AND isBookmarked = 1"
 			}
 			if let sourceId = query.sourceId {
 				sql += " AND sourceId = ?"
@@ -211,6 +215,17 @@ final class ArticleRepository: @unchecked Sendable {
 				sql: "UPDATE articles SET isRead = 0 WHERE id = ?",
 				arguments: [id]
 			)
+		}
+	}
+
+	func toggleBookmark(id: String) throws -> Bool {
+		try db.write { conn in
+			try conn.execute(
+				sql: "UPDATE articles SET isBookmarked = NOT isBookmarked WHERE id = ?",
+				arguments: [id]
+			)
+			let row = try Row.fetchOne(conn, sql: "SELECT isBookmarked FROM articles WHERE id = ?", arguments: [id])
+			return (row?["isBookmarked"] as? Bool) ?? false
 		}
 	}
 
@@ -347,8 +362,9 @@ final class ArticleRepository: @unchecked Sendable {
 				sql = "SELECT COUNT(*) FROM articles WHERE 1=1"
 			}
 
-			if query.hideHidden { sql += " AND isHidden = 0" }
-			if query.hideRead   { sql += " AND isRead = 0" }
+			if query.hideHidden   { sql += " AND isHidden = 0" }
+			if query.hideRead     { sql += " AND isRead = 0" }
+			if query.bookmarksOnly { sql += " AND isBookmarked = 1" }
 			if let sourceId = query.sourceId {
 				sql += " AND sourceId = ?"
 				args.append(sourceId)
