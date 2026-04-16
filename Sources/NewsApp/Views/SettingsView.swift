@@ -47,17 +47,6 @@ struct SettingsView: View {
 			}
 
 			Section {
-				Toggle("Enable Daily Summary", isOn: $appState.dailySummaryEnabled)
-			} header: {
-				Text("Daily Summary")
-					.font(.headline)
-			} footer: {
-				Text("When enabled, articles you read each day are silently summarized by Ollama and collected in a Daily Summary section in the sidebar. Disabled by default. Requires an active Ollama connection.")
-					.foregroundStyle(.secondary)
-					.font(.caption)
-			}
-
-			Section {
 				Picker("Keep read articles for", selection: $appState.articleRetentionDays) {
 					Text("7 days").tag(7)
 					Text("30 days").tag(30)
@@ -114,6 +103,19 @@ struct SettingsView: View {
 					.font(.headline)
 			} footer: {
 				Text("Make sure Ollama is running locally with the specified model pulled. The AI rewrite feature uses this connection to generate improved headlines and summaries.")
+					.foregroundStyle(.secondary)
+					.font(.caption)
+			}
+
+			Section {
+				Toggle("AI Rewrite", isOn: $appState.aiRewriteEnabled)
+				Toggle("Daily Summary", isOn: $appState.dailySummaryEnabled)
+				Toggle("Suggested Sources", isOn: $appState.suggestedSourcesEnabled)
+			} header: {
+				Text("Features")
+					.font(.headline)
+			} footer: {
+				Text("AI Rewrite rewrites headlines and generates summaries on demand in article detail. Daily Summary silently summarizes articles you read each day. Suggested Sources periodically recommends reputable RSS feeds you might not follow.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}
