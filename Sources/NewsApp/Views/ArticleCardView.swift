@@ -140,7 +140,7 @@ struct ArticleCardView: View {
 		.scaleEffect(isHovered ? 1.01 : 1.0)
 		.animation(.easeOut(duration: 0.15), value: isHovered)
 		.onHover { isHovered = $0 }
-		.opacity(article.isRead ? 0.75 : 1.0)
+		.opacity(article.isRead ? 0.5 : 1.0)
 		.contextMenu {
 			Button {
 				vm.toggleBookmark(article)
