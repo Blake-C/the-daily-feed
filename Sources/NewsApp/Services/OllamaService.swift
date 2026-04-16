@@ -41,6 +41,59 @@ final class OllamaService: @unchecked Sendable {
 		return try parseArticleResult(from: responseText)
 	}
 
+	// MARK: - Source Suggestions
+
+	// Fixed template — {sources} is the only user-influenced substitution and is
+	// truncated to 500 chars before use, limiting prompt-injection surface area.
+	// Output is display-only (name, URL, description) and never executed.
+	static let sourceSuggestionPromptTemplate = """
+		You are a news feed curator. The user currently reads these news sources: {sources}
+
+		Suggest exactly 6 reputable news sources they might enjoy but may not already follow.
+		Choose only well-established outlets that:
+		- Have been publishing for at least 10 years
+		- Are widely recognised journalism organisations
+		- Are free from misinformation and have editorial standards
+		- Provide a publicly accessible RSS or Atom feed on their website
+		- Cover topics related to what the user already reads, or complementary areas
+
+		For each suggestion provide the main website homepage URL only (not the RSS feed URL).
+
+		Respond ONLY in valid JSON with no markdown or extra text:
+		{"suggestions": [
+		  {"name": "...", "website": "https://...", "summary": "One sentence description.", "category": "..."},
+		  ...
+		]}
+		"""
+
+	/// Returns up to 6 source suggestions from Ollama based on the user's current feed names.
+	/// - Parameter currentSourceNames: Comma-separated source names, used as context.
+	func suggestSources(
+		currentSourceNames: String,
+		endpoint: String,
+		model: String
+	) async throws -> [OllamaSourceSuggestion] {
+		let safeContext = String(currentSourceNames.trimmingCharacters(in: .whitespacesAndNewlines).prefix(500))
+		let prompt = Self.sourceSuggestionPromptTemplate
+			.replacingOccurrences(of: "{sources}", with: safeContext.isEmpty ? "various news sources" : safeContext)
+		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model)
+		return try parseSourceSuggestions(from: responseText)
+	}
+
+	private func parseSourceSuggestions(from text: String) throws -> [OllamaSourceSuggestion] {
+		let cleaned = text
+			.replacingOccurrences(of: "```json", with: "")
+			.replacingOccurrences(of: "```", with: "")
+			.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard
+			let data = cleaned.data(using: .utf8),
+			let result = try? JSONDecoder().decode(OllamaSourceSuggestionsResult.self, from: data)
+		else {
+			throw NewsError.parseFailed("Could not parse source suggestions JSON: \(cleaned.prefix(200))")
+		}
+		return result.suggestions
+	}
+
 	// MARK: - Daily Summary
 
 	// Fixed prompt — never interpolated from user-controlled data except via the
@@ -153,4 +206,15 @@ struct OllamaArticleResult: Codable {
 
 struct OllamaDailySummaryResult: Codable {
 	let briefing: String
+}
+
+struct OllamaSourceSuggestion: Codable {
+	let name: String
+	let website: String
+	let summary: String
+	let category: String
+}
+
+struct OllamaSourceSuggestionsResult: Codable {
+	let suggestions: [OllamaSourceSuggestion]
 }
