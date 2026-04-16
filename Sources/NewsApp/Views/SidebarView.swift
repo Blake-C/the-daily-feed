@@ -55,6 +55,18 @@ struct SidebarView: View {
 					) {
 						articlesVM.filterByBookmarks(!articlesVM.showBookmarksOnly)
 					}
+
+					SidebarRow(
+						title: "Hidden",
+						icon: "eye.slash",
+						selectedIcon: "eye.slash.fill",
+						isSelected: articlesVM.showHiddenOnly,
+						unreadCount: articlesVM.hiddenCount,
+						badge: nil,
+						error: nil
+					) {
+						articlesVM.filterByHidden(!articlesVM.showHiddenOnly)
+					}
 				}
 
 				Section("Feeds") {
