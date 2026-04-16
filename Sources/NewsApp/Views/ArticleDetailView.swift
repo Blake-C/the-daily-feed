@@ -92,24 +92,26 @@ struct ArticleDetailView: View {
 				.foregroundStyle(isBookmarked ? Color.accentColor : .secondary)
 				.help(isBookmarked ? "Remove bookmark" : "Bookmark article")
 
-				// Share / browser in overflow menu
+				// Share and open-in-browser as direct toolbar buttons so
+				// NSSharingServicePicker anchors correctly to the button frame.
 				if let articleURL = URL(string: article.articleURL) {
-					Menu {
-						ShareLink(item: articleURL) {
-							Label("Share…", systemImage: "square.and.arrow.up")
-						}
-						Button {
-							NSWorkspace.shared.open(articleURL)
-						} label: {
-							Label("Open in Browser", systemImage: "arrow.up.right.square")
-						}
-					} label: {
-						Image(systemName: "ellipsis.circle")
+					ShareLink(item: articleURL) {
+						Image(systemName: "square.and.arrow.up")
 							.font(.system(size: 15))
 							.foregroundStyle(.secondary)
 					}
 					.buttonStyle(.plain)
-					.help("More actions")
+					.help("Share article")
+
+					Button {
+						NSWorkspace.shared.open(articleURL)
+					} label: {
+						Image(systemName: "arrow.up.right.square")
+							.font(.system(size: 15))
+							.foregroundStyle(.secondary)
+					}
+					.buttonStyle(.plain)
+					.help("Open in browser")
 				}
 			}
 			.padding(.horizontal, 16)
