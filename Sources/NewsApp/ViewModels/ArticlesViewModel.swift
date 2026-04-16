@@ -18,6 +18,7 @@ final class ArticlesViewModel: ObservableObject {
 	@Published var showHiddenOnly = false
 	@Published var showDailySummary = false
 	@Published var showSuggestedSources = false
+	@Published var showQuizStats = false
 	/// Tag names that have at least one article in the current source+dateRange context.
 	/// The filter bar uses this to hide chips that would return zero results.
 	@Published private(set) var availableTagNames: Set<String> = []
@@ -141,6 +142,7 @@ final class ArticlesViewModel: ObservableObject {
 		showHiddenOnly = false
 		showDailySummary = false
 		showSuggestedSources = false
+		showQuizStats = false
 		// Persist so the selection survives app restarts.
 		if let id {
 			UserDefaults.standard.set(id, forKey: Self.selectedSourceKey)
@@ -264,6 +266,7 @@ final class ArticlesViewModel: ObservableObject {
 
 		if showDailySummary { return nil }        // DailySummaryView has its own header
 		if showSuggestedSources { return nil }    // SuggestedSourcesView has its own header
+		if showQuizStats { return nil }           // QuizStatsView has its own header
 		if showHiddenOnly {
 			parts.append("Hidden")
 		} else {
@@ -322,28 +325,35 @@ final class ArticlesViewModel: ObservableObject {
 
 	func filterByBookmarks(_ on: Bool) {
 		showBookmarksOnly = on
-		if on { selectedSourceId = nil; showHiddenOnly = false; showDailySummary = false; showSuggestedSources = false }
+		if on { selectedSourceId = nil; showHiddenOnly = false; showDailySummary = false; showSuggestedSources = false; showQuizStats = false }
 		reset()
 		loadTask = Task { await loadNextPage() }
 	}
 
 	func filterByHidden(_ on: Bool) {
 		showHiddenOnly = on
-		if on { selectedSourceId = nil; showBookmarksOnly = false; showDailySummary = false; showSuggestedSources = false }
+		if on { selectedSourceId = nil; showBookmarksOnly = false; showDailySummary = false; showSuggestedSources = false; showQuizStats = false }
 		reset()
 		loadTask = Task { await loadNextPage() }
 	}
 
 	func filterByDailySummary(_ on: Bool) {
 		showDailySummary = on
-		if on { selectedSourceId = nil; showBookmarksOnly = false; showHiddenOnly = false; showSuggestedSources = false }
+		if on { selectedSourceId = nil; showBookmarksOnly = false; showHiddenOnly = false; showSuggestedSources = false; showQuizStats = false }
 		reset()
 		loadTask = Task { await loadNextPage() }
 	}
 
 	func filterBySuggestedSources(_ on: Bool) {
 		showSuggestedSources = on
-		if on { selectedSourceId = nil; showBookmarksOnly = false; showHiddenOnly = false; showDailySummary = false }
+		if on { selectedSourceId = nil; showBookmarksOnly = false; showHiddenOnly = false; showDailySummary = false; showQuizStats = false }
+		reset()
+		loadTask = Task { await loadNextPage() }
+	}
+
+	func filterByQuizStats(_ on: Bool) {
+		showQuizStats = on
+		if on { selectedSourceId = nil; showBookmarksOnly = false; showHiddenOnly = false; showDailySummary = false; showSuggestedSources = false }
 		reset()
 		loadTask = Task { await loadNextPage() }
 	}

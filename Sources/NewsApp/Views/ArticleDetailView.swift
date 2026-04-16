@@ -15,6 +15,9 @@ struct ArticleDetailView: View {
 	@State private var displaySummary: String
 	@State private var isBookmarked: Bool
 
+	// Quiz state
+	@State private var showQuiz = false
+
 	// Find-in-article state
 	@State private var showFind = false
 	@State private var findText = ""
@@ -71,6 +74,32 @@ struct ArticleDetailView: View {
 					.buttonStyle(.borderedProminent)
 					.controlSize(.small)
 					.disabled(detailVM.isProcessingAI)
+
+					Divider()
+						.frame(height: 16)
+				}
+
+				// Quiz — shown only when the feature is enabled
+				if appState.quizEnabled {
+					Button {
+						if showQuiz {
+							showQuiz = false
+						} else {
+							showQuiz = true
+							if detailVM.quizQuestions.isEmpty && !detailVM.isGeneratingQuiz {
+								Task { await generateQuiz() }
+							}
+						}
+					} label: {
+						Label(
+							detailVM.isGeneratingQuiz ? "Generating…" : "Test Your Knowledge",
+							systemImage: "brain.head.profile"
+						)
+						.font(.system(size: 12))
+					}
+					.buttonStyle(.bordered)
+					.controlSize(.small)
+					.disabled(detailVM.isGeneratingQuiz)
 
 					Divider()
 						.frame(height: 16)
@@ -174,83 +203,103 @@ struct ArticleDetailView: View {
 				Divider()
 			}
 
-			ScrollView {
-				VStack(alignment: .leading, spacing: 16) {
-					// Header meta
-					VStack(alignment: .leading, spacing: 6) {
-						// Category tags
-						if !article.tagList.isEmpty {
-							HStack(spacing: 6) {
-								ForEach(article.tagList.prefix(4), id: \.self) { tag in
-									Text(tag.uppercased())
-										.font(.system(size: 10, weight: .bold))
-										.foregroundStyle(Color.accentColor)
+			HStack(alignment: .top, spacing: 0) {
+				ScrollView {
+					VStack(alignment: .leading, spacing: 16) {
+						// Header meta
+						VStack(alignment: .leading, spacing: 6) {
+							// Category tags
+							if !article.tagList.isEmpty {
+								HStack(spacing: 6) {
+									ForEach(article.tagList.prefix(4), id: \.self) { tag in
+										Text(tag.uppercased())
+											.font(.system(size: 10, weight: .bold))
+											.foregroundStyle(Color.accentColor)
+									}
 								}
 							}
-						}
 
-						// Title
-						Text(displayTitle)
-							.font(.system(size: 26, weight: .bold, design: .serif))
-							.textSelection(.enabled)
-
-						// Byline / summary row
-						if let byline = readabilityResult?.byline ?? article.author, !byline.trimmingCharacters(in: .whitespaces).isEmpty {
-							Text("By \(byline)")
-								.font(.system(size: 13, weight: .medium))
-								.foregroundStyle(.secondary)
+							// Title
+							Text(displayTitle)
+								.font(.system(size: 26, weight: .bold, design: .serif))
 								.textSelection(.enabled)
-						}
 
-						HStack {
-							Text(article.publishedAt, style: .date)
-							if let name = sourceName {
-								Text("·")
-								Text(name)
-									.lineLimit(1)
+							// Byline / summary row
+							if let byline = readabilityResult?.byline ?? article.author, !byline.trimmingCharacters(in: .whitespaces).isEmpty {
+								Text("By \(byline)")
+									.font(.system(size: 13, weight: .medium))
+									.foregroundStyle(.secondary)
+									.textSelection(.enabled)
+							}
+
+							HStack {
+								Text(article.publishedAt, style: .date)
+								if let name = sourceName {
+									Text("·")
+									Text(name)
+										.lineLimit(1)
+								}
+							}
+							.font(.system(size: 12))
+							.foregroundStyle(.tertiary)
+
+							// AI Summary
+							if !displaySummary.isEmpty {
+								Text(displaySummary)
+									.font(.system(size: 14, weight: .regular, design: .serif))
+									.italic()
+									.foregroundStyle(.secondary)
+									.textSelection(.enabled)
+									.padding(12)
+									.background(Color.accentColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
 							}
 						}
-						.font(.system(size: 12))
-						.foregroundStyle(.tertiary)
 
-						// AI Summary
-						if !displaySummary.isEmpty {
-							Text(displaySummary)
-								.font(.system(size: 14, weight: .regular, design: .serif))
-								.italic()
+						Divider()
+
+						// Article content
+						if let result = readabilityResult {
+							ArticleWebContentView(
+								htmlContent: result.htmlContent,
+								accessibilityText: result.textContent,
+								findQuery: findText,
+								findTrigger: findTrigger,
+								findBackward: findBackward
+							)
+							.frame(minHeight: 700)
+						} else {
+							Text("Loading article content…")
 								.foregroundStyle(.secondary)
-								.textSelection(.enabled)
-								.padding(12)
-								.background(Color.accentColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+								.frame(maxWidth: .infinity, alignment: .center)
+								.padding(.top, 40)
 						}
-
-
 					}
-
-					Divider()
-
-					// Article content
-					if let result = readabilityResult {
-						ArticleWebContentView(
-							htmlContent: result.htmlContent,
-							accessibilityText: result.textContent,
-							findQuery: findText,
-							findTrigger: findTrigger,
-							findBackward: findBackward
-						)
-						.frame(minHeight: 700)
-					} else {
-						Text("Loading article content…")
-							.foregroundStyle(.secondary)
-							.frame(maxWidth: .infinity, alignment: .center)
-							.padding(.top, 40)
-					}
+					.padding(.horizontal, 24)
+					.padding(.vertical, 16)
+					.frame(maxWidth: 760, alignment: .leading)
+					.frame(maxWidth: .infinity)
 				}
-				.padding(.horizontal, 24)
-				.padding(.vertical, 16)
-				.frame(maxWidth: 760, alignment: .leading)
-				.frame(maxWidth: .infinity)
+
+				// Quiz side panel
+				if showQuiz {
+					Divider()
+					ArticleQuizView(
+						questions: detailVM.quizQuestions,
+						isLoading: detailVM.isGeneratingQuiz,
+						onClose: { showQuiz = false }
+					) { correct, total in
+						detailVM.saveQuizResult(
+							articleId: article.id,
+							articleTitle: article.title,
+							score: correct,
+							total: total
+						)
+					}
+					.frame(width: 340)
+					.transition(.move(edge: .trailing).combined(with: .opacity))
+				}
 			}
+			.animation(.easeInOut(duration: 0.2), value: showQuiz)
 		}
 		// Keyboard shortcuts — hidden buttons stay in the responder chain
 		.background {
@@ -289,6 +338,16 @@ struct ArticleDetailView: View {
 		} message: {
 			Text(detailVM.errorMessage ?? "")
 		}
+	}
+
+	private func generateQuiz() async {
+		let content = readabilityResult?.textContent ?? article.readableContent ?? article.summary ?? article.title
+		await detailVM.generateQuiz(
+			article: article,
+			content: content,
+			endpoint: appState.ollamaEndpoint,
+			model: appState.ollamaModel
+		)
 	}
 
 	private func rewriteWithAI() async {

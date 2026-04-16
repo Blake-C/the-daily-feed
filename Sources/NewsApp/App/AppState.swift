@@ -25,6 +25,8 @@ final class AppState: ObservableObject {
 	@AppStorage("dailySummaryEnabled") var dailySummaryEnabled: Bool = false
 	/// Whether the Suggested Sources feature is active. Disabled by default.
 	@AppStorage("suggestedSourcesEnabled") var suggestedSourcesEnabled: Bool = false
+	/// Whether the article comprehension quiz feature is active. Disabled by default.
+	@AppStorage("quizEnabled") var quizEnabled: Bool = false
 
 	// Sensitive credentials — stored in the macOS Keychain, not UserDefaults.
 	@Published var openWeatherApiKey: String {

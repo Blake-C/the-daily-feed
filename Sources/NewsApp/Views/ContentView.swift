@@ -7,6 +7,7 @@ struct ContentView: View {
 	@StateObject private var weatherService = WeatherService.shared
 	@StateObject private var dailySummaryVM = DailySummaryViewModel()
 	@StateObject private var suggestedSourcesVM = SuggestedSourcesViewModel()
+	@StateObject private var quizStatsVM = QuizStatsViewModel()
 	@State private var selectedDailySummaryArticle: Article?
 
 	private var selectedSourceName: String? {
@@ -36,6 +37,8 @@ struct ContentView: View {
 					}
 				} else if articlesVM.showSuggestedSources {
 					SuggestedSourcesView(vm: suggestedSourcesVM, sourcesVM: sourcesVM)
+				} else if articlesVM.showQuizStats {
+					QuizStatsView(vm: quizStatsVM)
 				} else {
 					TagFilterBarView(sourcesVM: sourcesVM, articlesVM: articlesVM)
 					ArticleGridView(vm: articlesVM, sourceName: selectedSourceName, sourcesCount: sourcesVM.sources.count, sourceNames: sourceNames)

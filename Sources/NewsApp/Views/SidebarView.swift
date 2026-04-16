@@ -82,6 +82,20 @@ struct SidebarView: View {
 						}
 					}
 
+					if appState.quizEnabled {
+						SidebarRow(
+							title: "Quiz Stats",
+							icon: "brain.head.profile",
+							selectedIcon: "brain.head.profile",
+							isSelected: articlesVM.showQuizStats,
+							unreadCount: 0,
+							badge: nil,
+							error: nil
+						) {
+							articlesVM.filterByQuizStats(!articlesVM.showQuizStats)
+						}
+					}
+
 					if appState.suggestedSourcesEnabled {
 						SidebarRow(
 							title: "Suggested Sources",

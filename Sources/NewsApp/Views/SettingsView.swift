@@ -111,11 +111,12 @@ struct SettingsView: View {
 				Toggle("AI Rewrite", isOn: $appState.aiRewriteEnabled)
 				Toggle("Daily Summary", isOn: $appState.dailySummaryEnabled)
 				Toggle("Suggested Sources", isOn: $appState.suggestedSourcesEnabled)
+				Toggle("Article Quiz", isOn: $appState.quizEnabled)
 			} header: {
 				Text("Features")
 					.font(.headline)
 			} footer: {
-				Text("AI Rewrite rewrites headlines and generates summaries on demand in article detail. Daily Summary silently summarizes articles you read each day. Suggested Sources periodically recommends reputable RSS feeds you might not follow.")
+				Text("AI Rewrite rewrites headlines and generates summaries on demand. Daily Summary silently summarizes articles you read each day. Suggested Sources periodically recommends RSS feeds you might not follow. Article Quiz generates comprehension questions to test your understanding of each article.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}
