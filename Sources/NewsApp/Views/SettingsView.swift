@@ -47,6 +47,17 @@ struct SettingsView: View {
 			}
 
 			Section {
+				Toggle("Enable Daily Summary", isOn: $appState.dailySummaryEnabled)
+			} header: {
+				Text("Daily Summary")
+					.font(.headline)
+			} footer: {
+				Text("When enabled, articles you read each day are silently summarized by Ollama and collected in a Daily Summary section in the sidebar. Disabled by default. Requires an active Ollama connection.")
+					.foregroundStyle(.secondary)
+					.font(.caption)
+			}
+
+			Section {
 				Picker("Keep read articles for", selection: $appState.articleRetentionDays) {
 					Text("7 days").tag(7)
 					Text("30 days").tag(30)

@@ -160,6 +160,12 @@ final class DatabaseManager: @unchecked Sendable {
 			}
 		}
 
+		migrator.registerMigration("v5_daily_summary") { db in
+			try db.alter(table: "articles") { t in
+				t.add(column: "dailySummary", .text)
+			}
+		}
+
 		try migrator.migrate(dbQueue)
 	}
 }

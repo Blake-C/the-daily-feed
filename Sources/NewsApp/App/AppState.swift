@@ -19,6 +19,8 @@ final class AppState: ObservableObject {
 	/// Custom Ollama prompt template. Use {title} and {content} as placeholders.
 	/// When empty the built-in default prompt is used.
 	@AppStorage("ollamaPrompt") var ollamaPrompt: String = ""
+	/// Whether the Daily Summary feature is active. Disabled by default.
+	@AppStorage("dailySummaryEnabled") var dailySummaryEnabled: Bool = false
 
 	// Sensitive credentials — stored in the macOS Keychain, not UserDefaults.
 	@Published var openWeatherApiKey: String {
