@@ -41,19 +41,21 @@ struct ArticleDetailView: View {
 	var body: some View {
 		VStack(spacing: 0) {
 			// Toolbar
-			HStack(spacing: 8) {
+			HStack(alignment: .center, spacing: 8) {
 				Button { dismiss() } label: {
 					Image(systemName: "xmark.circle.fill")
-						.font(.title3)
+						.font(.system(size: 17))
 						.foregroundStyle(.secondary)
 				}
 				.buttonStyle(.plain)
+				.frame(width: 28, height: 28)
 
 				Spacer()
 
 				if detailVM.isLoadingContent {
-					ProgressView().scaleEffect(0.7)
-						.padding(.trailing, 4)
+					ProgressView()
+						.scaleEffect(0.7)
+						.frame(width: 22, height: 22)
 				}
 
 				// AI Rewrite — primary action, keeps its label
@@ -70,7 +72,10 @@ struct ArticleDetailView: View {
 				.controlSize(.small)
 				.disabled(detailVM.isProcessingAI)
 
-				// Secondary icon-only actions
+				Divider()
+					.frame(height: 16)
+
+				// Secondary icon-only actions — uniform 28×28 tap targets
 				Button {
 					if speech.isSpeaking { speech.stop() } else {
 						let text = readabilityResult?.textContent ?? (displaySummary.isEmpty ? displayTitle : displaySummary)
@@ -82,6 +87,7 @@ struct ArticleDetailView: View {
 				}
 				.buttonStyle(.plain)
 				.foregroundStyle(speech.isSpeaking ? Color.accentColor : .secondary)
+				.frame(width: 28, height: 28)
 				.help(speech.isSpeaking ? "Stop reading aloud" : "Read article aloud")
 
 				Button { toggleBookmark() } label: {
@@ -90,6 +96,7 @@ struct ArticleDetailView: View {
 				}
 				.buttonStyle(.plain)
 				.foregroundStyle(isBookmarked ? Color.accentColor : .secondary)
+				.frame(width: 28, height: 28)
 				.help(isBookmarked ? "Remove bookmark" : "Bookmark article")
 
 				// Share and open-in-browser as direct toolbar buttons so
@@ -97,10 +104,11 @@ struct ArticleDetailView: View {
 				if let articleURL = URL(string: article.articleURL) {
 					ShareLink(item: articleURL) {
 						Image(systemName: "square.and.arrow.up")
-							.font(.system(size: 15))
+							.font(.system(size: 13))
 							.foregroundStyle(.secondary)
 					}
 					.buttonStyle(.plain)
+					.frame(width: 28, height: 28)
 					.help("Share article")
 
 					Button {
@@ -111,11 +119,12 @@ struct ArticleDetailView: View {
 							.foregroundStyle(.secondary)
 					}
 					.buttonStyle(.plain)
+					.frame(width: 28, height: 28)
 					.help("Open in browser")
 				}
 			}
 			.padding(.horizontal, 16)
-			.padding(.vertical, 10)
+			.padding(.vertical, 8)
 
 			Divider()
 
