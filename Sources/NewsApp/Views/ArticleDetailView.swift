@@ -239,7 +239,7 @@ struct ArticleDetailView: View {
 							findTrigger: findTrigger,
 							findBackward: findBackward
 						)
-						.frame(minHeight: 400)
+						.frame(minHeight: 700)
 					} else {
 						Text("Loading article content…")
 							.foregroundStyle(.secondary)
@@ -428,9 +428,9 @@ private struct _ArticleWebView: NSViewRepresentable {
 		    font-family: Georgia, "Times New Roman", serif;
 		    font-size: \(fontSize)px;
 		    line-height: 1.75;
-		    max-width: 700px;
+		    // max-width: 700px;
 		    margin: 0 auto;
-		    padding: 0 16px 48px;
+		    padding: 0 0 48px;
 		    color: light-dark(#1a1a1a, #e8e8e8);
 		    background: transparent;
 		  }
