@@ -57,22 +57,24 @@ struct ArticleDetailView: View {
 						.frame(width: 22, height: 22)
 				}
 
-				// AI Rewrite — primary action, keeps its label
-				Button {
-					Task { await rewriteWithAI() }
-				} label: {
-					Label(
-						detailVM.isProcessingAI ? "Processing…" : "AI Rewrite",
-						systemImage: "sparkles"
-					)
-					.font(.system(size: 12))
-				}
-				.buttonStyle(.borderedProminent)
-				.controlSize(.small)
-				.disabled(detailVM.isProcessingAI)
+				// AI Rewrite — shown only when the feature is enabled
+				if appState.aiRewriteEnabled {
+					Button {
+						Task { await rewriteWithAI() }
+					} label: {
+						Label(
+							detailVM.isProcessingAI ? "Processing…" : "AI Rewrite",
+							systemImage: "sparkles"
+						)
+						.font(.system(size: 12))
+					}
+					.buttonStyle(.borderedProminent)
+					.controlSize(.small)
+					.disabled(detailVM.isProcessingAI)
 
-				Divider()
-					.frame(height: 16)
+					Divider()
+						.frame(height: 16)
+				}
 
 				// Secondary icon-only actions — uniform 28×28 tap targets
 				Button { toggleBookmark() } label: {

@@ -82,16 +82,18 @@ struct SidebarView: View {
 						}
 					}
 
-					SidebarRow(
-						title: "Suggested Sources",
-						icon: "antenna.radiowaves.left.and.right",
-						selectedIcon: "antenna.radiowaves.left.and.right",
-						isSelected: articlesVM.showSuggestedSources,
-						unreadCount: 0,
-						badge: nil,
-						error: nil
-					) {
-						articlesVM.filterBySuggestedSources(!articlesVM.showSuggestedSources)
+					if appState.suggestedSourcesEnabled {
+						SidebarRow(
+							title: "Suggested Sources",
+							icon: "antenna.radiowaves.left.and.right",
+							selectedIcon: "antenna.radiowaves.left.and.right",
+							isSelected: articlesVM.showSuggestedSources,
+							unreadCount: 0,
+							badge: nil,
+							error: nil
+						) {
+							articlesVM.filterBySuggestedSources(!articlesVM.showSuggestedSources)
+						}
 					}
 				}
 
