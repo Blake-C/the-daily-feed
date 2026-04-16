@@ -113,10 +113,12 @@ struct ArticleCardView: View {
 					Spacer()
 					if isHovered {
 						CardActionButton(
-							icon: "xmark",
+							icon: article.isHidden ? "eye" : "xmark",
 							tint: .white,
-							help: "Hide article"
-						) { vm.hideArticle(article) }
+							help: article.isHidden ? "Unhide article" : "Hide article"
+						) {
+							if article.isHidden { vm.unhideArticle(article) } else { vm.hideArticle(article) }
+						}
 						.transition(.opacity.combined(with: .scale(scale: 0.8)))
 					}
 					if isHovered || article.isBookmarked {
@@ -183,10 +185,18 @@ struct ArticleCardView: View {
 				}
 			}
 			Divider()
-			Button {
-				vm.hideArticle(article)
-			} label: {
-				Label("Hide Article", systemImage: "xmark.circle")
+			if article.isHidden {
+				Button {
+					vm.unhideArticle(article)
+				} label: {
+					Label("Unhide Article", systemImage: "eye")
+				}
+			} else {
+				Button {
+					vm.hideArticle(article)
+				} label: {
+					Label("Hide Article", systemImage: "xmark.circle")
+				}
 			}
 		}
 	}
@@ -251,32 +261,6 @@ private struct ThumbnailView: View {
 		Image(systemName: "newspaper")
 			.font(.system(size: 32))
 			.foregroundStyle(.tertiary)
-	}
-}
-
-// MARK: - Star Rating
-
-struct StarRatingView: View {
-	let rating: Int
-	let onRate: (Int) -> Void
-
-	@State private var isHovered = false
-
-	var body: some View {
-		HStack(spacing: isHovered ? 4 : 2) {
-			ForEach(1...5, id: \.self) { star in
-				Button {
-					onRate(star == rating ? 0 : star)
-				} label: {
-					Image(systemName: star <= rating ? "star.fill" : "star")
-						.font(.system(size: isHovered ? 15 : 12))
-						.foregroundStyle(star <= rating ? Color.yellow : Color.secondary.opacity(isHovered ? 0.6 : 0.4))
-				}
-				.buttonStyle(.plain)
-			}
-		}
-		.onHover { isHovered = $0 }
-		.animation(.easeOut(duration: 0.12), value: isHovered)
 	}
 }
 

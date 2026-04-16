@@ -15,11 +15,14 @@ final class ArticlesViewModel: ObservableObject {
 	@Published var dimThumbnails = false
 	@Published var dateRangeFilter: DateRangeFilter = .all
 	@Published var showBookmarksOnly = false
+	@Published var showHiddenOnly = false
 	/// Tag names that have at least one article in the current source+dateRange context.
 	/// The filter bar uses this to hide chips that would return zero results.
 	@Published private(set) var availableTagNames: Set<String> = []
 	/// Total number of bookmarked articles — drives the sidebar badge.
 	@Published private(set) var bookmarkCount: Int = 0
+	/// Total number of hidden (dismissed) articles — drives the sidebar badge.
+	@Published private(set) var hiddenCount: Int = 0
 	/// Increments every time the article list is reset (source/filter change).
 	/// Views observe this to scroll back to the top.
 	@Published private(set) var scrollResetToken = 0
@@ -63,6 +66,7 @@ final class ArticlesViewModel: ObservableObject {
 				dateRange: dateRangeFilter
 			)) ?? []
 			bookmarkCount = (try? articleRepo.fetchBookmarkCount()) ?? bookmarkCount
+			hiddenCount = (try? articleRepo.fetchHiddenCount()) ?? hiddenCount
 		}
 
 		let query = buildQuery(offset: currentOffset)
@@ -127,7 +131,9 @@ final class ArticlesViewModel: ObservableObject {
 
 	func filterBySource(_ id: Int64?) {
 		selectedSourceId = id
-		activeTags = []   // Clear tag filters so all articles from the source show
+		activeTags = []
+		showBookmarksOnly = false
+		showHiddenOnly = false
 		// Persist so the selection survives app restarts.
 		if let id {
 			UserDefaults.standard.set(id, forKey: Self.selectedSourceKey)
@@ -154,17 +160,19 @@ final class ArticlesViewModel: ObservableObject {
 		do {
 			try articleRepo.hideArticle(id: article.id)
 			articles.removeAll { $0.id == article.id }
+			hiddenCount = (try? articleRepo.fetchHiddenCount()) ?? hiddenCount
 		} catch {
 			errorMessage = error.localizedDescription
 		}
 	}
 
-	func rate(article: Article, stars: Int) {
+	func unhideArticle(_ article: Article) {
 		do {
-			try articleRepo.updateRating(id: article.id, rating: stars)
-			if let idx = articles.firstIndex(where: { $0.id == article.id }) {
-				articles[idx].starRating = stars
+			try articleRepo.unhideArticle(id: article.id)
+			if showHiddenOnly {
+				articles.removeAll { $0.id == article.id }
 			}
+			hiddenCount = (try? articleRepo.fetchHiddenCount()) ?? hiddenCount
 		} catch {
 			errorMessage = error.localizedDescription
 		}
@@ -237,6 +245,54 @@ final class ArticlesViewModel: ObservableObject {
 
 	// MARK: - Private
 
+	/// A human-readable sentence describing the currently active filters, or nil when
+	/// no filters are applied. Used by the article grid to show a contextual banner.
+	var activeFilterDescription: String? {
+		var parts: [String] = []
+
+		if showHiddenOnly {
+			parts.append("Hidden")
+		} else {
+			if showBookmarksOnly { parts.append("Bookmarked") }
+			if hideRead { parts.append("Unread") }
+		}
+
+		if let tag = activeTags.first {
+			parts.append(tag.capitalized)
+		}
+
+		let noun = parts.isEmpty ? "Articles" : "articles"
+		var sentence = (parts + [noun]).joined(separator: " ")
+		sentence = sentence.prefix(1).uppercased() + sentence.dropFirst()
+
+		var suffixes: [String] = []
+		if dateRangeFilter != .all {
+			switch dateRangeFilter {
+			case .oneHour:     suffixes.append("from the past hour")
+			case .fourHours:   suffixes.append("from the past 4 hours")
+			case .sixHours:    suffixes.append("from the past 6 hours")
+			case .twelveHours: suffixes.append("from the past 12 hours")
+			case .today:       suffixes.append("from today")
+			case .twoDays:     suffixes.append("from the past 2 days")
+			case .week:        suffixes.append("from the past week")
+			case .month:       suffixes.append("from the past month")
+			case .all:         break
+			}
+		}
+		if !searchText.isEmpty {
+			suffixes.append("matching \"\(searchText)\"")
+		}
+
+		if !suffixes.isEmpty {
+			sentence += " " + suffixes.joined(separator: ", ")
+		}
+
+		// Only return a description when at least one filter is active.
+		let hasFilter = showHiddenOnly || showBookmarksOnly || hideRead
+			|| !activeTags.isEmpty || dateRangeFilter != .all || !searchText.isEmpty
+		return hasFilter ? sentence : nil
+	}
+
 	private func reset() {
 		articles = []
 		currentOffset = 0
@@ -252,7 +308,14 @@ final class ArticlesViewModel: ObservableObject {
 
 	func filterByBookmarks(_ on: Bool) {
 		showBookmarksOnly = on
-		if on { selectedSourceId = nil }
+		if on { selectedSourceId = nil; showHiddenOnly = false }
+		reset()
+		loadTask = Task { await loadNextPage() }
+	}
+
+	func filterByHidden(_ on: Bool) {
+		showHiddenOnly = on
+		if on { selectedSourceId = nil; showBookmarksOnly = false }
 		reset()
 		loadTask = Task { await loadNextPage() }
 	}
@@ -279,7 +342,8 @@ final class ArticlesViewModel: ObservableObject {
 			searchText: searchText,
 			sourceId: selectedSourceId,
 			hideRead: hideRead,
-			hideHidden: true,
+			hideHidden: !showHiddenOnly,
+			hiddenOnly: showHiddenOnly,
 			bookmarksOnly: showBookmarksOnly,
 			dateRange: dateRangeFilter,
 			limit: pageSize,

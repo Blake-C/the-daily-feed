@@ -126,15 +126,6 @@ final class SourcesViewModel: ObservableObject {
 		}
 	}
 
-	func rateSource(id: Int64, rating: Int) {
-		do {
-			try sourceRepo.updateRating(id: id, rating: rating)
-			load()
-		} catch {
-			errorMessage = error.localizedDescription
-		}
-	}
-
 	func toggleSource(source: NewsSource) {
 		var updated = source
 		updated.isEnabled = !source.isEnabled

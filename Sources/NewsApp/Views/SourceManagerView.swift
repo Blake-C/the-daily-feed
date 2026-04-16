@@ -240,11 +240,6 @@ private struct SourceRow: View {
 
 			Spacer()
 
-			// Source rating
-			StarRatingView(rating: source.rating) { stars in
-				if let id = source.id { vm.rateSource(id: id, rating: stars) }
-			}
-
 			// Enable toggle
 			Button {
 				vm.toggleSource(source: source)

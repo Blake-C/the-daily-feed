@@ -44,15 +44,6 @@ final class SourceRepository: @unchecked Sendable {
 		}
 	}
 
-	func updateRating(id: Int64, rating: Int) throws {
-		try db.write { conn in
-			try conn.execute(
-				sql: "UPDATE news_sources SET rating = ? WHERE id = ?",
-				arguments: [rating, id]
-			)
-		}
-	}
-
 	func updateLastFetched(id: Int64, date: Date) throws {
 		try db.write { conn in
 			try conn.execute(

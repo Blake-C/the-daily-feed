@@ -49,6 +49,7 @@ struct ArticleQuery {
 	var sourceId: Int64? = nil
 	var hideRead: Bool = false
 	var hideHidden: Bool = true   // always filter dismissed articles by default
+	var hiddenOnly: Bool = false  // show only hidden (dismissed) articles
 	var bookmarksOnly: Bool = false
 	var dateRange: DateRangeFilter = .all
 	var limit: Int = 40
@@ -89,7 +90,9 @@ final class ArticleRepository: @unchecked Sendable {
 				sql = selectClause + " WHERE 1=1"
 			}
 
-			if query.hideHidden {
+			if query.hiddenOnly {
+				sql += " AND isHidden = 1"
+			} else if query.hideHidden {
 				sql += " AND isHidden = 0"
 			}
 			if query.hideRead {
@@ -197,11 +200,11 @@ final class ArticleRepository: @unchecked Sendable {
 		}
 	}
 
-	func updateRating(id: String, rating: Int) throws {
+	func unhideArticle(id: String) throws {
 		try db.write { conn in
 			try conn.execute(
-				sql: "UPDATE articles SET starRating = ? WHERE id = ?",
-				arguments: [rating, id]
+				sql: "UPDATE articles SET isHidden = 0 WHERE id = ?",
+				arguments: [id]
 			)
 		}
 	}
@@ -371,6 +374,12 @@ final class ArticleRepository: @unchecked Sendable {
 	func fetchBookmarkCount() throws -> Int {
 		try db.read { conn in
 			try Int.fetchOne(conn, sql: "SELECT COUNT(*) FROM articles WHERE isBookmarked = 1 AND isHidden = 0") ?? 0
+		}
+	}
+
+	func fetchHiddenCount() throws -> Int {
+		try db.read { conn in
+			try Int.fetchOne(conn, sql: "SELECT COUNT(*) FROM articles WHERE isHidden = 1") ?? 0
 		}
 	}
 
