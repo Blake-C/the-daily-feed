@@ -121,7 +121,7 @@ struct ArticleDetailView: View {
 					}
 					.buttonStyle(.plain)
 					.frame(width: 28, height: 28)
-					.help("Open in browser")
+					.help("Open in browser: \(articleURL.absoluteString)")
 				}
 			}
 			.padding(.horizontal, 16)
@@ -213,6 +213,7 @@ struct ArticleDetailView: View {
 							Text("By \(byline)")
 								.font(.system(size: 13, weight: .medium))
 								.foregroundStyle(.secondary)
+								.textSelection(.enabled)
 						}
 
 						HStack {
@@ -397,6 +398,33 @@ private struct _ArticleWebView: NSViewRepresentable {
 	func makeNSView(context: Context) -> WKWebView {
 		let config = WKWebViewConfiguration()
 		config.defaultWebpagePreferences.allowsContentJavaScript = false // Static rendering only
+
+		// Inject a trusted script (not affected by allowsContentJavaScript) that:
+		// 1. Adds title="<href>" to every anchor that has an href but no title, so
+		//    hovering a link shows its destination URL (security transparency).
+		// 2. Unwraps anchor tags with no href so they don't appear as dead links.
+		let anchorScript = WKUserScript(
+			source: """
+			document.querySelectorAll('a').forEach(function(a) {
+				var href = a.getAttribute('href');
+				if (href) {
+					if (!a.hasAttribute('title')) {
+						a.setAttribute('title', href);
+					}
+				} else {
+					var parent = a.parentNode;
+					if (parent) {
+						while (a.firstChild) { parent.insertBefore(a.firstChild, a); }
+						parent.removeChild(a);
+					}
+				}
+			});
+			""",
+			injectionTime: .atDocumentEnd,
+			forMainFrameOnly: true
+		)
+		config.userContentController.addUserScript(anchorScript)
+
 		let wv = WKWebView(frame: .zero, configuration: config)
 		wv.navigationDelegate = context.coordinator
 		return wv
