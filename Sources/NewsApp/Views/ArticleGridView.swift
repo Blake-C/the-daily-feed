@@ -22,6 +22,24 @@ struct ArticleGridView: View {
 						// Invisible anchor at the very top
 						Color.clear.frame(height: 0).id("articleListTop")
 
+						// Active filter description
+						if let description = vm.activeFilterDescription {
+							HStack {
+								Image(systemName: "line.3.horizontal.decrease.circle")
+									.font(.system(size: 12))
+									.foregroundStyle(.secondary)
+								Text(description)
+									.font(.system(size: 13, weight: .medium))
+									.foregroundStyle(.secondary)
+								Spacer()
+							}
+							.padding(.horizontal, 16)
+							.padding(.top, 14)
+							.padding(.bottom, sourceName == nil ? 4 : 2)
+							.transition(.opacity)
+							.animation(.easeInOut(duration: 0.2), value: description)
+						}
+
 						// Source header
 						if let sourceName {
 							HStack {
@@ -30,7 +48,7 @@ struct ArticleGridView: View {
 								Spacer()
 							}
 							.padding(.horizontal, 16)
-							.padding(.top, 16)
+							.padding(.top, vm.activeFilterDescription == nil ? 16 : 4)
 							.padding(.bottom, 8)
 						}
 
