@@ -166,6 +166,18 @@ final class DatabaseManager: @unchecked Sendable {
 			}
 		}
 
+		migrator.registerMigration("v6_quiz_results") { db in
+			try db.create(table: "quiz_results", ifNotExists: true) { t in
+				t.autoIncrementedPrimaryKey("id")
+				t.column("articleId", .text).notNull()
+				t.column("articleTitle", .text).notNull()
+				t.column("score", .integer).notNull()
+				t.column("totalQuestions", .integer).notNull()
+				t.column("completedAt", .datetime).notNull()
+			}
+			try db.create(index: "quiz_results_completedAt", on: "quiz_results", columns: ["completedAt"])
+		}
+
 		try migrator.migrate(dbQueue)
 	}
 }
