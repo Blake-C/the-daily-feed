@@ -60,13 +60,13 @@ struct ArticleDetailView: View {
 						.frame(width: 22, height: 22)
 				}
 
-				// AI Rewrite — shown only when the feature is enabled
-				if appState.aiRewriteEnabled {
+				// AI Summary — shown only when the feature is enabled
+				if appState.aiSummaryEnabled {
 					Button {
 						Task { await rewriteWithAI() }
 					} label: {
 						Label(
-							detailVM.isProcessingAI ? "Processing…" : "AI Rewrite",
+							detailVM.isProcessingAI ? "Processing…" : "AI Summary",
 							systemImage: "sparkles"
 						)
 						.font(.system(size: 12))

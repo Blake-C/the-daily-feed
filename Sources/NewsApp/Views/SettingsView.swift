@@ -102,13 +102,13 @@ struct SettingsView: View {
 				Text("Ollama Connection")
 					.font(.headline)
 			} footer: {
-				Text("Make sure Ollama is running locally with the specified model pulled. The AI rewrite feature uses this connection to generate improved headlines and summaries.")
+				Text("Make sure Ollama is running locally with the specified model pulled. The AI summary feature uses this connection to generate improved headlines and summaries.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}
 
 			Section {
-				Toggle("AI Rewrite", isOn: $appState.aiRewriteEnabled)
+				Toggle("AI Summary", isOn: $appState.aiSummaryEnabled)
 				Toggle("Daily Summary", isOn: $appState.dailySummaryEnabled)
 				Toggle("Suggested Sources", isOn: $appState.suggestedSourcesEnabled)
 				Toggle("Article Quiz", isOn: $appState.quizEnabled)
@@ -116,7 +116,7 @@ struct SettingsView: View {
 				Text("Features")
 					.font(.headline)
 			} footer: {
-				Text("AI Rewrite rewrites headlines and generates summaries on demand. Daily Summary silently summarizes articles you read each day. Suggested Sources periodically recommends RSS feeds you might not follow. Article Quiz generates comprehension questions to test your understanding of each article.")
+				Text("AI Summary rewrites headlines and generates summaries on demand. Daily Summary silently summarizes articles you read each day. Suggested Sources periodically recommends RSS feeds you might not follow. Article Quiz generates comprehension questions to test your understanding of each article.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}

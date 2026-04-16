@@ -106,7 +106,7 @@ final class ArticleDetailViewModel: ObservableObject {
 				)
 			} catch {
 				if !Task.isCancelled {
-					self.errorMessage = "AI rewrite failed: \(error.localizedDescription)"
+					self.errorMessage = "AI summary failed: \(error.localizedDescription)"
 				}
 				return nil
 			}

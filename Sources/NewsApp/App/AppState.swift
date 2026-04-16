@@ -19,8 +19,8 @@ final class AppState: ObservableObject {
 	/// Custom Ollama prompt template. Use {title} and {content} as placeholders.
 	/// When empty the built-in default prompt is used.
 	@AppStorage("ollamaPrompt") var ollamaPrompt: String = ""
-	/// Whether the AI Rewrite button is shown in article detail. Enabled by default.
-	@AppStorage("aiRewriteEnabled") var aiRewriteEnabled: Bool = true
+	/// Whether the AI Summary button is shown in article detail. Enabled by default.
+	@AppStorage("aiSummaryEnabled") var aiSummaryEnabled: Bool = true
 	/// Whether the Daily Summary feature is active. Disabled by default.
 	@AppStorage("dailySummaryEnabled") var dailySummaryEnabled: Bool = false
 	/// Whether the Suggested Sources feature is active. Disabled by default.
