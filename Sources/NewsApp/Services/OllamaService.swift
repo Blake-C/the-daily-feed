@@ -41,6 +41,67 @@ final class OllamaService: @unchecked Sendable {
 		return try parseArticleResult(from: responseText)
 	}
 
+	// MARK: - Article Quiz
+
+	// Fixed template — {title}/{content} are the only substitutions, both truncated
+	// before use. Output is display-only question text; never executed.
+	static let quizPromptTemplate = """
+		You are a comprehension quiz generator for a news reader application.
+		Given the article below, generate exactly 5 questions to test the reader's understanding and encourage deeper thinking.
+
+		Rules:
+		- Include at most 2 true/false questions and at least 3 multiple-choice questions
+		- 1 to 2 questions may explore related topics or broader context beyond the article text to encourage further research
+		- Multiple-choice questions must have exactly 4 answer options
+		- True/false questions must use exactly ["True", "False"] as the options array, in that order
+		- correctIndex is the 0-based index of the correct answer in the options array
+		- explanation is one sentence explaining why the answer is correct
+
+		Respond ONLY in valid JSON with no markdown or extra text:
+		{"questions": [
+		  {"type": "truefalse", "question": "...", "options": ["True", "False"], "correctIndex": 0, "explanation": "..."},
+		  {"type": "multiplechoice", "question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 2, "explanation": "..."}
+		]}
+
+		Article title: {title}
+
+		Article content:
+		{content}
+		"""
+
+	/// Generates 5 comprehension and related-topic questions for the given article.
+	func generateQuiz(
+		title: String,
+		content: String,
+		endpoint: String,
+		model: String
+	) async throws -> [QuizQuestion] {
+		let safeTitle = String(title.trimmingCharacters(in: .whitespacesAndNewlines).prefix(200))
+		let safeContent = String(content.trimmingCharacters(in: .whitespacesAndNewlines).prefix(4_000))
+
+		let prompt = Self.quizPromptTemplate
+			.replacingOccurrences(of: "{title}", with: safeTitle)
+			.replacingOccurrences(of: "{content}", with: safeContent)
+
+		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model)
+		return try parseQuiz(from: responseText)
+	}
+
+	private func parseQuiz(from text: String) throws -> [QuizQuestion] {
+		let cleaned = text
+			.replacingOccurrences(of: "```json", with: "")
+			.replacingOccurrences(of: "```", with: "")
+			.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard
+			let data = cleaned.data(using: .utf8),
+			let result = try? JSONDecoder().decode(OllamaQuizResult.self, from: data),
+			!result.questions.isEmpty
+		else {
+			throw NewsError.parseFailed("Could not parse quiz JSON: \(cleaned.prefix(200))")
+		}
+		return result.questions
+	}
+
 	// MARK: - Source Suggestions
 
 	// Fixed template — {sources} is the only user-influenced substitution and is
@@ -206,6 +267,10 @@ struct OllamaArticleResult: Codable {
 
 struct OllamaDailySummaryResult: Codable {
 	let briefing: String
+}
+
+struct OllamaQuizResult: Codable {
+	let questions: [QuizQuestion]
 }
 
 struct OllamaSourceSuggestion: Codable {

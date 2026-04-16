@@ -4,9 +4,12 @@ import Foundation
 final class ArticleDetailViewModel: ObservableObject {
 	@Published var isLoadingContent = false
 	@Published var isProcessingAI = false
+	@Published var isGeneratingQuiz = false
+	@Published var quizQuestions: [QuizQuestion] = []
 	@Published var errorMessage: String?
 
 	private let articleRepo = ArticleRepository()
+	private let quizRepo = QuizRepository()
 	private var rewriteTask: Task<OllamaArticleResult?, Never>?
 
 	func loadContent(for article: Article) async -> ReadabilityResult? {
@@ -41,6 +44,41 @@ final class ArticleDetailViewModel: ObservableObject {
 			errorMessage = "Could not load article: \(error.localizedDescription)"
 			return nil
 		}
+	}
+
+	func generateQuiz(
+		article: Article,
+		content: String,
+		endpoint: String,
+		model: String
+	) async {
+		guard !isGeneratingQuiz else { return }
+		isGeneratingQuiz = true
+		quizQuestions = []
+		defer { isGeneratingQuiz = false }
+
+		do {
+			quizQuestions = try await OllamaService.shared.generateQuiz(
+				title: article.title,
+				content: content,
+				endpoint: endpoint,
+				model: model
+			)
+		} catch {
+			errorMessage = "Quiz generation failed: \(error.localizedDescription)"
+		}
+	}
+
+	func saveQuizResult(articleId: String, articleTitle: String, score: Int, total: Int) {
+		let result = QuizResult(
+			id: nil,
+			articleId: articleId,
+			articleTitle: articleTitle,
+			score: score,
+			totalQuestions: total,
+			completedAt: Date()
+		)
+		try? quizRepo.insert(result)
 	}
 
 	func rewriteWithAI(
