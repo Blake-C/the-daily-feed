@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SidebarView: View {
 	@ObservedObject var sourcesVM: SourcesViewModel
@@ -6,6 +7,7 @@ struct SidebarView: View {
 	@EnvironmentObject var appState: AppState
 
 	@State private var searchText = ""
+	@State private var draggingSource: NewsSource?
 
 	private var filteredSources: [NewsSource] {
 		if searchText.isEmpty { return sourcesVM.sources }
@@ -119,10 +121,31 @@ struct SidebarView: View {
 								if let id = source.id { sourcesVM.deleteSource(id: id) }
 							}
 						}
-					}
-					.onMove { from, to in
-						guard searchText.isEmpty else { return } // no reorder while searching
-						sourcesVM.moveSources(from: from, to: to)
+						// Drag-to-reorder: onDrag/onDrop because .onMove requires editMode
+						// which doesn't exist on macOS, and the Button rows block the list's
+						// built-in drag handles.
+						.onDrag {
+							guard searchText.isEmpty else { return NSItemProvider() }
+							draggingSource = source
+							return NSItemProvider(object: "\(source.id ?? -1)" as NSString)
+						}
+						.onDrop(of: [UTType.plainText], isTargeted: nil) { _ in
+							guard searchText.isEmpty,
+								  let dragged = draggingSource,
+								  dragged.id != source.id
+							else { return false }
+							let all = sourcesVM.sources
+							guard
+								let fromIdx = all.firstIndex(where: { $0.id == dragged.id }),
+								let toIdx   = all.firstIndex(where: { $0.id == source.id })
+							else { return false }
+							// When dropping below the drag origin, shift destination by 1
+							// so the row lands after the target, matching expected behaviour.
+							let dest = toIdx >= fromIdx ? toIdx + 1 : toIdx
+							sourcesVM.moveSources(from: IndexSet([fromIdx]), to: dest)
+							draggingSource = nil
+							return true
+						}
 					}
 				}
 

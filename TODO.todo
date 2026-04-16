@@ -128,6 +128,8 @@ Lower priority but worth noting:
 
 ✔ Can the text to speech button be updated to use the users custom system voice settings from the macos settings? @done(Wed. 04/15/2026 - 04:30:00 PM)
 
+✔ Drag and drop on left panel doesn't appear to work to reorder the news sources. @done(Wed. 04/15/2026 - 05:00:00 PM)
+
 ☐ Add a section for other suggested news sources. Have this feature occasionally perform a search using Ollama for new RSS feeds that might be good to add to the application. Provide a one click button to add as a new source.
 
 ☐ Using Ollama, it would be cool to have a feature that took the article and created a quiz UI once you've read an article. It can feed the article in to Ollama and generate questions (true/false, multi-choice, etc) where you an answer the questions and test how well you comprehended the article.
