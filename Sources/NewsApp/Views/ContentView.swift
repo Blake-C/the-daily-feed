@@ -109,8 +109,8 @@ struct ContentView: View {
 				}
 			}
 			// Keep sidebar badges in sync whenever an article is marked read.
-			articlesVM.onArticleRead = { [weak sourcesVM] in
-				sourcesVM?.refreshUnreadCounts()
+			articlesVM.onArticleRead = { [weak articlesVM, weak sourcesVM] in
+				sourcesVM?.refreshUnreadCounts(dateRange: articlesVM?.dateRangeFilter ?? .today)
 			}
 			sourcesVM.load()
 			await seedIfNeeded()
@@ -131,6 +131,9 @@ struct ContentView: View {
 				await articlesVM.refresh(notifyIfNew: true)
 				sourcesVM.load()  // Sync unread counts after background fetch
 			}
+		}
+		.onChange(of: articlesVM.dateRangeFilter) { _, newRange in
+			sourcesVM.refreshUnreadCounts(dateRange: newRange)
 		}
 		.alert("Error", isPresented: Binding(
 			get: { articlesVM.errorMessage != nil },

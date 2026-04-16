@@ -21,20 +21,20 @@ final class SourcesViewModel: ObservableObject {
 	private let tagRepo = TagRepository()
 	private let articleRepo = ArticleRepository()
 
-	func load() {
+	func load(dateRange: DateRangeFilter = .today) {
 		do {
 			sources = try sourceRepo.fetchAll()
 			tags = try tagRepo.fetchAll()
-			unreadCounts = (try? articleRepo.fetchUnreadCountsBySource()) ?? [:]
+			unreadCounts = (try? articleRepo.fetchUnreadCountsBySource(dateRange: dateRange)) ?? [:]
 		} catch {
 			errorMessage = error.localizedDescription
 		}
 	}
 
 	/// Lightweight re-query of unread counts without reloading sources or tags.
-	/// Called whenever an article is marked read so the badge updates immediately.
-	func refreshUnreadCounts() {
-		unreadCounts = (try? articleRepo.fetchUnreadCountsBySource()) ?? [:]
+	/// Pass the active date range so badges stay in sync with the grid filter.
+	func refreshUnreadCounts(dateRange: DateRangeFilter = .today) {
+		unreadCounts = (try? articleRepo.fetchUnreadCountsBySource(dateRange: dateRange)) ?? [:]
 	}
 
 	/// Clears the new-article badge for one source (or all when sourceId is nil)

@@ -321,8 +321,12 @@ final class ArticleRepository: @unchecked Sendable {
 	/// "Today" is defined as midnight-to-now in the device's local timezone, so
 	/// the badge automatically reflects only the current day's new articles and
 	/// clears itself after midnight without any explicit cleanup.
-	func fetchUnreadCountsBySource() throws -> [Int64: Int] {
+	/// - Parameter dateRange: When non-nil the badge reflects only articles within
+	///   this range (e.g. "Past Hour"). Falls back to start-of-today when `.all`.
+	func fetchUnreadCountsBySource(dateRange: DateRangeFilter = .today) throws -> [Int64: Int] {
 		let startOfToday = Calendar.current.startOfDay(for: Date())
+		// Use the filter's cutoff when it's more granular than today; otherwise today.
+		let cutoff = dateRange.cutoffDate.map { max($0, startOfToday) } ?? startOfToday
 		return try db.read { conn in
 			// Join with news_sources to respect badgeClearedAt: articles dismissed via
 			// "Dismiss New" are excluded from the badge even if still unread.
@@ -337,7 +341,7 @@ final class ArticleRepository: @unchecked Sendable {
 					  AND (s.badgeClearedAt IS NULL OR a.publishedAt > s.badgeClearedAt)
 					GROUP BY a.sourceId
 					""",
-				arguments: [startOfToday]
+				arguments: [cutoff]
 			)
 			var result: [Int64: Int] = [:]
 			for row in rows {
