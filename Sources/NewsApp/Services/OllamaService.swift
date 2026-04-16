@@ -41,6 +41,62 @@ final class OllamaService: @unchecked Sendable {
 		return try parseArticleResult(from: responseText)
 	}
 
+	// MARK: - Daily Summary
+
+	// Fixed prompt — never interpolated from user-controlled data except via the
+	// whitelisted {title}/{content} placeholders, which are truncated before use.
+	// This limits prompt-injection surface: a malicious feed title or body could
+	// attempt to override instructions, but the output is display-only text so the
+	// only realistic impact is garbled or irrelevant summary text.
+	static let dailySummaryPromptTemplate = """
+		You are a personal news briefing assistant. Summarize this article for a daily reading digest.
+		In 2–3 sentences explain: what happened, why it matters, and the single key takeaway.
+		Be factual and concise. Do not add opinions or speculation.
+
+		Respond ONLY in valid JSON (no markdown, no extra text):
+		{"briefing": "..."}
+
+		Article title: {title}
+
+		Article content:
+		{content}
+		"""
+
+	/// Generates a 2–3 sentence daily briefing for a single article.
+	/// - Parameters:
+	///   - title: Article headline. Truncated to 200 characters before sending.
+	///   - content: Article body. Truncated to 3 000 characters before sending.
+	func summarizeForDaily(
+		title: String,
+		content: String,
+		endpoint: String,
+		model: String
+	) async throws -> String {
+		let safeTitle = String(title.trimmingCharacters(in: .whitespacesAndNewlines).prefix(200))
+		let safeContent = String(content.trimmingCharacters(in: .whitespacesAndNewlines).prefix(3_000))
+
+		let prompt = Self.dailySummaryPromptTemplate
+			.replacingOccurrences(of: "{title}", with: safeTitle)
+			.replacingOccurrences(of: "{content}", with: safeContent)
+
+		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model)
+		return try parseDailySummary(from: responseText)
+	}
+
+	private func parseDailySummary(from text: String) throws -> String {
+		let cleaned = text
+			.replacingOccurrences(of: "```json", with: "")
+			.replacingOccurrences(of: "```", with: "")
+			.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard
+			let data = cleaned.data(using: .utf8),
+			let result = try? JSONDecoder().decode(OllamaDailySummaryResult.self, from: data)
+		else {
+			throw NewsError.parseFailed("Could not parse daily summary JSON: \(cleaned.prefix(200))")
+		}
+		return result.briefing
+	}
+
 	// MARK: - Private
 
 	private func generate(prompt: String, endpoint: String, model: String) async throws -> String {
@@ -93,4 +149,8 @@ final class OllamaService: @unchecked Sendable {
 struct OllamaArticleResult: Codable {
 	let headline: String
 	let summary: String
+}
+
+struct OllamaDailySummaryResult: Codable {
+	let briefing: String
 }
