@@ -5,42 +5,56 @@ struct DailySummaryView: View {
 	var sourceNames: [Int64: String] = [:]
 	var onSelectArticle: (Article) -> Void
 
-	var body: some View {
-		ScrollView {
-			LazyVStack(alignment: .leading, spacing: 0) {
-				// Header
-				VStack(alignment: .leading, spacing: 4) {
-					Text("Daily Summary")
-						.font(.system(size: 22, weight: .bold, design: .serif))
-					Text(Date(), style: .date)
-						.font(.system(size: 12))
-						.foregroundStyle(.secondary)
-				}
-				.frame(maxWidth: .infinity, alignment: .leading)
-				.padding(.horizontal, 24)
-				.padding(.top, 20)
-				.padding(.bottom, 16)
+	private func columnCount(for width: CGFloat) -> Int {
+		switch width {
+		case ..<600: return 1
+		case ..<960: return 2
+		default:     return 3
+		}
+	}
 
-				if vm.articles.isEmpty {
-					ContentUnavailableView(
-						"No Articles Yet",
-						systemImage: "doc.text.magnifyingglass",
-						description: Text("Articles you read today will appear here with AI-generated briefings.")
-					)
-					.padding(.top, 40)
-				} else {
-					VStack(spacing: 14) {
-						ForEach(vm.articles) { article in
-							DailySummaryCard(
-								article: article,
-								sourceName: sourceNames[article.sourceId]
-							) {
-								onSelectArticle(article)
+	var body: some View {
+		GeometryReader { geo in
+			let cols = columnCount(for: geo.size.width)
+			let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 16), count: cols)
+
+			ScrollView {
+				LazyVStack(alignment: .leading, spacing: 0) {
+					// Header
+					VStack(alignment: .leading, spacing: 4) {
+						Text("Daily Summary")
+							.font(.system(size: 22, weight: .bold, design: .serif))
+						Text(Date(), style: .date)
+							.font(.system(size: 12))
+							.foregroundStyle(.secondary)
+					}
+					.frame(maxWidth: .infinity, alignment: .leading)
+					.padding(.horizontal, 24)
+					.padding(.top, 20)
+					.padding(.bottom, 16)
+
+					if vm.articles.isEmpty {
+						ContentUnavailableView(
+							"No Articles Yet",
+							systemImage: "doc.text.magnifyingglass",
+							description: Text("Articles you read today will appear here with AI-generated briefings.")
+						)
+						.padding(.top, 40)
+					} else {
+						LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 16) {
+							ForEach(vm.articles) { article in
+								DailySummaryCard(
+									article: article,
+									sourceName: sourceNames[article.sourceId]
+								) {
+									onSelectArticle(article)
+								}
+								.frame(maxHeight: .infinity, alignment: .top)
 							}
 						}
+						.padding(.horizontal, 24)
+						.padding(.bottom, 32)
 					}
-					.padding(.horizontal, 24)
-					.padding(.bottom, 32)
 				}
 			}
 		}
