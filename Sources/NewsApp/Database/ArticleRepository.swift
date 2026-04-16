@@ -282,8 +282,8 @@ final class ArticleRepository: @unchecked Sendable {
 		}
 	}
 
-	/// Deletes read, unstarred articles published before `cutoff`.
-	/// Unread articles and articles with a star rating are always preserved.
+	/// Deletes read, unstarred, unbookmarked articles published before `cutoff`.
+	/// Unread, starred, and bookmarked articles are always preserved.
 	/// Returns the number of articles removed.
 	@discardableResult
 	func pruneArticles(olderThan cutoff: Date) throws -> Int {
@@ -294,7 +294,7 @@ final class ArticleRepository: @unchecked Sendable {
 				conn,
 				sql: """
 				SELECT id FROM articles
-				WHERE publishedAt < ? AND isRead = 1 AND starRating = 0
+				WHERE publishedAt < ? AND isRead = 1 AND starRating = 0 AND isBookmarked = 0
 				""",
 				arguments: [cutoff]
 			)
@@ -309,7 +309,7 @@ final class ArticleRepository: @unchecked Sendable {
 			try conn.execute(
 				sql: """
 				DELETE FROM articles
-				WHERE publishedAt < ? AND isRead = 1 AND starRating = 0
+				WHERE publishedAt < ? AND isRead = 1 AND starRating = 0 AND isBookmarked = 0
 				""",
 				arguments: [cutoff]
 			)
