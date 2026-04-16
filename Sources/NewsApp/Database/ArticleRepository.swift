@@ -368,6 +368,12 @@ final class ArticleRepository: @unchecked Sendable {
 		}
 	}
 
+	func fetchBookmarkCount() throws -> Int {
+		try db.read { conn in
+			try Int.fetchOne(conn, sql: "SELECT COUNT(*) FROM articles WHERE isBookmarked = 1 AND isHidden = 0") ?? 0
+		}
+	}
+
 	/// Returns the set of individual tag names that appear on at least one non-hidden
 	/// article matching the given context filters. Used to hide tag chips that have
 	/// no articles in the current view.

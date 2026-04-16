@@ -47,7 +47,7 @@ struct SidebarView: View {
 						icon: "bookmark",
 						selectedIcon: "bookmark.fill",
 						isSelected: articlesVM.showBookmarksOnly,
-						unreadCount: 0,
+						unreadCount: articlesVM.bookmarkCount,
 						badge: nil,
 						error: nil
 					) {

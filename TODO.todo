@@ -105,11 +105,18 @@ Lower priority but worth noting:
 
 ✔ Add ability to modify the message sent to Ollama in regards to how to summarize articles. This should live in the settings. @done(Wed. 04/15/2026 - 03:30:00 PM)
 
-☐ Add command+F when viewing article to search article contents.
 
 ✔ The color tabs in the manage sources pan look weird, its right up against the source names. Can we clean this up. @done(Wed. 04/15/2026 - 03:30:00 PM)
 
 ✔ When a filter tag is clicked it should search for articles in the all sources or the specific source if selected for that tag. Right now is appears to only filter the given views list. If a tag is empty or has no articles to display we should hide the tag from the filter list. @done(Wed. 04/15/2026 - 04:00:00 PM)
+
+☐ Add command+F when viewing article to search article contents.
+
+☐ Never delete bookmarked articles
+
+☐ Allow an article to be bookmarked on the article detail pane.
+
+☐ The tool bar option at the top of the article pane is getting busy, clean up the UI.
 
 ☐ Add a section for other suggested news sources. Have this feature occasionally perform a search using Ollama for new RSS feeds that might be good to add to the application. Provide a one click button to add as a new source.
 
