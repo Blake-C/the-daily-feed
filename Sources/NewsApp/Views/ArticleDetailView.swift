@@ -13,7 +13,14 @@ struct ArticleDetailView: View {
 	@State private var readabilityResult: ReadabilityResult?
 	@State private var displayTitle: String
 	@State private var displaySummary: String
+	@State private var isBookmarked: Bool
 	@StateObject private var speech = SpeechController()
+
+	// Keep local bookmark state in sync after toggle so the button updates immediately.
+	private func toggleBookmark() {
+		vm.toggleBookmark(article)
+		isBookmarked.toggle()
+	}
 
 	init(article: Article, vm: ArticlesViewModel, sourceName: String? = nil) {
 		self.article = article
@@ -21,12 +28,13 @@ struct ArticleDetailView: View {
 		self.sourceName = sourceName
 		_displayTitle = State(initialValue: article.rewrittenTitle ?? article.title)
 		_displaySummary = State(initialValue: article.summary ?? "")
+		_isBookmarked = State(initialValue: article.isBookmarked)
 	}
 
 	var body: some View {
 		VStack(spacing: 0) {
 			// Toolbar
-			HStack {
+			HStack(spacing: 8) {
 				Button { dismiss() } label: {
 					Image(systemName: "xmark.circle.fill")
 						.font(.title3)
@@ -38,26 +46,10 @@ struct ArticleDetailView: View {
 
 				if detailVM.isLoadingContent {
 					ProgressView().scaleEffect(0.7)
+						.padding(.trailing, 4)
 				}
 
-				Button {
-					if speech.isSpeaking {
-						speech.stop()
-					} else {
-						let text = readabilityResult?.textContent ?? (displaySummary.isEmpty ? displayTitle : displaySummary)
-						speech.speak(text)
-					}
-				} label: {
-					Label(
-						speech.isSpeaking ? "Stop" : "Listen",
-						systemImage: speech.isSpeaking ? "stop.circle" : "play.circle"
-					)
-					.font(.system(size: 12))
-				}
-				.buttonStyle(.bordered)
-				.controlSize(.small)
-				.help(speech.isSpeaking ? "Stop reading aloud" : "Read article aloud")
-
+				// AI Rewrite — primary action, keeps its label
 				Button {
 					Task { await rewriteWithAI() }
 				} label: {
@@ -71,24 +63,50 @@ struct ArticleDetailView: View {
 				.controlSize(.small)
 				.disabled(detailVM.isProcessingAI)
 
-				if let articleURL = URL(string: article.articleURL) {
-					ShareLink(item: articleURL) {
-						Label("Share", systemImage: "square.and.arrow.up")
-							.font(.system(size: 12))
+				// Secondary icon-only actions
+				Button {
+					if speech.isSpeaking { speech.stop() } else {
+						let text = readabilityResult?.textContent ?? (displaySummary.isEmpty ? displayTitle : displaySummary)
+						speech.speak(text)
 					}
-					.buttonStyle(.bordered)
-					.controlSize(.small)
+				} label: {
+					Image(systemName: speech.isSpeaking ? "stop.circle" : "play.circle")
+						.font(.system(size: 15))
+				}
+				.buttonStyle(.plain)
+				.foregroundStyle(speech.isSpeaking ? Color.accentColor : .secondary)
+				.help(speech.isSpeaking ? "Stop reading aloud" : "Read article aloud")
 
-					Link(destination: articleURL) {
-						Label("Open in Browser", systemImage: "arrow.up.right.square")
-							.font(.system(size: 12))
+				Button { toggleBookmark() } label: {
+					Image(systemName: isBookmarked ? "bookmark.fill" : "bookmark")
+						.font(.system(size: 15))
+				}
+				.buttonStyle(.plain)
+				.foregroundStyle(isBookmarked ? Color.accentColor : .secondary)
+				.help(isBookmarked ? "Remove bookmark" : "Bookmark article")
+
+				// Share / browser in overflow menu
+				if let articleURL = URL(string: article.articleURL) {
+					Menu {
+						ShareLink(item: articleURL) {
+							Label("Share…", systemImage: "square.and.arrow.up")
+						}
+						Button {
+							NSWorkspace.shared.open(articleURL)
+						} label: {
+							Label("Open in Browser", systemImage: "arrow.up.right.square")
+						}
+					} label: {
+						Image(systemName: "ellipsis.circle")
+							.font(.system(size: 15))
+							.foregroundStyle(.secondary)
 					}
-					.buttonStyle(.bordered)
-					.controlSize(.small)
+					.buttonStyle(.plain)
+					.help("More actions")
 				}
 			}
-			.padding(.horizontal, 20)
-			.padding(.vertical, 12)
+			.padding(.horizontal, 16)
+			.padding(.vertical, 10)
 
 			Divider()
 
