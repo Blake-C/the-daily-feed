@@ -126,7 +126,7 @@ Lower priority but worth noting:
 
 ✔ When clicking the share button, the popover appears at the top of the app rather than the button. The popover is also unelectable or in a deactivate state. @done(Tue. 04/15/2026 - 04:00:00 PM)
 
-☐ Can the text to speech button be updated to use the users custom system voice settings from the macos settings?
+✔ Can the text to speech button be updated to use the users custom system voice settings from the macos settings? @done(Wed. 04/15/2026 - 04:30:00 PM)
 
 ☐ Add a section for other suggested news sources. Have this feature occasionally perform a search using Ollama for new RSS feeds that might be good to add to the application. Provide a one click button to add as a new source.
 

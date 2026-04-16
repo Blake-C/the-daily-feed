@@ -1,4 +1,5 @@
 import AVFoundation
+import AppKit
 import SwiftUI
 import WebKit
 
@@ -337,8 +338,13 @@ final class SpeechController: NSObject, ObservableObject, AVSpeechSynthesizerDel
 	func speak(_ text: String) {
 		if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
 		let utterance = AVSpeechUtterance(string: text)
-		utterance.voice = AVSpeechSynthesisVoice(language: Locale.current.language.languageCode?.identifier ?? "en")
-		utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+		// Resolve the voice the user selected in System Settings → Read & Speak.
+		// NSSpeechSynthesizer.defaultVoice is a class-level property that reads the
+		// system preference without requiring an instance of the deprecated class.
+		// AVSpeechSynthesisVoice(identifier:) accepts the same identifier format on
+		// macOS 14+, so we can bridge the setting across the two APIs. Falls back
+		// to nil (AVSpeech built-in default) if the identifier doesn't resolve.
+		utterance.voice = AVSpeechSynthesisVoice(identifier: NSSpeechSynthesizer.defaultVoice.rawValue)
 		synth.speak(utterance)
 		isSpeaking = true
 	}
