@@ -3,18 +3,53 @@ import Foundation
 enum QuizQuestionType: String, Codable {
 	case trueOrFalse = "truefalse"
 	case multipleChoice = "multiplechoice"
+
+	// Accept whatever variation the model returns (true_false, multiple-choice, tf, mc, etc.)
+	init(from decoder: Decoder) throws {
+		let raw = try decoder.singleValueContainer().decode(String.self)
+			.lowercased()
+			.replacingOccurrences(of: "_", with: "")
+			.replacingOccurrences(of: "-", with: "")
+			.replacingOccurrences(of: " ", with: "")
+		switch raw {
+		case "truefalse", "tf", "trueorfalse", "boolean", "trueorfalseq":
+			self = .trueOrFalse
+		default:
+			self = .multipleChoice
+		}
+	}
 }
 
-struct QuizQuestion: Codable, Identifiable {
+struct QuizQuestion: Identifiable {
 	var id: UUID = UUID()
 	let type: QuizQuestionType
 	let question: String
 	let options: [String]
 	let correctIndex: Int
 	let explanation: String
+}
 
+extension QuizQuestion: Codable {
 	enum CodingKeys: String, CodingKey {
 		case type, question, options, correctIndex, explanation
+	}
+
+	init(from decoder: Decoder) throws {
+		let c = try decoder.container(keyedBy: CodingKeys.self)
+		id          = UUID()
+		type        = try c.decode(QuizQuestionType.self, forKey: .type)
+		question    = try c.decode(String.self, forKey: .question)
+		options     = try c.decode([String].self, forKey: .options)
+		explanation = (try? c.decode(String.self, forKey: .explanation)) ?? ""
+		// Some models return correctIndex as a string (e.g. "2") — handle both
+		if let intVal = try? c.decode(Int.self, forKey: .correctIndex) {
+			correctIndex = intVal
+		} else if let strVal = try? c.decode(String.self, forKey: .correctIndex),
+				  let intVal = Int(strVal) {
+			correctIndex = intVal
+		} else {
+			correctIndex = 0
+		}
 	}
 }
 

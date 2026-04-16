@@ -88,10 +88,7 @@ final class OllamaService: @unchecked Sendable {
 	}
 
 	private func parseQuiz(from text: String) throws -> [QuizQuestion] {
-		let cleaned = text
-			.replacingOccurrences(of: "```json", with: "")
-			.replacingOccurrences(of: "```", with: "")
-			.trimmingCharacters(in: .whitespacesAndNewlines)
+		let cleaned = extractJSONObject(from: text)
 		guard
 			let data = cleaned.data(using: .utf8),
 			let result = try? JSONDecoder().decode(OllamaQuizResult.self, from: data),
@@ -142,10 +139,7 @@ final class OllamaService: @unchecked Sendable {
 	}
 
 	private func parseSourceSuggestions(from text: String) throws -> [OllamaSourceSuggestion] {
-		let cleaned = text
-			.replacingOccurrences(of: "```json", with: "")
-			.replacingOccurrences(of: "```", with: "")
-			.trimmingCharacters(in: .whitespacesAndNewlines)
+		let cleaned = extractJSONObject(from: text)
 		guard
 			let data = cleaned.data(using: .utf8),
 			let result = try? JSONDecoder().decode(OllamaSourceSuggestionsResult.self, from: data)
@@ -198,10 +192,7 @@ final class OllamaService: @unchecked Sendable {
 	}
 
 	private func parseDailySummary(from text: String) throws -> String {
-		let cleaned = text
-			.replacingOccurrences(of: "```json", with: "")
-			.replacingOccurrences(of: "```", with: "")
-			.trimmingCharacters(in: .whitespacesAndNewlines)
+		let cleaned = extractJSONObject(from: text)
 		guard
 			let data = cleaned.data(using: .utf8),
 			let result = try? JSONDecoder().decode(OllamaDailySummaryResult.self, from: data)
@@ -212,6 +203,19 @@ final class OllamaService: @unchecked Sendable {
 	}
 
 	// MARK: - Private
+
+	/// Extracts the outermost JSON object from a model response that may include
+	/// preamble text, markdown code fences, or trailing commentary.
+	private func extractJSONObject(from text: String) -> String {
+		let stripped = text
+			.replacingOccurrences(of: "```json", with: "")
+			.replacingOccurrences(of: "```", with: "")
+		guard
+			let start = stripped.firstIndex(of: "{"),
+			let end   = stripped.lastIndex(of: "}")
+		else { return stripped.trimmingCharacters(in: .whitespacesAndNewlines) }
+		return String(stripped[start...end])
+	}
 
 	private func generate(prompt: String, endpoint: String, model: String) async throws -> String {
 		guard let baseURL = URL(string: endpoint) else {
@@ -244,12 +248,7 @@ final class OllamaService: @unchecked Sendable {
 	}
 
 	private func parseArticleResult(from text: String) throws -> OllamaArticleResult {
-		// Strip possible markdown code fences
-		let cleaned = text
-			.replacingOccurrences(of: "```json", with: "")
-			.replacingOccurrences(of: "```", with: "")
-			.trimmingCharacters(in: .whitespacesAndNewlines)
-
+		let cleaned = extractJSONObject(from: text)
 		guard
 			let data = cleaned.data(using: .utf8),
 			let result = try? JSONDecoder().decode(OllamaArticleResult.self, from: data)
