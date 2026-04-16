@@ -175,6 +175,17 @@ struct ContentView: View {
 		.onChange(of: articlesVM.dateRangeFilter) { _, newRange in
 			sourcesVM.refreshUnreadCounts(dateRange: newRange)
 		}
+		// When the feature is enabled mid-session, immediately catch up on any
+		// today's read articles that have no summary yet (same sequential queue
+		// as the startup path).
+		.onChange(of: appState.dailySummaryEnabled) { _, enabled in
+			guard enabled else { return }
+			let endpoint = appState.ollamaEndpoint
+			let model = appState.ollamaModel
+			Task {
+				await DailySummaryService.shared.processPending(endpoint: endpoint, model: model)
+			}
+		}
 		.alert("Error", isPresented: Binding(
 			get: { articlesVM.errorMessage != nil },
 			set: { if !$0 { articlesVM.errorMessage = nil } }
