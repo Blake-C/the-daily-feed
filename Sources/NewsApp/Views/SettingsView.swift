@@ -48,6 +48,7 @@ struct SettingsView: View {
 
 			Section {
 				Picker("Keep read articles for", selection: $appState.articleRetentionDays) {
+					Text("7 days").tag(7)
 					Text("30 days").tag(30)
 					Text("60 days").tag(60)
 					Text("90 days").tag(90)
@@ -58,7 +59,7 @@ struct SettingsView: View {
 				Text("Storage")
 					.font(.headline)
 			} footer: {
-				Text("Read articles older than this are removed during each refresh. Unread articles and starred articles are always kept.")
+				Text("Read articles older than this are removed during each refresh. Unread articles and bookmarked articles are always kept.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}
