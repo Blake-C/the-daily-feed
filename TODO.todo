@@ -2,12 +2,12 @@
 
 ## Missing/Incomplete Features
 
-☐ Article bookmarking / read-later queue — Star rating exists (1-5) but there's no dedicated "save for later" or bookmarks list. A simple boolean isBookmarked with a Bookmarks sidebar section would be high-value.
-☐ Export / share — No way to share article links externally (system share sheet, copy link, etc.). macOS has a native Share button that integrates with Safari, Notes, etc.
+✔ Article bookmarking / read-later queue — Star rating exists (1-5) but there's no dedicated "save for later" or bookmarks list. A simple boolean isBookmarked with a Bookmarks sidebar section would be high-value. @done(Wed. 04/15/2026 - 10:11:04 PM)
+✔ Export / share — No way to share article links externally (system share sheet, copy link, etc.). macOS has a native Share button that integrates with Safari, Notes, etc. @done(Wed. 04/15/2026 - 10:10:59 PM)
 ☐ Keyboard navigation — No apparent keyboard shortcuts for navigating between articles (J/K like classic RSS readers), marking read (M), starring (S), or opening detail (Enter/Space). These are expected by power users.
 ✔ Fetch on launch / auto-refresh — There's no background periodic refresh. The app only fetches when the user manually hits Refresh or adds a source. A configurable auto-refresh interval (e.g., every 15/30/60 min) would keep the feed current. @done(Tue. 04/14/2026 - 11:16:45 PM)
-☐ Unread count badges — SidebarView shows unread count for "All Articles" but it's unclear if per-source unread counts appear. Even a small badge per source helps navigation.
-☐ Mark all read — No bulk "mark all as read" action. Users accumulate hundreds of articles fast.
+✔ Unread count badges — SidebarView shows unread count for "All Articles" but it's unclear if per-source unread counts appear. Even a small badge per source helps navigation. @done(Wed. 04/15/2026 - 10:10:30 PM)
+✔ Mark all read — No bulk "mark all as read" action. Users accumulate hundreds of articles fast. @done(Wed. 04/15/2026 - 10:10:43 PM)
 ✔ OPML import/export — RSS managers conventionally support OPML for migrating feed lists. Without it, switching to/from Reeder, NetNewsWire, etc. is painful. @done(Mon. 04/14/2026 - 11:34:00 PM)
 ✔ Article text size / font controls — ArticleWebContentView hardcodes 17px Georgia. A font-size slider in Settings (or toolbar) would help readability. @done(Wed. 04/15/2026 - 02:00:00 PM)
 ✘ AI batch processing — Ollama rewrites happen one article at a time, triggered manually. A "rewrite all visible headlines" batch option would make the AI feature much more useful. @cancelled(Wed. 04/15/2026 - 11:35:03 AM)
@@ -18,11 +18,11 @@
 ✘ Article detail is a sheet, not a split panel — On a large macOS display, a NavigationSplitView with a third detail column would be far more natural than a full-screen modal sheet. The current sheet covers the entire grid and kills browsing momentum. @cancelled(Wed. 04/15/2026 - 11:04:14 AM)
 ✘ Read articles don't persist scroll position — When the user returns from article detail, the grid likely resets. Scroll position should be preserved across detail open/close. @cancelled(Wed. 04/15/2026 - 11:04:19 AM)
 ✘ No "next article" / "previous article" navigation in detail — Users have to close the sheet and reopen the next card. An arrow button (or swipe gesture) to step through articles sequentially is a basic reader feature. @cancelled(Wed. 04/15/2026 - 11:04:20 AM)
-☐ Tag filter is all-or-nothing — Tags appear to be AND or OR but it's not communicated. Clarifying the filter logic (or letting users toggle it) prevents confusion.
+✘ Tag filter is all-or-nothing — Tags appear to be AND or OR but it's not communicated. Clarifying the filter logic (or letting users toggle it) prevents confusion. @cancelled(Wed. 04/15/2026 - 10:07:44 PM)
 ☐ Source error is in context menu only — The warning icon on a source with lastError only reveals the error via right-click. Hovering to show a tooltip with the error text would be much more discoverable.
 ☐ No confirmation on "Hide article" — The hide button appears on hover with no undo. A brief "Undo" toast/notification would prevent accidental hides.
-☐ Search scope is unclear — Does search cover title only? Author? Summary? Content? There's no indication, and users will be confused by non-obvious results.
-☐ Settings are in a separate window — The Ollama + weather settings are in a standard Settings scene, but some of these (especially Ollama model selection ad test connection) feel like they belong in the Source Manager or a quick-access popover.
+✘ Search scope is unclear — Does search cover title only? Author? Summary? Content? There's no indication, and users will be confused by non-obvious results. @cancelled(Wed. 04/15/2026 - 10:09:10 PM)
+✘ Settings are in a separate window — The Ollama + weather settings are in a standard Settings scene, but some of these (especially Ollama model selection ad test connection) feel like they belong in the Source Manager or a quick-access popover. @cancelled(Wed. 04/15/2026 - 10:09:26 PM)
 ☐ No loading indicator at the per-source level — During refresh, you can't tell which sources are currently fetching vs. done. A subtle spinner next to each source in the sidebar would help.
 
 ## Performance
@@ -52,7 +52,7 @@ Highest impact (core reader experience):
 
 ✔ "Mark all read" — articles accumulate fast. Without a bulk action the read-status feature becomes useless noise after a few days. @done(Wed. 04/15/2026 - 01:03:36 PM)
 
-☐ Article bookmarking — the star ratings exist but a simple dedicated Bookmarks queue (isBookmarked + sidebar section) is more intuitive than a rating for "save this." Ratings and bookmarks serve different purposes.
+✔ Article bookmarking — the star ratings exist but a simple dedicated Bookmarks queue (isBookmarked + sidebar section) is more intuitive than a rating for "save this." Ratings and bookmarks serve different purposes. @done(Wed. 04/15/2026 - 10:11:52 PM)
 
 Architecture gaps not yet in the TODO:
 
@@ -126,10 +126,35 @@ Lower priority but worth noting:
 
 ✔ When clicking the share button, the popover appears at the top of the app rather than the button. The popover is also unelectable or in a deactivate state. @done(Tue. 04/15/2026 - 04:00:00 PM)
 
-✔ Can the text to speech button be updated to use the users custom system voice settings from the macos settings? @done(Wed. 04/15/2026 - 04:30:00 PM)
+✔ Can the text to speech button be updated to use the users custom system voice
+settings from the macos settings? @done(Wed. 04/15/2026 - 04:30:00 PM)
 
 ✔ Drag and drop on left panel doesn't appear to work to reorder the news sources. @done(Wed. 04/15/2026 - 05:00:00 PM)
+
+✔ Add a sidebar section below bookmarks for articles that have been hidden. @done(Thur. 04/16/2026 - 12:00:00 PM)
+
+✔ Look for any references to the star rating system and remove it. @done(Thur. 04/16/2026 - 12:00:00 PM)
+
+✔ For the storage option, on how long to keep articles, add a 7 days option. As a reminder Bookmarked articles should not be removed. @done(Thur. 04/16/2026 - 12:00:00 PM)
+
+✔ All article anchor links must have title attributes containing the href URL or be stripped from the markup. I want to be able to hover over a link and see what it's URL is. This is for security purposes. @done(Thur. 04/16/2026 - 12:00:00 PM)
+
+✔ In the tooltip for "Open in browser" button on the article detail view, can we have the URL for the link to also appear in the tooltip? This is for security purposes so that we can see the link before clicking it. @done(Thur. 04/16/2026 - 12:00:00 PM)
+
+☐ There are still some instances of the authors name being missing or malformed. If it's difficult to code a solid solution to this could we perhaps use the Ollama connection to pass the author info to the LLM for formatting, we will want to be sure this is done securely as passing data to an LLM in this way could open us up to prompt injection. But with the right rules in place this might be a better option for getting empty or malformed author names removed or formatted correctly. I would also like to have the author individual names be selectable so that if I want to search the authors history I can copy their names. @partialDone(author byline is now text-selectable in article detail view; Thur. 04/16/2026 - 12:00:00 PM)
+
+✔ Above the title in list mode, add a list of filters that have been applied to the view. For example if the list has been filtered to posts from the past hours in the science category then display the text: "Science articles from the past hour". Or if you have the the list filtered to posts from the past 6 hours in the science category filtered to unread posts it should say: "Unread Science articles from the the past 6 hours". And so on for all the filtering options. This should be dynamic as it pulls in from the different filter sources and changes as the filters change. If we add new filters in the future this feature should also be updated. @done(Thur. 04/16/2026 - 12:00:00 PM)
+
+☐ Add a feature ("Daily Summary") that takes all the articles I've read for the day and summarizes the important points for the day. This can happen slowly over the day as the user reads articles. We can have this feature live in the sidebar near the bookmarks button. When clicking into this section there would be a summary text given from Ollama about each of the articles read for the day and how the article was important and the key take aways. This could be a good way to summarize the findings from the days reading. Below the summary we can have a small UI version of all the articles read for that day; just the title, source, and author wrapped in a link to view the article; should appear as a small card that doesn't take up much space. As the user reads an article it should push the article to Ollama for summary and then that text should be slowly built up in the "Daily Summary" screen. This should happen silently behind the scenes so that it doesn't impact the user flow. There should be a global setting to disable the feature. In fact it should probably be disabled by default. When enabled at the "Daily Summary" button to the sidebar below the bookmarks button.
 
 ☐ Add a section for other suggested news sources. Have this feature occasionally perform a search using Ollama for new RSS feeds that might be good to add to the application. Provide a one click button to add as a new source.
 
 ☐ Using Ollama, it would be cool to have a feature that took the article and created a quiz UI once you've read an article. It can feed the article in to Ollama and generate questions (true/false, multi-choice, etc) where you an answer the questions and test how well you comprehended the article.
+
+☐ Look over project of orphaned code.
+
+☐ Look over project for security issues.
+
+☐ Create README.md file at root of project detailing application features. Keep it short and succinct. List third party libraries and tools used. Add a note this application was coded by Claude and was not reviewed by a developer.
+
+☐ Review the project and be sure we are using the most up to date UI framework for macos 26. Look for any legacy structures and suggest alternative solutions. The goal here is to be aligned with how other macos 26 application are structured.
