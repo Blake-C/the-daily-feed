@@ -81,6 +81,18 @@ struct SidebarView: View {
 							articlesVM.filterByDailySummary(!articlesVM.showDailySummary)
 						}
 					}
+
+					SidebarRow(
+						title: "Suggested Sources",
+						icon: "antenna.radiowaves.left.and.right",
+						selectedIcon: "antenna.radiowaves.left.and.right",
+						isSelected: articlesVM.showSuggestedSources,
+						unreadCount: 0,
+						badge: nil,
+						error: nil
+					) {
+						articlesVM.filterBySuggestedSources(!articlesVM.showSuggestedSources)
+					}
 				}
 
 				Section("Feeds") {

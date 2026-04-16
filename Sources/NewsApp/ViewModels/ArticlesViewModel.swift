@@ -17,6 +17,7 @@ final class ArticlesViewModel: ObservableObject {
 	@Published var showBookmarksOnly = false
 	@Published var showHiddenOnly = false
 	@Published var showDailySummary = false
+	@Published var showSuggestedSources = false
 	/// Tag names that have at least one article in the current source+dateRange context.
 	/// The filter bar uses this to hide chips that would return zero results.
 	@Published private(set) var availableTagNames: Set<String> = []
@@ -139,6 +140,7 @@ final class ArticlesViewModel: ObservableObject {
 		showBookmarksOnly = false
 		showHiddenOnly = false
 		showDailySummary = false
+		showSuggestedSources = false
 		// Persist so the selection survives app restarts.
 		if let id {
 			UserDefaults.standard.set(id, forKey: Self.selectedSourceKey)
@@ -260,7 +262,8 @@ final class ArticlesViewModel: ObservableObject {
 	var activeFilterDescription: String? {
 		var parts: [String] = []
 
-		if showDailySummary { return nil } // DailySummaryView has its own header
+		if showDailySummary { return nil }        // DailySummaryView has its own header
+		if showSuggestedSources { return nil }    // SuggestedSourcesView has its own header
 		if showHiddenOnly {
 			parts.append("Hidden")
 		} else {
@@ -319,21 +322,28 @@ final class ArticlesViewModel: ObservableObject {
 
 	func filterByBookmarks(_ on: Bool) {
 		showBookmarksOnly = on
-		if on { selectedSourceId = nil; showHiddenOnly = false; showDailySummary = false }
+		if on { selectedSourceId = nil; showHiddenOnly = false; showDailySummary = false; showSuggestedSources = false }
 		reset()
 		loadTask = Task { await loadNextPage() }
 	}
 
 	func filterByHidden(_ on: Bool) {
 		showHiddenOnly = on
-		if on { selectedSourceId = nil; showBookmarksOnly = false; showDailySummary = false }
+		if on { selectedSourceId = nil; showBookmarksOnly = false; showDailySummary = false; showSuggestedSources = false }
 		reset()
 		loadTask = Task { await loadNextPage() }
 	}
 
 	func filterByDailySummary(_ on: Bool) {
 		showDailySummary = on
-		if on { selectedSourceId = nil; showBookmarksOnly = false; showHiddenOnly = false }
+		if on { selectedSourceId = nil; showBookmarksOnly = false; showHiddenOnly = false; showSuggestedSources = false }
+		reset()
+		loadTask = Task { await loadNextPage() }
+	}
+
+	func filterBySuggestedSources(_ on: Bool) {
+		showSuggestedSources = on
+		if on { selectedSourceId = nil; showBookmarksOnly = false; showHiddenOnly = false; showDailySummary = false }
 		reset()
 		loadTask = Task { await loadNextPage() }
 	}
