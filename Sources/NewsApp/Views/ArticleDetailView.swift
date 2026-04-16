@@ -16,6 +16,13 @@ struct ArticleDetailView: View {
 	@State private var isBookmarked: Bool
 	@StateObject private var speech = SpeechController()
 
+	// Find-in-article state
+	@State private var showFind = false
+	@State private var findText = ""
+	@State private var findTrigger = 0
+	@State private var findBackward = false
+	@FocusState private var findFieldFocused: Bool
+
 	// Keep local bookmark state in sync after toggle so the button updates immediately.
 	private func toggleBookmark() {
 		vm.toggleBookmark(article)
@@ -110,6 +117,65 @@ struct ArticleDetailView: View {
 
 			Divider()
 
+			// Find bar — visible when ⌘F is pressed
+			if showFind {
+				HStack(spacing: 8) {
+					Image(systemName: "magnifyingglass")
+						.foregroundStyle(.secondary)
+						.font(.system(size: 12))
+					TextField("Find in article…", text: $findText)
+						.textFieldStyle(.plain)
+						.font(.system(size: 13))
+						.focused($findFieldFocused)
+						.onSubmit {
+							findTrigger += 1
+							findBackward = false
+						}
+					if !findText.isEmpty {
+						Button {
+							findTrigger += 1
+							findBackward = false
+						} label: {
+							Image(systemName: "chevron.down")
+								.font(.system(size: 11, weight: .medium))
+						}
+						.buttonStyle(.plain)
+						.foregroundStyle(.secondary)
+						.help("Next match (⌘G)")
+						Button {
+							findTrigger += 1
+							findBackward = true
+						} label: {
+							Image(systemName: "chevron.up")
+								.font(.system(size: 11, weight: .medium))
+						}
+						.buttonStyle(.plain)
+						.foregroundStyle(.secondary)
+						.help("Previous match (⇧⌘G)")
+						Button { findText = "" } label: {
+							Image(systemName: "xmark.circle.fill")
+								.foregroundStyle(.secondary)
+								.font(.system(size: 11))
+						}
+						.buttonStyle(.plain)
+					}
+					Spacer()
+					Button {
+						showFind = false
+						findText = ""
+					} label: {
+						Text("Done")
+							.font(.system(size: 12))
+					}
+					.buttonStyle(.plain)
+					.foregroundStyle(.secondary)
+				}
+				.padding(.horizontal, 16)
+				.padding(.vertical, 7)
+				.background(Color(NSColor.controlBackgroundColor))
+				Divider()
+			}
+
 			ScrollView {
 				VStack(alignment: .leading, spacing: 16) {
 					// Header meta
@@ -168,7 +234,10 @@ struct ArticleDetailView: View {
 					if let result = readabilityResult {
 						ArticleWebContentView(
 							htmlContent: result.htmlContent,
-							accessibilityText: result.textContent
+							accessibilityText: result.textContent,
+							findQuery: findText,
+							findTrigger: findTrigger,
+							findBackward: findBackward
 						)
 						.frame(minHeight: 400)
 					} else {
@@ -183,6 +252,31 @@ struct ArticleDetailView: View {
 				.frame(maxWidth: 760, alignment: .leading)
 				.frame(maxWidth: .infinity)
 			}
+		}
+		// Keyboard shortcuts — hidden buttons stay in the responder chain
+		.background {
+			Group {
+				Button("") {
+					showFind = true
+				}
+				.keyboardShortcut("f", modifiers: .command)
+				Button("") {
+					guard showFind, !findText.isEmpty else { return }
+					findTrigger += 1
+					findBackward = false
+				}
+				.keyboardShortcut("g", modifiers: .command)
+				Button("") {
+					guard showFind, !findText.isEmpty else { return }
+					findTrigger += 1
+					findBackward = true
+				}
+				.keyboardShortcut("g", modifiers: [.command, .shift])
+			}
+			.hidden()
+		}
+		.onChange(of: showFind) { _, visible in
+			if visible { findFieldFocused = true }
 		}
 		.task {
 			vm.markRead(article)
@@ -253,23 +347,34 @@ final class SpeechController: NSObject, ObservableObject, AVSpeechSynthesizerDel
 struct ArticleWebContentView: View {
 	let htmlContent: String
 	let accessibilityText: String
+	var findQuery: String = ""
+	var findTrigger: Int = 0
+	var findBackward: Bool = false
 
 	var body: some View {
-		_ArticleWebView(htmlContent: htmlContent)
-			// Provide the plain-text content as the accessibility representation so
-			// VoiceOver, TTS, and other assistive technologies can read the article.
-			.accessibilityRepresentation {
-				ScrollView {
-					Text(accessibilityText)
-						.font(.body)
-						.accessibilityLabel(accessibilityText)
-				}
+		_ArticleWebView(
+			htmlContent: htmlContent,
+			findQuery: findQuery,
+			findTrigger: findTrigger,
+			findBackward: findBackward
+		)
+		// Provide the plain-text content as the accessibility representation so
+		// VoiceOver, TTS, and other assistive technologies can read the article.
+		.accessibilityRepresentation {
+			ScrollView {
+				Text(accessibilityText)
+					.font(.body)
+					.accessibilityLabel(accessibilityText)
 			}
+		}
 	}
 }
 
 private struct _ArticleWebView: NSViewRepresentable {
 	let htmlContent: String
+	var findQuery: String = ""
+	var findTrigger: Int = 0
+	var findBackward: Bool = false
 	@AppStorage("articleFontSize") private var fontSize: Int = 17
 
 	func makeNSView(context: Context) -> WKWebView {
@@ -281,7 +386,36 @@ private struct _ArticleWebView: NSViewRepresentable {
 	}
 
 	func updateNSView(_ wv: WKWebView, context: Context) {
-		let styledHTML = """
+		let styledHTML = buildHTML()
+
+		// Only reload the page when the HTML content actually changes; reloading
+		// on every SwiftUI pass would reset scroll position and clear find highlights.
+		if context.coordinator.loadedHTML != styledHTML {
+			context.coordinator.loadedHTML = styledHTML
+			// Reset find tracking so stale queries aren't re-fired after reload.
+			context.coordinator.lastFindQuery = ""
+			context.coordinator.lastFindTrigger = -1
+			wv.loadHTMLString(styledHTML, baseURL: nil)
+			return
+		}
+
+		// Drive WKWebView find when the query text or advance trigger changes.
+		let queryChanged = context.coordinator.lastFindQuery != findQuery
+		let triggerChanged = context.coordinator.lastFindTrigger != findTrigger
+
+		guard queryChanged || triggerChanged else { return }
+		context.coordinator.lastFindQuery = findQuery
+		context.coordinator.lastFindTrigger = findTrigger
+
+		guard !findQuery.isEmpty else { return }
+		let findConfig = WKFindConfiguration()
+		findConfig.wraps = true
+		findConfig.backwards = findBackward
+		wv.find(findQuery, configuration: findConfig) { _ in }
+	}
+
+	private func buildHTML() -> String {
+		"""
 		<!DOCTYPE html>
 		<html>
 		<head>
@@ -317,12 +451,17 @@ private struct _ArticleWebView: NSViewRepresentable {
 		<body>\(htmlContent)</body>
 		</html>
 		"""
-		wv.loadHTMLString(styledHTML, baseURL: nil)
 	}
 
 	func makeCoordinator() -> Coordinator { Coordinator() }
 
 	final class Coordinator: NSObject, WKNavigationDelegate {
+		/// The last fully-rendered HTML string loaded into the WKWebView.
+		/// Used to skip redundant `loadHTMLString` calls on every SwiftUI pass.
+		var loadedHTML: String = ""
+		var lastFindQuery: String = ""
+		var lastFindTrigger: Int = -1
+
 		@MainActor
 		func webView(
 			_ webView: WKWebView,
