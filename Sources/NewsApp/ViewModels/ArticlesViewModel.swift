@@ -16,6 +16,7 @@ final class ArticlesViewModel: ObservableObject {
 	@Published var dateRangeFilter: DateRangeFilter = .all
 	@Published var showBookmarksOnly = false
 	@Published var showHiddenOnly = false
+	@Published var showDailySummary = false
 	/// Tag names that have at least one article in the current source+dateRange context.
 	/// The filter bar uses this to hide chips that would return zero results.
 	@Published private(set) var availableTagNames: Set<String> = []
@@ -30,6 +31,9 @@ final class ArticlesViewModel: ObservableObject {
 	/// Called whenever one or more articles are marked read so external observers
 	/// (e.g. the sidebar unread badge) can update without polling.
 	var onArticleRead: (() -> Void)?
+	/// Fired when a read article's Readability content is cached; passes (id, title, content).
+	/// ContentView uses this to trigger background daily summarization via DailySummaryService.
+	var onReadArticleContentCached: ((String, String, String) -> Void)?
 
 	private let articleRepo = ArticleRepository()
 	private let refreshService = FeedRefreshService.shared
@@ -134,6 +138,7 @@ final class ArticlesViewModel: ObservableObject {
 		activeTags = []
 		showBookmarksOnly = false
 		showHiddenOnly = false
+		showDailySummary = false
 		// Persist so the selection survives app restarts.
 		if let id {
 			UserDefaults.standard.set(id, forKey: Self.selectedSourceKey)
@@ -237,6 +242,11 @@ final class ArticlesViewModel: ObservableObject {
 			if let idx = articles.firstIndex(where: { $0.id == id }) {
 				articles[idx].rawContent = rawContent
 				articles[idx].readableContent = readableContent
+				// Fire the daily-summary hook only for articles already marked read so
+				// we have the best content available at the time of summarization.
+				if articles[idx].isRead {
+					onReadArticleContentCached?(id, articles[idx].title, readableContent)
+				}
 			}
 		} catch {
 			errorMessage = error.localizedDescription
@@ -250,6 +260,7 @@ final class ArticlesViewModel: ObservableObject {
 	var activeFilterDescription: String? {
 		var parts: [String] = []
 
+		if showDailySummary { return nil } // DailySummaryView has its own header
 		if showHiddenOnly {
 			parts.append("Hidden")
 		} else {
@@ -308,14 +319,21 @@ final class ArticlesViewModel: ObservableObject {
 
 	func filterByBookmarks(_ on: Bool) {
 		showBookmarksOnly = on
-		if on { selectedSourceId = nil; showHiddenOnly = false }
+		if on { selectedSourceId = nil; showHiddenOnly = false; showDailySummary = false }
 		reset()
 		loadTask = Task { await loadNextPage() }
 	}
 
 	func filterByHidden(_ on: Bool) {
 		showHiddenOnly = on
-		if on { selectedSourceId = nil; showBookmarksOnly = false }
+		if on { selectedSourceId = nil; showBookmarksOnly = false; showDailySummary = false }
+		reset()
+		loadTask = Task { await loadNextPage() }
+	}
+
+	func filterByDailySummary(_ on: Bool) {
+		showDailySummary = on
+		if on { selectedSourceId = nil; showBookmarksOnly = false; showHiddenOnly = false }
 		reset()
 		loadTask = Task { await loadNextPage() }
 	}

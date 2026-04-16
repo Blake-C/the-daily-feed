@@ -67,6 +67,20 @@ struct SidebarView: View {
 					) {
 						articlesVM.filterByHidden(!articlesVM.showHiddenOnly)
 					}
+
+					if appState.dailySummaryEnabled {
+						SidebarRow(
+							title: "Daily Summary",
+							icon: "doc.text.magnifyingglass",
+							selectedIcon: "doc.text.magnifyingglass",
+							isSelected: articlesVM.showDailySummary,
+							unreadCount: 0,
+							badge: nil,
+							error: nil
+						) {
+							articlesVM.filterByDailySummary(!articlesVM.showDailySummary)
+						}
+					}
 				}
 
 				Section("Feeds") {

@@ -5,6 +5,8 @@ struct ContentView: View {
 	@StateObject private var articlesVM = ArticlesViewModel()
 	@StateObject private var sourcesVM = SourcesViewModel()
 	@StateObject private var weatherService = WeatherService.shared
+	@StateObject private var dailySummaryVM = DailySummaryViewModel()
+	@State private var selectedDailySummaryArticle: Article?
 
 	private var selectedSourceName: String? {
 		guard let id = articlesVM.selectedSourceId else { return nil }
@@ -24,8 +26,17 @@ struct ContentView: View {
 		} detail: {
 			VStack(spacing: 0) {
 				NewspaperHeaderView()
-				TagFilterBarView(sourcesVM: sourcesVM, articlesVM: articlesVM)
-				ArticleGridView(vm: articlesVM, sourceName: selectedSourceName, sourcesCount: sourcesVM.sources.count, sourceNames: sourceNames)
+				if articlesVM.showDailySummary {
+					DailySummaryView(
+						vm: dailySummaryVM,
+						sourceNames: sourceNames
+					) { article in
+						selectedDailySummaryArticle = article
+					}
+				} else {
+					TagFilterBarView(sourcesVM: sourcesVM, articlesVM: articlesVM)
+					ArticleGridView(vm: articlesVM, sourceName: selectedSourceName, sourcesCount: sourcesVM.sources.count, sourceNames: sourceNames)
+				}
 			}
 		}
 		.toolbar {
@@ -93,6 +104,10 @@ struct ContentView: View {
 				.frame(width: 280)
 			}
 		}
+		.sheet(item: $selectedDailySummaryArticle) { article in
+			ArticleDetailView(article: article, vm: articlesVM, sourceName: sourceNames[article.sourceId])
+				.frame(minWidth: 860, minHeight: 700)
+		}
 		.sheet(isPresented: $appState.showSourceManager) {
 			SourceManagerView(vm: sourcesVM)
 				.frame(minWidth: 600, minHeight: 500)
@@ -112,12 +127,37 @@ struct ContentView: View {
 			articlesVM.onArticleRead = { [weak articlesVM, weak sourcesVM] in
 				sourcesVM?.refreshUnreadCounts(dateRange: articlesVM?.dateRangeFilter ?? .today)
 			}
+			// Trigger background daily summarization when readable content is cached
+			// for a read article. Runs only when the feature is enabled.
+			articlesVM.onReadArticleContentCached = { [weak appState] id, title, content in
+				guard let appState, appState.dailySummaryEnabled else { return }
+				let endpoint = appState.ollamaEndpoint
+				let model = appState.ollamaModel
+				Task {
+					await DailySummaryService.shared.summarize(
+						articleId: id,
+						title: title,
+						content: content,
+						endpoint: endpoint,
+						model: model
+					)
+				}
+			}
 			sourcesVM.load()
 			await seedIfNeeded()
 			// Load cached articles immediately, then fetch fresh content from the network.
 			await articlesVM.initialLoad()
 			await articlesVM.refresh()
 			sourcesVM.load()  // Sync unread counts after the initial fetch
+
+			// Catch up on any today's read articles that need daily summaries.
+			if appState.dailySummaryEnabled {
+				let endpoint = appState.ollamaEndpoint
+				let model = appState.ollamaModel
+				Task {
+					await DailySummaryService.shared.processPending(endpoint: endpoint, model: model)
+				}
+			}
 			if appState.hasWeather {
 				await weatherService.fetchWeather(apiKey: appState.openWeatherApiKey)
 			}
