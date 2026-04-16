@@ -149,7 +149,9 @@ settings from the macos settings? @done(Wed. 04/15/2026 - 04:30:00 PM)
 
 ✔ Add a section for other suggested news sources. Have this feature occasionally perform a search using Ollama for new RSS feeds that might be good to add to the application. Provide a one click button to add as a new source. The "Suggested Sources" page link can live near where the bookmarks and other buttons live. The idea here is to constantly be searching for new news sources the user might not be aware of. These sources should be reputable, safe, a long history, and provide an RSS feed that can be integrated into the application. @done(Thu. 04/16/2026 - 04:32:15 PM)
 
-☐ Using Ollama, it would be cool to have a feature that took the article and created a quiz UI once you've read an article. It can feed the article in to Ollama and generate questions (true/false, multi-choice, etc) where you an answer the questions and test how well you comprehended the article. The quiz UI shouldn't block the user from viewing the article as we want them to look back over the article to think more deeply about the topics in question.
+✔ Using Ollama, it would be cool to have a feature that took the article and created a quiz UI once you've read an article. It can feed the article in to Ollama and generate questions (true/false, multi-choice, etc) where you an answer the questions and test how well you comprehended the article. The quiz UI shouldn't block the user from viewing the article as we want them to look back over the article to think more deeply about the topics in question. Perhaps this should be a button at the top of the article detail view for "testing your knowledge". This should also have a toggle that is off by default in the settings for the user to turn on when they want it. The questions can also be in relation to the topics in the article, this can get the user to look more deeply into other topics. @done(Thu. 04/16/2026 - 04:58:05 PM)
+
+☐ Look over Ollama features and make sure they are implemented in a manner that protect us from prompt injection and other threats that might come with using an LLM in this way.
 
 ☐ Look over project of orphaned code.
 
