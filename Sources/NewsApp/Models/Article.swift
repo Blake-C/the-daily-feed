@@ -19,6 +19,7 @@ struct Article: Identifiable, Codable, FetchableRecord, PersistableRecord {
 	var starRating: Int        // 0 = unrated, 1–5
 	var rawContent: String?    // Cached raw HTML
 	var readableContent: String? // Cached Readability-extracted content
+	var dailySummary: String?  // Ollama-generated daily briefing
 
 	static let databaseTableName = "articles"
 
@@ -26,6 +27,7 @@ struct Article: Identifiable, Codable, FetchableRecord, PersistableRecord {
 		case id, sourceId, title, rewrittenTitle, author, summary
 		case thumbnailURL, articleURL, publishedAt, fetchedAt
 		case tags, isRead, isHidden, isBookmarked, starRating, rawContent, readableContent
+		case dailySummary
 	}
 
 	var tagList: [String] {

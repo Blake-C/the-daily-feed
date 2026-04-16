@@ -72,7 +72,7 @@ final class ArticleRepository: @unchecked Sendable {
 				SELECT id, sourceId, title, rewrittenTitle, author, summary,
 				       thumbnailURL, articleURL, publishedAt, fetchedAt,
 				       tags, isRead, isHidden, isBookmarked, starRating,
-				       NULL AS rawContent, NULL AS readableContent
+				       NULL AS rawContent, NULL AS readableContent, NULL AS dailySummary
 				FROM articles
 				"""
 
@@ -380,6 +380,69 @@ final class ArticleRepository: @unchecked Sendable {
 	func fetchHiddenCount() throws -> Int {
 		try db.read { conn in
 			try Int.fetchOne(conn, sql: "SELECT COUNT(*) FROM articles WHERE isHidden = 1") ?? 0
+		}
+	}
+
+	/// Returns today's read (and non-hidden) articles with their dailySummary values,
+	/// ordered newest first. "Today" = since midnight local time.
+	func fetchTodaysReadArticles() throws -> [Article] {
+		let startOfToday = Calendar.current.startOfDay(for: Date())
+		return try db.read { conn in
+			try Article.fetchAll(
+				conn,
+				sql: """
+				SELECT id, sourceId, title, rewrittenTitle, author, summary,
+				       thumbnailURL, articleURL, publishedAt, fetchedAt,
+				       tags, isRead, isHidden, isBookmarked, starRating,
+				       NULL AS rawContent, NULL AS readableContent, dailySummary
+				FROM articles
+				WHERE isRead = 1 AND isHidden = 0 AND publishedAt >= ?
+				ORDER BY publishedAt DESC
+				""",
+				arguments: [startOfToday]
+			)
+		}
+	}
+
+	/// Returns today's read articles that have not yet been summarized.
+	/// Used at startup to catch up on any missed background summarizations.
+	func fetchTodaysReadWithoutSummary() throws -> [Article] {
+		let startOfToday = Calendar.current.startOfDay(for: Date())
+		return try db.read { conn in
+			try Article.fetchAll(
+				conn,
+				sql: """
+				SELECT id, sourceId, title, rewrittenTitle, author, summary,
+				       thumbnailURL, articleURL, publishedAt, fetchedAt,
+				       tags, isRead, isHidden, isBookmarked, starRating,
+				       NULL AS rawContent, readableContent, NULL AS dailySummary
+				FROM articles
+				WHERE isRead = 1 AND isHidden = 0 AND publishedAt >= ?
+				  AND (dailySummary IS NULL OR dailySummary = '')
+				ORDER BY publishedAt DESC
+				""",
+				arguments: [startOfToday]
+			)
+		}
+	}
+
+	func fetchDailySummary(id: String) throws -> String? {
+		try db.read { conn in
+			let row = try Row.fetchOne(
+				conn,
+				sql: "SELECT dailySummary FROM articles WHERE id = ?",
+				arguments: [id]
+			)
+			return row?["dailySummary"]
+		}
+	}
+
+	func updateDailySummary(id: String, summary: String) throws {
+		try db.write { conn in
+			try conn.execute(
+				sql: "UPDATE articles SET dailySummary = ? WHERE id = ?",
+				arguments: [summary, id]
+			)
 		}
 	}
 
