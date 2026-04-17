@@ -1,20 +1,20 @@
+import AppKit
 import SwiftUI
 
 struct ArticleQuizView: View {
 	let questions: [QuizQuestion]
 	let isLoading: Bool
+	var statusMessage: String? = nil
 	let onClose: () -> Void
 	let onScoreSaved: (Int, Int) -> Void
 
 	@State private var selectedAnswers: [Int: Int] = [:]
 	@State private var scoreSaved = false
 
-	private var answeredCount: Int { selectedAnswers.count }
-	private var isComplete: Bool { answeredCount == questions.count && !questions.isEmpty }
+	private var isComplete: Bool { selectedAnswers.count == questions.count && !questions.isEmpty }
 	private var correctCount: Int {
 		selectedAnswers.reduce(0) { sum, pair in
-			let (index, chosen) = pair
-			return sum + (questions[index].correctIndex == chosen ? 1 : 0)
+			sum + (questions[pair.key].correctIndex == pair.value ? 1 : 0)
 		}
 	}
 
@@ -40,11 +40,12 @@ struct ArticleQuizView: View {
 			ScrollView {
 				VStack(alignment: .leading, spacing: 16) {
 					if isLoading {
-						HStack(spacing: 10) {
+						VStack(spacing: 10) {
 							ProgressView().scaleEffect(0.8)
-							Text("Generating questions…")
+							Text(statusMessage ?? "Generating questions…")
 								.font(.system(size: 13))
 								.foregroundStyle(.secondary)
+								.multilineTextAlignment(.center)
 						}
 						.frame(maxWidth: .infinity, alignment: .center)
 						.padding(.top, 40)
@@ -93,6 +94,7 @@ struct ArticleQuizView: View {
 				.font(.system(size: 11))
 				.foregroundStyle(.secondary)
 				.fixedSize(horizontal: false, vertical: true)
+				.textSelection(.enabled)
 		}
 		.padding(10)
 		.background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
@@ -170,6 +172,7 @@ private struct QuizQuestionCard: View {
 				Text(question.question)
 					.font(.system(size: 13, weight: .medium))
 					.fixedSize(horizontal: false, vertical: true)
+					.textSelection(.enabled)
 			}
 
 			// Answer options
@@ -177,7 +180,7 @@ private struct QuizQuestionCard: View {
 				ForEach(Array(question.options.enumerated()), id: \.offset) { optIndex, option in
 					AnswerOptionRow(
 						label: optionLabel(optIndex),
-						text: option,
+						text: stripOptionPrefix(option),
 						state: optionState(optIndex),
 						onTap: { onSelect(optIndex) }
 					)
@@ -189,15 +192,16 @@ private struct QuizQuestionCard: View {
 				HStack(alignment: .top, spacing: 6) {
 					Image(systemName: "lightbulb.fill")
 						.font(.system(size: 10))
-						.foregroundStyle(.yellow)
+						.foregroundStyle(.secondary)
 						.padding(.top, 2)
 					Text(question.explanation)
 						.font(.system(size: 11))
 						.foregroundStyle(.secondary)
 						.fixedSize(horizontal: false, vertical: true)
+						.textSelection(.enabled)
 				}
 				.padding(8)
-				.background(Color.yellow.opacity(0.07), in: RoundedRectangle(cornerRadius: 6))
+				.background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 6))
 			}
 		}
 		.padding(12)
@@ -212,13 +216,33 @@ private struct QuizQuestionCard: View {
 		guard let chosen = selectedAnswer else { return .idle }
 		if i == question.correctIndex { return .correct }
 		if i == chosen { return .wrong }
-		return .idle
+		return .dimmed
+	}
+
+	// Strip "A. ", "A) ", "A: ", "(A) ", "1. ", "1) " prefixes the model sometimes adds.
+	private func stripOptionPrefix(_ text: String) -> String {
+		let t = text.trimmingCharacters(in: .whitespaces)
+		let patterns = [
+			#"^[A-Da-d]\.\s+"#,
+			#"^[A-Da-d]\)\s+"#,
+			#"^[A-Da-d]:\s+"#,
+			#"^\([A-Da-d]\)\s*"#,
+			#"^\d+\.\s+"#,
+			#"^\d+\)\s+"#,
+		]
+		for pattern in patterns {
+			if let range = t.range(of: pattern, options: .regularExpression) {
+				let stripped = String(t[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+				if !stripped.isEmpty { return stripped }
+			}
+		}
+		return t
 	}
 }
 
 // MARK: - Answer option row
 
-private enum AnswerOptionState { case idle, correct, wrong }
+private enum AnswerOptionState { case idle, correct, wrong, dimmed }
 
 private struct AnswerOptionRow: View {
 	let label: String
@@ -228,25 +252,36 @@ private struct AnswerOptionRow: View {
 
 	private var bgColor: Color {
 		switch state {
-		case .idle:    return Color.secondary.opacity(0.08)
-		case .correct: return Color.green.opacity(0.15)
-		case .wrong:   return Color.red.opacity(0.15)
+		case .idle:   return Color.secondary.opacity(0.08)
+		case .correct: return Color.green.opacity(0.22)
+		case .wrong:  return Color.red.opacity(0.22)
+		case .dimmed: return Color.secondary.opacity(0.04)
 		}
 	}
 
 	private var borderColor: Color {
 		switch state {
-		case .idle:    return Color.clear
-		case .correct: return Color.green.opacity(0.5)
-		case .wrong:   return Color.red.opacity(0.5)
+		case .idle:   return Color.clear
+		case .correct: return Color.green.opacity(0.75)
+		case .wrong:  return Color.red.opacity(0.75)
+		case .dimmed: return Color.clear
+		}
+	}
+
+	private var labelColor: Color {
+		switch state {
+		case .idle:   return Color.accentColor
+		case .correct: return Color.green
+		case .wrong:  return Color.red
+		case .dimmed: return Color.secondary.opacity(0.5)
 		}
 	}
 
 	private var icon: String? {
 		switch state {
-		case .idle:    return nil
 		case .correct: return "checkmark.circle.fill"
 		case .wrong:   return "xmark.circle.fill"
+		default:       return nil
 		}
 	}
 
@@ -256,18 +291,19 @@ private struct AnswerOptionRow: View {
 				if !label.isEmpty {
 					Text(label)
 						.font(.system(size: 11, weight: .bold))
-						.foregroundStyle(state == .idle ? Color.accentColor : .secondary)
+						.foregroundStyle(labelColor)
 						.frame(width: 16)
 				}
 				Text(text)
 					.font(.system(size: 12))
-					.foregroundStyle(.primary)
+					.foregroundStyle(state == .dimmed ? Color.secondary : Color.primary)
 					.fixedSize(horizontal: false, vertical: true)
 					.multilineTextAlignment(.leading)
+					.textSelection(.enabled)
 				Spacer(minLength: 4)
 				if let icon {
 					Image(systemName: icon)
-						.font(.system(size: 13))
+						.font(.system(size: 14, weight: .semibold))
 						.foregroundStyle(state == .correct ? Color.green : Color.red)
 				}
 			}
@@ -276,7 +312,7 @@ private struct AnswerOptionRow: View {
 			.background(bgColor, in: RoundedRectangle(cornerRadius: 7))
 			.overlay(
 				RoundedRectangle(cornerRadius: 7)
-					.strokeBorder(borderColor, lineWidth: 1)
+					.strokeBorder(borderColor, lineWidth: 1.5)
 			)
 		}
 		.buttonStyle(.plain)
