@@ -342,6 +342,7 @@ struct ArticleDetailView: View {
 								detailVM.updateLastQuizScore(correct, total: total)
 							}
 						)
+						.id(detailVM.quizQuestions.first?.id)
 						.frame(width: 340, height: geo.size.height)
 						.transition(.move(edge: .trailing).combined(with: .opacity))
 					}
