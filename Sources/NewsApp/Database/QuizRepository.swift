@@ -8,7 +8,8 @@ final class QuizRepository: @unchecked Sendable {
 		self.db = db
 	}
 
-	func insert(_ result: QuizResult) throws {
+	@discardableResult
+	func insert(_ result: QuizResult) throws -> Int64 {
 		try db.write { conn in
 			try conn.execute(
 				sql: """
@@ -22,6 +23,16 @@ final class QuizRepository: @unchecked Sendable {
 					result.totalQuestions,
 					result.completedAt,
 				]
+			)
+			return conn.lastInsertedRowID
+		}
+	}
+
+	func updateScore(id: Int64, score: Int, total: Int) throws {
+		try db.write { conn in
+			try conn.execute(
+				sql: "UPDATE quiz_results SET score = ?, totalQuestions = ? WHERE id = ?",
+				arguments: [score, total, id]
 			)
 		}
 	}

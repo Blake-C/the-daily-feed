@@ -11,17 +11,27 @@ struct ArticleQuizView: View {
 	var onScrollToParagraph: ((String, Int) -> Void)? = nil
 	let onDispute: (Int, Int) async -> Void
 	let onScoreSaved: (Int, Int) -> Void
+	var onScoreUpdated: ((Int, Int) -> Void)? = nil
 
 	@State private var selectedAnswers: [Int: Int] = [:]
-	@State private var scoreSaved = false
+	@State private var savedScore: Int? = nil
 
 	private var isComplete: Bool { selectedAnswers.count == questions.count && !questions.isEmpty }
 
 	private var correctCount: Int {
 		selectedAnswers.reduce(0) { sum, pair in
+			guard disputeResults[pair.key]?.isQuestionInvalid != true else { return sum }
 			let effectiveCorrect = disputeResults[pair.key]?.correctedAnswerIndex ?? questions[pair.key].correctIndex
 			return sum + (effectiveCorrect == pair.value ? 1 : 0)
 		}
+	}
+
+	private var voidedCount: Int {
+		disputeResults.values.filter { $0.isQuestionInvalid }.count
+	}
+
+	private var effectiveTotal: Int {
+		questions.count - voidedCount
 	}
 
 	private var disputeBonusCount: Int {
@@ -116,6 +126,9 @@ struct ArticleQuizView: View {
 				}
 				.padding(14)
 			}
+			.onChange(of: disputeResults) {
+				checkAndSave()
+			}
 		}
 		.background(.background)
 	}
@@ -143,7 +156,7 @@ struct ArticleQuizView: View {
 			Text("Quiz Complete")
 				.font(.system(size: 14, weight: .semibold))
 
-			Text("\(correctCount) / \(questions.count)")
+			Text("\(correctCount) / \(effectiveTotal)")
 				.font(.system(size: 32, weight: .bold, design: .rounded))
 				.foregroundStyle(scoreColor)
 
@@ -153,6 +166,11 @@ struct ArticleQuizView: View {
 
 			if disputeBonusCount > 0 {
 				Text("Includes +\(disputeBonusCount) from successful dispute\(disputeBonusCount > 1 ? "s" : "")")
+					.font(.system(size: 11))
+					.foregroundStyle(.secondary)
+			}
+			if voidedCount > 0 {
+				Text("\(voidedCount) question\(voidedCount > 1 ? "s" : "") voided — not answerable from the article")
 					.font(.system(size: 11))
 					.foregroundStyle(.secondary)
 			}
@@ -168,7 +186,7 @@ struct ArticleQuizView: View {
 	}
 
 	private var scorePercentage: Int {
-		questions.isEmpty ? 0 : Int(Double(correctCount) / Double(questions.count) * 100)
+		effectiveTotal == 0 ? 0 : Int(Double(correctCount) / Double(effectiveTotal) * 100)
 	}
 
 	private var scoreColor: Color {
@@ -189,9 +207,16 @@ struct ArticleQuizView: View {
 	}
 
 	private func checkAndSave() {
-		guard isComplete, !scoreSaved else { return }
-		scoreSaved = true
-		onScoreSaved(correctCount, questions.count)
+		guard isComplete else { return }
+		let current = correctCount
+		let total = effectiveTotal
+		if savedScore == nil {
+			savedScore = current
+			onScoreSaved(current, total)
+		} else if savedScore != current {
+			savedScore = current
+			onScoreUpdated?(current, total)
+		}
 	}
 }
 
@@ -273,27 +298,34 @@ private struct QuizQuestionCard: View {
 		if let result = disputeResult {
 			// Result returned — show verdict banner
 			HStack(alignment: .top, spacing: 8) {
-				Image(systemName: result.userIsCorrect ? "checkmark.seal.fill" : "checkmark.circle")
+				Image(systemName: result.isQuestionInvalid
+					  ? "questionmark.circle.fill"
+					  : (result.userIsCorrect ? "checkmark.seal.fill" : "checkmark.circle"))
 					.font(.system(size: 12))
-					.foregroundStyle(result.userIsCorrect ? Color.green : Color.secondary)
+					.foregroundStyle(result.isQuestionInvalid
+						? Color.orange
+						: (result.userIsCorrect ? Color.green : Color.secondary))
 					.padding(.top, 1)
 				VStack(alignment: .leading, spacing: 3) {
-					Text(result.userIsCorrect
-						 ? "You were right — we apologise!"
-						 : "Original answer confirmed")
+					Text(result.isQuestionInvalid
+						 ? "Question voided"
+						 : (result.userIsCorrect ? "You were right — we apologise!" : "Original answer confirmed"))
 						.font(.system(size: 11, weight: .semibold))
-						.foregroundStyle(result.userIsCorrect ? Color.green : Color.secondary)
-					if result.userIsCorrect {
-						Text("Your answer has been accepted and your score updated.")
-							.font(.system(size: 11))
-							.foregroundStyle(.secondary)
-					}
+						.foregroundStyle(result.isQuestionInvalid
+							? Color.orange
+							: (result.userIsCorrect ? Color.green : Color.secondary))
+					Text(result.isQuestionInvalid
+						 ? "This question couldn't be verified from the article and won't count against your score."
+						 : (result.userIsCorrect ? "Your answer has been accepted and your score updated." : ""))
+						.font(.system(size: 11))
+						.foregroundStyle(.secondary)
+						.fixedSize(horizontal: false, vertical: true)
 				}
 			}
 			.padding(8)
 			.frame(maxWidth: .infinity, alignment: .leading)
 			.background(
-				(result.userIsCorrect ? Color.green : Color.secondary).opacity(0.08),
+				(result.isQuestionInvalid ? Color.orange : (result.userIsCorrect ? Color.green : Color.secondary)).opacity(0.08),
 				in: RoundedRectangle(cornerRadius: 6)
 			)
 		} else if isDisputing {
@@ -325,6 +357,7 @@ private struct QuizQuestionCard: View {
 
 	private func optionState(_ i: Int) -> AnswerOptionState {
 		guard let chosen = selectedAnswer else { return .idle }
+		if disputeResult?.isQuestionInvalid == true { return .dimmed }
 		if i == effectiveCorrectIndex { return .correct }
 		if i == chosen { return .wrong }
 		return .dimmed

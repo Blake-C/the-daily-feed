@@ -329,15 +329,19 @@ struct ArticleDetailView: View {
 									endpoint: appState.resolvedEndpoint,
 									model: appState.resolvedModel
 								)
+							},
+							onScoreSaved: { correct, total in
+								detailVM.saveQuizResult(
+									articleId: article.id,
+									articleTitle: article.title,
+									score: correct,
+									total: total
+								)
+							},
+							onScoreUpdated: { correct, total in
+								detailVM.updateLastQuizScore(correct, total: total)
 							}
-						) { correct, total in
-							detailVM.saveQuizResult(
-								articleId: article.id,
-								articleTitle: article.title,
-								score: correct,
-								total: total
-							)
-						}
+						)
 						.frame(width: 340, height: geo.size.height)
 						.transition(.move(edge: .trailing).combined(with: .opacity))
 					}

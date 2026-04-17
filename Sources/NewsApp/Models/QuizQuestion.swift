@@ -58,8 +58,9 @@ extension QuizQuestion: Codable {
 	}
 }
 
-struct QuizDisputeResult {
+struct QuizDisputeResult: Equatable {
 	let userIsCorrect: Bool
+	let isQuestionInvalid: Bool
 	let correctedAnswerIndex: Int
 	let explanation: String
 }

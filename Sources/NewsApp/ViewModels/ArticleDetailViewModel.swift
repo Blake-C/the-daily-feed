@@ -16,6 +16,7 @@ final class ArticleDetailViewModel {
 	private let articleRepo = ArticleRepository()
 	private let quizRepo = QuizRepository()
 	private var rewriteTask: Task<OllamaArticleResult?, Never>?
+	private var lastSavedQuizResultId: Int64?
 
 	func loadContent(for article: Article) async -> ReadabilityResult? {
 		// Fast path: return cached Readability HTML from DB without touching WKWebView.
@@ -171,7 +172,12 @@ final class ArticleDetailViewModel {
 			totalQuestions: total,
 			completedAt: Date()
 		)
-		try? quizRepo.insert(result)
+		lastSavedQuizResultId = try? quizRepo.insert(result)
+	}
+
+	func updateLastQuizScore(_ score: Int, total: Int) {
+		guard let id = lastSavedQuizResultId else { return }
+		try? quizRepo.updateScore(id: id, score: score, total: total)
 	}
 
 	func rewriteWithAI(

@@ -168,6 +168,7 @@ final class OllamaService: @unchecked Sendable {
 			A student answered a question and was marked wrong. They believe their answer is correct.
 			Review the question carefully against the article excerpt and decide who is right.
 			If BOTH answers are defensible based on the article, rule in favour of the student.
+			If the question cannot be answered from the article at all — because it asks about facts not present in the article — use verdict "question_invalid". This voids the question so it does not count against the student.
 
 			Article excerpt:
 			\(String(articleExcerpt.prefix(1_500)))
@@ -181,7 +182,7 @@ final class OllamaService: @unchecked Sendable {
 			Student's answer: index \(userChosenIndex) ("\(userText)")
 
 			Respond ONLY with this JSON object (no preamble, no markdown):
-			{"verdict": "user_correct" or "original_correct", "correctIndex": <number>, "explanation": "<one sentence>"}
+			{"verdict": "user_correct" or "original_correct" or "question_invalid", "correctIndex": <number>, "explanation": "<one sentence>"}
 			"""
 
 		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model, jsonFormat: true)
@@ -199,10 +200,17 @@ final class OllamaService: @unchecked Sendable {
 			let explanation: String
 		}
 		let resp = (try? JSONDecoder().decode(DisputeResponse.self, from: data))
-		let userIsCorrect = resp?.verdict.lowercased().contains("user") == true
+		let verdict = resp?.verdict.lowercased() ?? ""
+		let isInvalid = verdict.contains("invalid")
+		let userIsCorrect = !isInvalid && verdict.contains("user")
 		let corrected = resp?.correctIndex ?? fallbackIndex
 		let explanation = resp?.explanation ?? "No explanation provided."
-		return QuizDisputeResult(userIsCorrect: userIsCorrect, correctedAnswerIndex: corrected, explanation: explanation)
+		return QuizDisputeResult(
+			userIsCorrect: userIsCorrect,
+			isQuestionInvalid: isInvalid,
+			correctedAnswerIndex: corrected,
+			explanation: explanation
+		)
 	}
 
 	// MARK: - Source Suggestions
