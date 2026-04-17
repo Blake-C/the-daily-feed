@@ -33,8 +33,22 @@ final class SourceRepository: @unchecked Sendable {
 	}
 
 	func update(_ source: NewsSource) throws {
+		guard let id = source.id else { return }
 		try db.write { conn in
-			try source.update(conn)
+			try conn.execute(
+				sql: """
+					UPDATE news_sources
+					SET name = ?, url = ?, type = ?, faviconURL = ?, rating = ?,
+					    isEnabled = ?, tags = ?, sortOrder = ?
+					WHERE id = ?
+					""",
+				arguments: [
+					source.name, source.url, source.type.rawValue,
+					source.faviconURL, source.rating,
+					source.isEnabled, source.tags, source.sortOrder,
+					id,
+				]
+			)
 		}
 	}
 
