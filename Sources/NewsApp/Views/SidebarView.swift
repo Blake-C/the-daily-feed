@@ -1,6 +1,20 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+// MARK: - Library item order
+
+private enum LibraryItem: String, CaseIterable, Identifiable, Equatable {
+	case bookmarks        = "bookmarks"
+	case hidden           = "hidden"
+	case dailySummary     = "daily_summary"
+	case quizStats        = "quiz_stats"
+	case suggestedSources = "suggested_sources"
+
+	var id: String { rawValue }
+}
+
+// MARK: - Sidebar
+
 struct SidebarView: View {
 	@ObservedObject var sourcesVM: SourcesViewModel
 	@ObservedObject var articlesVM: ArticlesViewModel
@@ -8,6 +22,84 @@ struct SidebarView: View {
 
 	@State private var searchText = ""
 	@State private var draggingSource: NewsSource?
+	@State private var draggingLibraryItem: LibraryItem?
+
+	/// Comma-separated raw values persisted across launches.
+	@AppStorage("libraryItemOrder") private var libraryOrderString = ""
+
+	private var libraryOrder: [LibraryItem] {
+		guard !libraryOrderString.isEmpty else { return LibraryItem.allCases }
+		var result = libraryOrderString
+			.components(separatedBy: ",")
+			.compactMap { LibraryItem(rawValue: $0) }
+		for item in LibraryItem.allCases where !result.contains(item) {
+			result.append(item)
+		}
+		return result
+	}
+
+	private func saveLibraryOrder(_ order: [LibraryItem]) {
+		libraryOrderString = order.map(\.rawValue).joined(separator: ",")
+	}
+
+	private var visibleLibraryItems: [LibraryItem] {
+		libraryOrder.filter { item in
+			switch item {
+			case .bookmarks, .hidden:    return true
+			case .dailySummary:          return appState.dailySummaryEnabled
+			case .quizStats:             return appState.quizEnabled
+			case .suggestedSources:      return appState.suggestedSourcesEnabled
+			}
+		}
+	}
+
+	@ViewBuilder
+	private func libraryRow(for item: LibraryItem) -> some View {
+		switch item {
+		case .bookmarks:
+			SidebarRow(
+				title: "Bookmarks",
+				icon: "bookmark",
+				selectedIcon: "bookmark.fill",
+				isSelected: articlesVM.showBookmarksOnly,
+				unreadCount: articlesVM.bookmarkCount,
+				badge: nil, error: nil
+			) { articlesVM.filterByBookmarks(!articlesVM.showBookmarksOnly) }
+		case .hidden:
+			SidebarRow(
+				title: "Hidden",
+				icon: "eye.slash",
+				selectedIcon: "eye.slash.fill",
+				isSelected: articlesVM.showHiddenOnly,
+				unreadCount: articlesVM.hiddenCount,
+				badge: nil, error: nil
+			) { articlesVM.filterByHidden(!articlesVM.showHiddenOnly) }
+		case .dailySummary:
+			SidebarRow(
+				title: "Daily Summary",
+				icon: "doc.text.magnifyingglass",
+				selectedIcon: "doc.text.magnifyingglass",
+				isSelected: articlesVM.showDailySummary,
+				unreadCount: 0, badge: nil, error: nil
+			) { articlesVM.filterByDailySummary(!articlesVM.showDailySummary) }
+		case .quizStats:
+			SidebarRow(
+				title: "Quiz Stats",
+				icon: "brain.head.profile",
+				selectedIcon: "brain.head.profile",
+				isSelected: articlesVM.showQuizStats,
+				unreadCount: 0, badge: nil, error: nil
+			) { articlesVM.filterByQuizStats(!articlesVM.showQuizStats) }
+		case .suggestedSources:
+			SidebarRow(
+				title: "Suggested Sources",
+				icon: "antenna.radiowaves.left.and.right",
+				selectedIcon: "antenna.radiowaves.left.and.right",
+				isSelected: articlesVM.showSuggestedSources,
+				unreadCount: 0, badge: nil, error: nil
+			) { articlesVM.filterBySuggestedSources(!articlesVM.showSuggestedSources) }
+		}
+	}
 
 	private var filteredSources: [NewsSource] {
 		if searchText.isEmpty { return sourcesVM.sources }
@@ -44,70 +136,25 @@ struct SidebarView: View {
 
 			List {
 				Section("Library") {
-					SidebarRow(
-						title: "Bookmarks",
-						icon: "bookmark",
-						selectedIcon: "bookmark.fill",
-						isSelected: articlesVM.showBookmarksOnly,
-						unreadCount: articlesVM.bookmarkCount,
-						badge: nil,
-						error: nil
-					) {
-						articlesVM.filterByBookmarks(!articlesVM.showBookmarksOnly)
-					}
-
-					SidebarRow(
-						title: "Hidden",
-						icon: "eye.slash",
-						selectedIcon: "eye.slash.fill",
-						isSelected: articlesVM.showHiddenOnly,
-						unreadCount: articlesVM.hiddenCount,
-						badge: nil,
-						error: nil
-					) {
-						articlesVM.filterByHidden(!articlesVM.showHiddenOnly)
-					}
-
-					if appState.dailySummaryEnabled {
-						SidebarRow(
-							title: "Daily Summary",
-							icon: "doc.text.magnifyingglass",
-							selectedIcon: "doc.text.magnifyingglass",
-							isSelected: articlesVM.showDailySummary,
-							unreadCount: 0,
-							badge: nil,
-							error: nil
-						) {
-							articlesVM.filterByDailySummary(!articlesVM.showDailySummary)
-						}
-					}
-
-					if appState.quizEnabled {
-						SidebarRow(
-							title: "Quiz Stats",
-							icon: "brain.head.profile",
-							selectedIcon: "brain.head.profile",
-							isSelected: articlesVM.showQuizStats,
-							unreadCount: 0,
-							badge: nil,
-							error: nil
-						) {
-							articlesVM.filterByQuizStats(!articlesVM.showQuizStats)
-						}
-					}
-
-					if appState.suggestedSourcesEnabled {
-						SidebarRow(
-							title: "Suggested Sources",
-							icon: "antenna.radiowaves.left.and.right",
-							selectedIcon: "antenna.radiowaves.left.and.right",
-							isSelected: articlesVM.showSuggestedSources,
-							unreadCount: 0,
-							badge: nil,
-							error: nil
-						) {
-							articlesVM.filterBySuggestedSources(!articlesVM.showSuggestedSources)
-						}
+					ForEach(visibleLibraryItems) { item in
+						libraryRow(for: item)
+							.onDrag {
+								draggingLibraryItem = item
+								return NSItemProvider(object: item.rawValue as NSString)
+							}
+							.onDrop(of: [UTType.plainText], isTargeted: nil) { _ in
+								guard let dragged = draggingLibraryItem, dragged != item else { return false }
+								var order = libraryOrder
+								guard
+									let fromIdx = order.firstIndex(of: dragged),
+									let toIdx   = order.firstIndex(of: item)
+								else { return false }
+								let dest = toIdx >= fromIdx ? toIdx + 1 : toIdx
+								order.move(fromOffsets: IndexSet([fromIdx]), toOffset: dest)
+								saveLibraryOrder(order)
+								draggingLibraryItem = nil
+								return true
+							}
 					}
 				}
 
