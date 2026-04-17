@@ -142,5 +142,4 @@ private struct DefaultSource: Codable {
 	let name: String
 	let url: String
 	let type: String
-	let tags: [String]
 }
