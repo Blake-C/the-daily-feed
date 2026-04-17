@@ -111,10 +111,12 @@ final class OllamaService: @unchecked Sendable {
 			Generate ONE \(typeRule) comprehension question about this news article.
 			This is question \(number) of 5.\(alreadyUsedBlock)
 
+			IMPORTANT: Every question, every answer option, and the explanation MUST be based exclusively on the article text provided below. Do NOT use your training data, general knowledge, or any information not present in this article. If a fact cannot be found in the article text, do not ask about it.
+
 			Rules:
 			- correctIndex: 0-based index of the correct answer
-			- explanation: one sentence explaining why the answer is correct
-			- sourceExcerpt: first 12-15 words verbatim from the paragraph the question is based on (omit if not tied to a specific paragraph)
+			- explanation: one sentence explaining why the answer is correct, citing the relevant part of the article
+			- sourceExcerpt: first 12-15 words verbatim from the paragraph the question is based on (required — every question must be tied to a specific paragraph)
 
 			Respond with ONLY this JSON object and nothing else:
 			\(example)
