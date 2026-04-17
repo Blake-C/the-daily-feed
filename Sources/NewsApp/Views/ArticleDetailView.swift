@@ -4,10 +4,10 @@ import WebKit
 
 struct ArticleDetailView: View {
 	let article: Article
-	@ObservedObject var vm: ArticlesViewModel
+	var vm: ArticlesViewModel
 	var sourceName: String?
-	@EnvironmentObject var appState: AppState
-	@StateObject private var detailVM = ArticleDetailViewModel()
+	@Environment(AppState.self) var appState
+	@State private var detailVM = ArticleDetailViewModel()
 	@Environment(\.dismiss) private var dismiss
 
 	@State private var readabilityResult: ReadabilityResult?
@@ -207,7 +207,7 @@ struct ArticleDetailView: View {
 				}
 				.padding(.horizontal, 16)
 				.padding(.vertical, 7)
-				.background(Color(NSColor.controlBackgroundColor))
+				.background(.background.secondary)
 				Divider()
 			}
 

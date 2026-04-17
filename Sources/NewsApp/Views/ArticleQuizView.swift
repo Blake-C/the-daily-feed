@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 struct ArticleQuizView: View {
@@ -118,7 +117,7 @@ struct ArticleQuizView: View {
 				.padding(14)
 			}
 		}
-		.background(Color(NSColor.windowBackgroundColor))
+		.background(.background)
 	}
 
 	// MARK: - Subviews

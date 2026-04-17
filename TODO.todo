@@ -186,7 +186,7 @@ settings from the macos settings? @done(Wed. 04/15/2026 - 04:30:00 PM)
 
 ✔ Look over Ollama features and make sure they are implemented in a manner that protect us from prompt injection and other threats that might come with using an LLM in this way. @done(Fri. 04/17/2026 - 02:08:34 AM)
 
-☐ Look over project of orphaned code.
+✔ Look over project of orphaned code. @done(Fri. 04/17/2026 - 02:36:22 AM)
 
 ☐ Look over project for security issues.
 

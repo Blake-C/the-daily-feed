@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct TagFilterBarView: View {
-	@ObservedObject var sourcesVM: SourcesViewModel
-	@ObservedObject var articlesVM: ArticlesViewModel
+	var sourcesVM: SourcesViewModel
+	var articlesVM: ArticlesViewModel
 
 	private var hasActiveFilters: Bool { !articlesVM.activeTags.isEmpty }
 

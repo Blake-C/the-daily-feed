@@ -1,10 +1,9 @@
-import AppKit
 import SwiftUI
 
 struct SuggestedSourcesView: View {
-	@ObservedObject var vm: SuggestedSourcesViewModel
-	@ObservedObject var sourcesVM: SourcesViewModel
-	@EnvironmentObject var appState: AppState
+	var vm: SuggestedSourcesViewModel
+	var sourcesVM: SourcesViewModel
+	@Environment(AppState.self) var appState
 	var searchText: String = ""
 
 	private var currentSourceNames: String {
@@ -116,6 +115,9 @@ private struct SuggestedSourceCard: View {
 	let onAdd: () -> Void
 	let onDismiss: () -> Void
 
+	@Environment(\.openURL) private var openURL
+	@State private var confirmOpenURL: URL? = nil
+
 	var body: some View {
 		VStack(alignment: .leading, spacing: 10) {
 			HStack(alignment: .top) {
@@ -139,15 +141,7 @@ private struct SuggestedSourceCard: View {
 					   let scheme = websiteURL.scheme?.lowercased(),
 					   scheme == "http" || scheme == "https" {
 						Button {
-							let alert = NSAlert()
-							alert.messageText = "Open Link?"
-							alert.informativeText = websiteURL.absoluteString
-							alert.alertStyle = .informational
-							alert.addButton(withTitle: "Open")
-							alert.addButton(withTitle: "Cancel")
-							if alert.runModal() == .alertFirstButtonReturn {
-								NSWorkspace.shared.open(websiteURL)
-							}
+							confirmOpenURL = websiteURL
 						} label: {
 							Text(suggestion.websiteURL)
 								.font(.system(size: 11))
@@ -201,5 +195,17 @@ private struct SuggestedSourceCard: View {
 		}
 		.padding(14)
 		.background(.background.secondary, in: RoundedRectangle(cornerRadius: 10))
+		.alert("Open Link?", isPresented: Binding(
+			get: { confirmOpenURL != nil },
+			set: { if !$0 { confirmOpenURL = nil } }
+		)) {
+			Button("Open") {
+				if let url = confirmOpenURL { openURL(url) }
+				confirmOpenURL = nil
+			}
+			Button("Cancel", role: .cancel) { confirmOpenURL = nil }
+		} message: {
+			Text(confirmOpenURL?.absoluteString ?? "")
+		}
 	}
 }

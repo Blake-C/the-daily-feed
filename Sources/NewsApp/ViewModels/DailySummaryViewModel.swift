@@ -1,8 +1,9 @@
 import Foundation
 
+@Observable
 @MainActor
-final class DailySummaryViewModel: ObservableObject {
-	@Published var articles: [Article] = []
+final class DailySummaryViewModel {
+	var articles: [Article] = []
 
 	private let articleRepo = ArticleRepository()
 	private var notificationTask: Task<Void, Never>?
@@ -13,10 +14,6 @@ final class DailySummaryViewModel: ObservableObject {
 				self?.load()
 			}
 		}
-	}
-
-	deinit {
-		notificationTask?.cancel()
 	}
 
 	func load() {

@@ -1,16 +1,17 @@
 import CryptoKit
 import Foundation
 
+@Observable
 @MainActor
-final class ArticleDetailViewModel: ObservableObject {
-	@Published var isLoadingContent = false
-	@Published var isProcessingAI = false
-	@Published var isGeneratingQuiz = false
-	@Published var quizQuestions: [QuizQuestion] = []
-	@Published var quizStatusMessage: String?
-	@Published var disputeResults: [Int: QuizDisputeResult] = [:]
-	@Published var disputingIndices: Set<Int> = []
-	@Published var errorMessage: String?
+final class ArticleDetailViewModel {
+	var isLoadingContent = false
+	var isProcessingAI = false
+	var isGeneratingQuiz = false
+	var quizQuestions: [QuizQuestion] = []
+	var quizStatusMessage: String?
+	var disputeResults: [Int: QuizDisputeResult] = [:]
+	var disputingIndices: Set<Int> = []
+	var errorMessage: String?
 
 	private let articleRepo = ArticleRepository()
 	private let quizRepo = QuizRepository()

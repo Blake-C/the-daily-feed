@@ -2,13 +2,13 @@ import AppKit
 import SwiftUI
 
 struct ContentView: View {
-	@EnvironmentObject var appState: AppState
-	@StateObject private var articlesVM = ArticlesViewModel()
-	@StateObject private var sourcesVM = SourcesViewModel()
-	@StateObject private var weatherService = WeatherService.shared
-	@StateObject private var dailySummaryVM = DailySummaryViewModel()
-	@StateObject private var suggestedSourcesVM = SuggestedSourcesViewModel()
-	@StateObject private var quizStatsVM = QuizStatsViewModel()
+	@Environment(AppState.self) var appState
+	@State private var articlesVM = ArticlesViewModel()
+	@State private var sourcesVM = SourcesViewModel()
+	private var weatherService = WeatherService.shared
+	@State private var dailySummaryVM = DailySummaryViewModel()
+	@State private var suggestedSourcesVM = SuggestedSourcesViewModel()
+	@State private var quizStatsVM = QuizStatsViewModel()
 	@State private var selectedDailySummaryArticle: Article?
 
 	private var selectedSourceName: String? {
@@ -116,7 +116,7 @@ struct ContentView: View {
 			ArticleDetailView(article: article, vm: articlesVM, sourceName: sourceNames[article.sourceId])
 				.frame(minWidth: 860, minHeight: 700)
 		}
-		.sheet(isPresented: $appState.showSourceManager) {
+		.sheet(isPresented: Bindable(appState).showSourceManager) {
 			SourceManagerView(vm: sourcesVM)
 				.frame(minWidth: 600, minHeight: 500)
 		}

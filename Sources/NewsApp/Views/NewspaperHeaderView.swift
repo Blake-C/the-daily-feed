@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct NewspaperHeaderView: View {
-	@EnvironmentObject var appState: AppState
-	@ObservedObject private var weatherService = WeatherService.shared
+	@Environment(AppState.self) var appState
+	private var weatherService = WeatherService.shared
 
 	private var dateString: String {
 		let formatter = DateFormatter()

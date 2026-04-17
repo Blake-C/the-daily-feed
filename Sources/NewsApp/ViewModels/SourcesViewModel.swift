@@ -1,18 +1,19 @@
 import Foundation
 
+@Observable
 @MainActor
-final class SourcesViewModel: ObservableObject {
-	@Published var sources: [NewsSource] = []
-	@Published var tags: [Tag] = []
-	@Published var errorMessage: String?
-	@Published var importSummary: String?
+final class SourcesViewModel {
+	var sources: [NewsSource] = []
+	var tags: [Tag] = []
+	var errorMessage: String?
+	var importSummary: String?
 	/// Unread article counts keyed by source ID. Refreshed on every load().
-	@Published var unreadCounts: [Int64: Int] = [:]
+	var unreadCounts: [Int64: Int] = [:]
 	/// Non-nil while feed autodiscovery is running.
-	@Published var discoveryInProgress = false
+	var discoveryInProgress = false
 	/// Set when discovery finds a different URL than the one the user typed.
 	/// The UI presents a confirmation before adding.
-	@Published var pendingDiscovery: FeedDiscoveryService.DiscoveryResult?
+	var pendingDiscovery: FeedDiscoveryService.DiscoveryResult?
 
 	/// Called after a new source is added and its initial fetch completes.
 	var onSourceAdded: (() -> Void)?

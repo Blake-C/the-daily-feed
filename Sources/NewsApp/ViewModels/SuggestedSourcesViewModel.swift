@@ -1,9 +1,10 @@
 import Foundation
 
+@Observable
 @MainActor
-final class SuggestedSourcesViewModel: ObservableObject {
-	@Published var suggestions: [SuggestedSource] = []
-	@Published var isRefreshing = false
+final class SuggestedSourcesViewModel {
+	var suggestions: [SuggestedSource] = []
+	var isRefreshing = false
 
 	private var notificationTask: Task<Void, Never>?
 
@@ -14,10 +15,6 @@ final class SuggestedSourcesViewModel: ObservableObject {
 				self?.load()
 			}
 		}
-	}
-
-	deinit {
-		notificationTask?.cancel()
 	}
 
 	func load() {

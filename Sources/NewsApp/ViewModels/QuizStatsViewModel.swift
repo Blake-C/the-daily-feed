@@ -1,11 +1,12 @@
 import Foundation
 
+@Observable
 @MainActor
-final class QuizStatsViewModel: ObservableObject {
-	@Published var todayStats = QuizPeriodStats(correct: 0, total: 0, quizCount: 0)
-	@Published var monthStats = QuizPeriodStats(correct: 0, total: 0, quizCount: 0)
-	@Published var yearStats  = QuizPeriodStats(correct: 0, total: 0, quizCount: 0)
-	@Published var recentResults: [QuizResult] = []
+final class QuizStatsViewModel {
+	var todayStats = QuizPeriodStats(correct: 0, total: 0, quizCount: 0)
+	var monthStats = QuizPeriodStats(correct: 0, total: 0, quizCount: 0)
+	var yearStats  = QuizPeriodStats(correct: 0, total: 0, quizCount: 0)
+	var recentResults: [QuizResult] = []
 
 	private let repo = QuizRepository()
 	private let articleRepo = ArticleRepository()

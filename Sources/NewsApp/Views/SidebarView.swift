@@ -16,9 +16,9 @@ private enum LibraryItem: String, CaseIterable, Identifiable, Equatable {
 // MARK: - Sidebar
 
 struct SidebarView: View {
-	@ObservedObject var sourcesVM: SourcesViewModel
-	@ObservedObject var articlesVM: ArticlesViewModel
-	@EnvironmentObject var appState: AppState
+	var sourcesVM: SourcesViewModel
+	var articlesVM: ArticlesViewModel
+	@Environment(AppState.self) var appState
 
 	@State private var searchText = ""
 	@State private var draggingSource: NewsSource?

@@ -1,4 +1,3 @@
-import AppKit
 import Observation
 import SwiftUI
 
@@ -46,8 +45,8 @@ final class SourceColorStore {
 	// MARK: - Persistence
 
 	private func persist(_ color: Color, for id: Int64) {
-		guard let ns = NSColor(color).usingColorSpace(.sRGB) else { return }
-		let str = "\(ns.redComponent) \(ns.greenComponent) \(ns.blueComponent)"
+		let r = color.resolve(in: EnvironmentValues())
+		let str = "\(r.red) \(r.green) \(r.blue)"
 		UserDefaults.standard.set(str, forKey: "source_color_\(id)")
 	}
 

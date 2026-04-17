@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ArticleGridView: View {
-	@ObservedObject var vm: ArticlesViewModel
+	var vm: ArticlesViewModel
 	var sourceName: String?
 	/// Total number of configured sources — used to produce contextual empty states.
 	var sourcesCount: Int

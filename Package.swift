@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
 	name: "NewsApp",
 	platforms: [
-		.macOS(.v15), // Update to .v26 when SDK is available
+		.macOS(.v15), // macOS 26 target — update to .v26 once Swift toolchain adds the enum case
 	],
 	dependencies: [
 		.package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0"),

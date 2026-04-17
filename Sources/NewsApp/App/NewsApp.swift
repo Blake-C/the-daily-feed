@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct NewsApp: App {
-	@StateObject private var appState = AppState()
+	@State private var appState = AppState()
 
 	init() {
 		// Give AsyncImage (and all URLSession-based requests) an explicit cache budget.
@@ -19,11 +19,10 @@ struct NewsApp: App {
 	var body: some Scene {
 		WindowGroup("The Daily Feed") {
 			ContentView()
-				.environmentObject(appState)
+				.environment(appState)
 				.environment(SourceColorStore.shared)
 				.frame(minWidth: 1024, minHeight: 700)
 		}
-		.windowStyle(.titleBar)
 		.windowToolbarStyle(.unified)
 		.commands {
 			CommandGroup(replacing: .newItem) {}
@@ -36,8 +35,9 @@ struct NewsApp: App {
 		}
 
 		Settings {
-			SettingsView()
-				.environmentObject(appState)
+			SettingsView(appState: appState)
+				.environment(appState)
 		}
+		.defaultSize(width: 500, height: 420)
 	}
 }

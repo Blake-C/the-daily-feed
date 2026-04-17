@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DailySummaryView: View {
-	@ObservedObject var vm: DailySummaryViewModel
+	var vm: DailySummaryViewModel
 	var sourceNames: [Int64: String] = [:]
 	var searchText: String = ""
 	var onSelectArticle: (Article) -> Void

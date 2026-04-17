@@ -1,12 +1,13 @@
 import Foundation
 import CoreLocation
 
+@Observable
 @MainActor
-final class WeatherService: NSObject, ObservableObject {
+final class WeatherService: NSObject {
 	static let shared = WeatherService()
 
-	@Published var weather: WeatherData?
-	@Published var error: String?
+	var weather: WeatherData?
+	var error: String?
 
 	private let locationManager = CLLocationManager()
 	private var locationContinuation: CheckedContinuation<CLLocation, Error>?

@@ -1,15 +1,30 @@
-import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+private struct OPMLFile: FileDocument {
+	static let readableContentTypes: [UTType] = [
+		UTType(tag: "opml", tagClass: .filenameExtension, conformingTo: .xml) ?? .xml
+	]
+	var data: Data
+	init(_ data: Data) { self.data = data }
+	init(configuration: ReadConfiguration) throws {
+		data = configuration.file.regularFileContents ?? Data()
+	}
+	func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+		FileWrapper(regularFileWithContents: data)
+	}
+}
+
 struct SourceManagerView: View {
-	@ObservedObject var vm: SourcesViewModel
+	var vm: SourcesViewModel
 	@Environment(\.dismiss) private var dismiss
 
 	@State private var newSourceName = ""
 	@State private var newSourceURL = ""
 	@State private var newSourceTags = ""
 	@State private var showAddSource = false
+	@State private var showImporter = false
+	@State private var showExporter = false
 
 	@State private var newTagName = ""
 
@@ -37,6 +52,15 @@ struct SourceManagerView: View {
 			.padding()
 		}
 		.onAppear { vm.load() }
+		.fileImporter(isPresented: $showImporter, allowedContentTypes: [opmlType]) { result in
+			if case .success(let url) = result { vm.importOPML(from: url) }
+		}
+		.fileExporter(
+			isPresented: $showExporter,
+			document: OPMLFile(vm.exportOPML()),
+			contentType: opmlType,
+			defaultFilename: "TheDailyFeed"
+		) { _ in }
 		.alert("Import Complete", isPresented: Binding(
 			get: { vm.importSummary != nil },
 			set: { if !$0 { vm.importSummary = nil } }
@@ -115,9 +139,9 @@ struct SourceManagerView: View {
 
 			// OPML import / export
 			HStack(spacing: 8) {
-				Button("Import OPML…") { importOPML() }
+				Button("Import OPML…") { showImporter = true }
 					.buttonStyle(.bordered)
-				Button("Export OPML…") { exportOPML() }
+				Button("Export OPML…") { showExporter = true }
 					.buttonStyle(.bordered)
 					.disabled(vm.sources.isEmpty)
 				Spacer()
@@ -129,28 +153,8 @@ struct SourceManagerView: View {
 		}
 	}
 
-	private func importOPML() {
-		let panel = NSOpenPanel()
-		panel.title = "Import OPML"
-		panel.allowsMultipleSelection = false
-		panel.canChooseDirectories = false
-		panel.allowedContentTypes = opmlContentTypes
-		guard panel.runModal() == .OK, let url = panel.url else { return }
-		vm.importOPML(from: url)
-	}
-
-	private func exportOPML() {
-		let panel = NSSavePanel()
-		panel.title = "Export OPML"
-		panel.nameFieldStringValue = "TheDailyFeed.opml"
-		panel.allowedContentTypes = opmlContentTypes
-		guard panel.runModal() == .OK, let url = panel.url else { return }
-		try? vm.exportOPML().write(to: url)
-	}
-
-	private var opmlContentTypes: [UTType] {
-		let opml = UTType(tag: "opml", tagClass: .filenameExtension, conformingTo: .xml) ?? .xml
-		return [opml]
+	private var opmlType: UTType {
+		UTType(tag: "opml", tagClass: .filenameExtension, conformingTo: .xml) ?? .xml
 	}
 
 	// MARK: - Tags tab
@@ -211,7 +215,7 @@ struct SourceManagerView: View {
 
 private struct SourceRow: View {
 	let source: NewsSource
-	@ObservedObject var vm: SourcesViewModel
+	var vm: SourcesViewModel
 	@Environment(SourceColorStore.self) private var colorStore
 
 	@State private var pickerColor: Color = .accentColor

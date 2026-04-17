@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct QuizStatsView: View {
-	@ObservedObject var vm: QuizStatsViewModel
-	@ObservedObject var articlesVM: ArticlesViewModel
+	var vm: QuizStatsViewModel
+	var articlesVM: ArticlesViewModel
 	let sourceNames: [Int64: String]
 	var searchText: String = ""
 

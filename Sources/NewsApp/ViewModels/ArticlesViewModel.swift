@@ -1,33 +1,34 @@
 import Foundation
 
+@Observable
 @MainActor
-final class ArticlesViewModel: ObservableObject {
-	@Published var articles: [Article] = []
-	@Published var isLoading = false
-	@Published var isRefreshing = false
-	@Published var searchText = ""
-	@Published var activeTags: Set<String> = []
-	@Published var selectedSourceId: Int64? = nil
-	@Published var hideRead = false
-	@Published var hasMore = true
-	@Published var errorMessage: String?
-	@Published var dimThumbnails = false
-	@Published var dateRangeFilter: DateRangeFilter = .all
-	@Published var showBookmarksOnly = false
-	@Published var showHiddenOnly = false
-	@Published var showDailySummary = false
-	@Published var showSuggestedSources = false
-	@Published var showQuizStats = false
+final class ArticlesViewModel {
+	var articles: [Article] = []
+	var isLoading = false
+	var isRefreshing = false
+	var searchText = ""
+	var activeTags: Set<String> = []
+	var selectedSourceId: Int64? = nil
+	var hideRead = false
+	var hasMore = true
+	var errorMessage: String?
+	var dimThumbnails = false
+	var dateRangeFilter: DateRangeFilter = .all
+	var showBookmarksOnly = false
+	var showHiddenOnly = false
+	var showDailySummary = false
+	var showSuggestedSources = false
+	var showQuizStats = false
 	/// Tag names that have at least one article in the current source+dateRange context.
 	/// The filter bar uses this to hide chips that would return zero results.
-	@Published private(set) var availableTagNames: Set<String> = []
+	private(set) var availableTagNames: Set<String> = []
 	/// Total number of bookmarked articles — drives the sidebar badge.
-	@Published private(set) var bookmarkCount: Int = 0
+	private(set) var bookmarkCount: Int = 0
 	/// Total number of hidden (dismissed) articles — drives the sidebar badge.
-	@Published private(set) var hiddenCount: Int = 0
+	private(set) var hiddenCount: Int = 0
 	/// Increments every time the article list is reset (source/filter change).
 	/// Views observe this to scroll back to the top.
-	@Published private(set) var scrollResetToken = 0
+	private(set) var scrollResetToken = 0
 
 	/// Called whenever one or more articles are marked read so external observers
 	/// (e.g. the sidebar unread badge) can update without polling.
