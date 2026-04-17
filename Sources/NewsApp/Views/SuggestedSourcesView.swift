@@ -10,6 +10,7 @@ struct SuggestedSourcesView: View {
 	}
 
 	var body: some View {
+		GeometryReader { geo in
 		ScrollView {
 			LazyVStack(alignment: .leading, spacing: 0) {
 				// Header
@@ -55,15 +56,14 @@ struct SuggestedSourcesView: View {
 							.font(.system(size: 13))
 							.foregroundStyle(.secondary)
 					}
-					.frame(maxWidth: .infinity)
-					.padding(.top, 60)
+					.frame(width: geo.size.width, height: max(geo.size.height - 80, 200))
 				} else if vm.suggestions.isEmpty {
 					ContentUnavailableView(
 						"No Suggestions Yet",
 						systemImage: "antenna.radiowaves.left.and.right",
 						description: Text("Tap the refresh button to ask Ollama for source recommendations based on your current feeds.")
 					)
-					.padding(.top, 40)
+					.frame(width: geo.size.width, height: max(geo.size.height - 80, 200))
 				} else {
 					VStack(spacing: 12) {
 						ForEach(vm.suggestions) { suggestion in
@@ -92,6 +92,7 @@ struct SuggestedSourcesView: View {
 				endpoint: appState.ollamaEndpoint,
 				model: appState.ollamaModel
 			)
+		}
 		}
 	}
 }
