@@ -97,13 +97,26 @@ struct SettingsView: View {
 	private var aiTab: some View {
 		Form {
 			Section {
-				LabeledContent("Endpoint") {
-					TextField(AppState.defaultOllamaEndpoint, text: $appState.ollamaEndpoint)
+				VStack(alignment: .leading, spacing: 4) {
+					Text("Endpoint")
+						.font(.system(size: 12))
+						.foregroundStyle(.secondary)
+					TextField("", text: $appState.ollamaEndpoint)
 						.textFieldStyle(.roundedBorder)
+					Text("e.g. \(AppState.defaultOllamaEndpoint)")
+						.font(.caption)
+						.foregroundStyle(.tertiary)
 				}
-				LabeledContent("Model") {
-					TextField(AppState.defaultOllamaModel, text: $appState.ollamaModel)
+
+				VStack(alignment: .leading, spacing: 4) {
+					Text("Model")
+						.font(.system(size: 12))
+						.foregroundStyle(.secondary)
+					TextField("", text: $appState.ollamaModel)
 						.textFieldStyle(.roundedBorder)
+					Text("e.g. \(AppState.defaultOllamaModel)")
+						.font(.caption)
+						.foregroundStyle(.tertiary)
 				}
 
 				if !isEndpointLocal {
