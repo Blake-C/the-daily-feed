@@ -19,11 +19,11 @@
 ✘ Read articles don't persist scroll position — When the user returns from article detail, the grid likely resets. Scroll position should be preserved across detail open/close. @cancelled(Wed. 04/15/2026 - 11:04:19 AM)
 ✘ No "next article" / "previous article" navigation in detail — Users have to close the sheet and reopen the next card. An arrow button (or swipe gesture) to step through articles sequentially is a basic reader feature. @cancelled(Wed. 04/15/2026 - 11:04:20 AM)
 ✘ Tag filter is all-or-nothing — Tags appear to be AND or OR but it's not communicated. Clarifying the filter logic (or letting users toggle it) prevents confusion. @cancelled(Wed. 04/15/2026 - 10:07:44 PM)
-☐ Source error is in context menu only — The warning icon on a source with lastError only reveals the error via right-click. Hovering to show a tooltip with the error text would be much more discoverable.
-☐ No confirmation on "Hide article" — The hide button appears on hover with no undo. A brief "Undo" toast/notification would prevent accidental hides.
+✔ Source error is in context menu only — The warning icon on a source with lastError only reveals the error via right-click. Hovering to show a tooltip with the error text would be much more discoverable. @done(Fri. 04/17/2026 - 04:08:53 AM)
+✔ No confirmation on "Hide article" — The hide button appears on hover with no undo. A brief "Undo" toast/notification would prevent accidental hides. @done(Fri. 04/17/2026 - 04:13:47 AM)
 ✘ Search scope is unclear — Does search cover title only? Author? Summary? Content? There's no indication, and users will be confused by non-obvious results. @cancelled(Wed. 04/15/2026 - 10:09:10 PM)
 ✘ Settings are in a separate window — The Ollama + weather settings are in a standard Settings scene, but some of these (especially Ollama model selection ad test connection) feel like they belong in the Source Manager or a quick-access popover. @cancelled(Wed. 04/15/2026 - 10:09:26 PM)
-☐ No loading indicator at the per-source level — During refresh, you can't tell which sources are currently fetching vs. done. A subtle spinner next to each source in the sidebar would help.
+✔ No loading indicator at the per-source level — During refresh, you can't tell which sources are currently fetching vs. done. A subtle spinner next to each source in the sidebar would help. @done(Fri. 04/17/2026 - 04:16:59 AM)
 
 ## Performance
 
@@ -77,7 +77,7 @@ Polish that would matter for going public:
 Lower priority but worth noting:
 
 
-☐ iCloud/CloudKit sync — UserDefaults settings and Keychain are local-only. If someone runs the app on two Macs there's no sync. Complex to add but worth planning the data model for.
+✔ iCloud/CloudKit sync — UserDefaults settings and Keychain are local-only. If someone runs the app on two Macs there's no sync. Complex to add but worth planning the data model for. @done(Fri. 04/17/2026 - 04:25:43 AM)
 
 ✔ Ollama endpoint validation — currently accepts any URL; a user (or someone with local access) could point it at an arbitrary remote host. A simple localhost-only warning would be a sensible guardrail. @done(Wed. 04/15/2026 - 02:00:00 PM)
 

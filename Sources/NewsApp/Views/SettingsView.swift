@@ -3,7 +3,6 @@ import SwiftUI
 struct SettingsView: View {
 	@Bindable var appState: AppState
 
-	@AppStorage("useCelsius") private var useCelsius: Bool = false
 	@State private var ollamaTestStatus: String?
 	@State private var quizClearStatus: String?
 
@@ -74,7 +73,7 @@ struct SettingsView: View {
 						.foregroundStyle(.tertiary)
 						.frame(maxWidth: .infinity, alignment: .trailing)
 				}
-				Picker("Temperature Unit", selection: $useCelsius) {
+				Picker("Temperature Unit", selection: $appState.useCelsius) {
 					Text("Fahrenheit (°F)").tag(false)
 					Text("Celsius (°C)").tag(true)
 				}

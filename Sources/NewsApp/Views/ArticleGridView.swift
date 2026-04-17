@@ -82,6 +82,14 @@ struct ArticleGridView: View {
 				}
 			}
 		}
+		.overlay(alignment: .bottom) {
+			if vm.pendingUndoHide != nil {
+				HideUndoToast { vm.undoHide() }
+					.padding(.bottom, 20)
+					.transition(.move(edge: .bottom).combined(with: .opacity))
+			}
+		}
+		.animation(.spring(response: 0.3, dampingFraction: 0.8), value: vm.pendingUndoHide != nil)
 		.sheet(item: $selectedArticle) { article in
 			ArticleDetailView(article: article, vm: vm, sourceName: sourceNames[article.sourceId])
 				.frame(minWidth: 860, minHeight: 700)
@@ -130,5 +138,33 @@ struct ArticleGridView: View {
 	/// Targets roughly 340 pt per column with a minimum of 2.
 	private func columnCount(for width: CGFloat) -> Int {
 		max(2, Int(width / 340))
+	}
+}
+
+// MARK: - Undo Toast
+
+private struct HideUndoToast: View {
+	let onUndo: () -> Void
+
+	var body: some View {
+		HStack(spacing: 14) {
+			Image(systemName: "eye.slash.fill")
+				.font(.system(size: 13))
+				.foregroundStyle(.secondary)
+			Text("Article hidden")
+				.font(.system(size: 13, weight: .semibold))
+			Divider()
+				.frame(height: 16)
+			Button("Undo") { onUndo() }
+				.buttonStyle(.plain)
+				.font(.system(size: 13, weight: .semibold))
+				.foregroundColor(.accentColor)
+		}
+		.padding(.horizontal, 20)
+		.padding(.vertical, 12)
+		.background(Color(nsColor: .windowBackgroundColor).opacity(0.98))
+		.clipShape(Capsule())
+		.overlay(Capsule().strokeBorder(Color.primary.opacity(0.12), lineWidth: 1))
+		.shadow(color: .black.opacity(0.25), radius: 16, y: 6)
 	}
 }

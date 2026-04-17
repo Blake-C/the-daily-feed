@@ -37,12 +37,16 @@ final class ArticlesViewModel {
 	/// ContentView uses this to trigger background daily summarization via DailySummaryService.
 	var onReadArticleContentCached: ((String, String, String) -> Void)?
 
+	/// Non-nil while the undo toast is visible after hiding an article.
+	private(set) var pendingUndoHide: Article? = nil
+
 	private let articleRepo = ArticleRepository()
 	private let refreshService = FeedRefreshService.shared
 	private let pageSize = 40
 	private var currentOffset = 0
 	private var loadTask: Task<Void, Never>?
 	private var searchDebounceTask: Task<Void, Never>?
+	private var undoHideTask: Task<Void, Never>?
 
 	private static let selectedSourceKey = "articlesVM.selectedSourceId"
 
@@ -195,6 +199,33 @@ final class ArticlesViewModel {
 			try articleRepo.hideArticle(id: article.id)
 			articles.removeAll { $0.id == article.id }
 			hiddenCount = (try? articleRepo.fetchHiddenCount()) ?? hiddenCount
+			// Show undo toast for 4 seconds.
+			pendingUndoHide = article
+			undoHideTask?.cancel()
+			undoHideTask = Task { @MainActor [weak self] in
+				try? await Task.sleep(for: .seconds(10))
+				guard !Task.isCancelled else { return }
+				self?.pendingUndoHide = nil
+			}
+		} catch {
+			errorMessage = error.localizedDescription
+		}
+	}
+
+	func undoHide() {
+		guard let article = pendingUndoHide else { return }
+		undoHideTask?.cancel()
+		pendingUndoHide = nil
+		do {
+			try articleRepo.unhideArticle(id: article.id)
+			hiddenCount = (try? articleRepo.fetchHiddenCount()) ?? hiddenCount
+			// Re-insert at the correct position in the sorted list.
+			if !showHiddenOnly {
+				var restored = article
+				restored.isHidden = false
+				let idx = articles.firstIndex(where: { $0.publishedAt < article.publishedAt }) ?? articles.endIndex
+				articles.insert(restored, at: idx)
+			}
 		} catch {
 			errorMessage = error.localizedDescription
 		}
