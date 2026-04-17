@@ -104,6 +104,14 @@ final class ArticleDetailViewModel: ObservableObject {
 		}
 	}
 
+	func regenerateQuiz(article: Article, content: String, endpoint: String, model: String) async {
+		UserDefaults.standard.removeObject(forKey: quizCacheKey(article.id))
+		quizQuestions = []
+		disputeResults = [:]
+		disputingIndices = []
+		await generateQuiz(article: article, content: content, endpoint: endpoint, model: model)
+	}
+
 	// MARK: - Quiz cache
 
 	private func quizCacheKey(_ articleId: String) -> String { "quiz_q_\(articleId)" }

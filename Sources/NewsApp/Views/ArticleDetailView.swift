@@ -300,6 +300,17 @@ struct ArticleDetailView: View {
 							disputeResults: detailVM.disputeResults,
 							disputingIndices: detailVM.disputingIndices,
 							onClose: { showQuiz = false },
+						onRegenerate: {
+							Task {
+								let content = readabilityResult?.textContent ?? article.readableContent ?? article.summary ?? article.title
+								await detailVM.regenerateQuiz(
+									article: article,
+									content: content,
+									endpoint: appState.ollamaEndpoint,
+									model: appState.ollamaModel
+								)
+							}
+						},
 							onScrollToParagraph: { hint, number in
 								scrollParagraphHint = hint
 								scrollParagraphNumber = number

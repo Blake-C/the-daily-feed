@@ -8,6 +8,7 @@ struct ArticleQuizView: View {
 	let disputeResults: [Int: QuizDisputeResult]
 	let disputingIndices: Set<Int>
 	let onClose: () -> Void
+	let onRegenerate: () -> Void
 	var onScrollToParagraph: ((String, Int) -> Void)? = nil
 	let onDispute: (Int, Int) async -> Void
 	let onScoreSaved: (Int, Int) -> Void
@@ -35,6 +36,14 @@ struct ArticleQuizView: View {
 				Label("Test Your Knowledge", systemImage: "brain.head.profile")
 					.font(.system(size: 13, weight: .semibold))
 				Spacer()
+				Button(action: onRegenerate) {
+					Image(systemName: "arrow.clockwise")
+						.font(.system(size: 13))
+						.foregroundStyle(.secondary)
+				}
+				.buttonStyle(.plain)
+				.disabled(isLoading)
+				.help("Regenerate quiz questions")
 				Button(action: onClose) {
 					Image(systemName: "xmark.circle.fill")
 						.font(.system(size: 15))
