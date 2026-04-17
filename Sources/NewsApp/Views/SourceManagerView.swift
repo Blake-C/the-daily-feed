@@ -134,6 +134,7 @@ struct SourceManagerView: View {
 				ForEach(vm.sources) { source in
 					SourceRow(source: source, vm: vm)
 				}
+				.onMove { vm.moveSources(from: $0, to: $1) }
 			}
 			.listStyle(.inset)
 
@@ -219,10 +220,14 @@ private struct SourceRow: View {
 	@Environment(SourceColorStore.self) private var colorStore
 
 	@State private var pickerColor: Color = .accentColor
+	@State private var showEdit = false
+	@State private var editName = ""
+	@State private var editURL = ""
+	@State private var editTags = ""
 
 	var body: some View {
 		HStack(spacing: 8) {
-			// Color swatch — lets the user assign a custom accent color to this source.
+			// Color swatch
 			if let id = source.id {
 				ColorPicker("Source color", selection: $pickerColor, supportsOpacity: false)
 					.labelsHidden()
@@ -231,11 +236,19 @@ private struct SourceRow: View {
 					.onChange(of: pickerColor) {
 						colorStore.set(pickerColor, for: id)
 					}
-					.padding(.trailing, 6)
+					.padding(.trailing, 2)
 			}
 
 			VStack(alignment: .leading, spacing: 2) {
-				Text(source.name).font(.system(size: 13, weight: .medium))
+				HStack(spacing: 4) {
+					Text(source.name).font(.system(size: 13, weight: .medium))
+					if source.lastError != nil {
+						Image(systemName: "exclamationmark.triangle.fill")
+							.font(.system(size: 10))
+							.foregroundStyle(.orange)
+							.help("Last fetch failed: \(source.lastError ?? "")")
+					}
+				}
 				Text(source.url)
 					.font(.system(size: 11))
 					.foregroundStyle(.secondary)
@@ -244,7 +257,35 @@ private struct SourceRow: View {
 
 			Spacer()
 
-			// Enable toggle
+			// Edit
+			Button {
+				editName = source.name
+				editURL = source.url
+				editTags = source.tagList.joined(separator: ", ")
+				showEdit = true
+			} label: {
+				Image(systemName: "pencil")
+					.font(.system(size: 12))
+					.foregroundStyle(.secondary)
+			}
+			.buttonStyle(.plain)
+			.help("Edit source")
+			.popover(isPresented: $showEdit, arrowEdge: .trailing) {
+				EditSourcePopover(
+					name: $editName,
+					url: $editURL,
+					tags: $editTags,
+					onSave: {
+						guard let id = source.id else { return }
+						let tagList = editTags.split(separator: ",").map(String.init)
+						vm.updateSource(id: id, name: editName, url: editURL, tags: tagList)
+						showEdit = false
+					},
+					onCancel: { showEdit = false }
+				)
+			}
+
+			// Enable / disable
 			Button {
 				vm.toggleSource(source: source)
 			} label: {
@@ -252,6 +293,7 @@ private struct SourceRow: View {
 					.foregroundStyle(source.isEnabled ? Color.secondary : Color.accentColor)
 			}
 			.buttonStyle(.plain)
+			.help(source.isEnabled ? "Pause this source" : "Resume this source")
 
 			// Delete
 			Button(role: .destructive) {
@@ -261,6 +303,7 @@ private struct SourceRow: View {
 					.foregroundStyle(.red)
 			}
 			.buttonStyle(.plain)
+			.help("Remove source")
 		}
 		.padding(.vertical, 4)
 		.onAppear {
@@ -268,5 +311,56 @@ private struct SourceRow: View {
 				pickerColor = colorStore.color(for: id)
 			}
 		}
+	}
+}
+
+private struct EditSourcePopover: View {
+	@Binding var name: String
+	@Binding var url: String
+	@Binding var tags: String
+	let onSave: () -> Void
+	let onCancel: () -> Void
+
+	var body: some View {
+		VStack(alignment: .leading, spacing: 12) {
+			Text("Edit Source")
+				.font(.headline)
+
+			VStack(alignment: .leading, spacing: 6) {
+				Label("Name", systemImage: "textformat")
+					.font(.system(size: 11, weight: .medium))
+					.foregroundStyle(.secondary)
+				TextField("Source name", text: $name)
+					.textFieldStyle(.roundedBorder)
+			}
+
+			VStack(alignment: .leading, spacing: 6) {
+				Label("Feed URL", systemImage: "link")
+					.font(.system(size: 11, weight: .medium))
+					.foregroundStyle(.secondary)
+				TextField("https://example.com/feed.rss", text: $url)
+					.textFieldStyle(.roundedBorder)
+			}
+
+			VStack(alignment: .leading, spacing: 6) {
+				Label("Tags", systemImage: "tag")
+					.font(.system(size: 11, weight: .medium))
+					.foregroundStyle(.secondary)
+				TextField("Comma-separated tags", text: $tags)
+					.textFieldStyle(.roundedBorder)
+			}
+
+			HStack {
+				Button("Cancel", role: .cancel, action: onCancel)
+					.buttonStyle(.bordered)
+				Spacer()
+				Button("Save", action: onSave)
+					.buttonStyle(.borderedProminent)
+					.disabled(url.trimmingCharacters(in: .whitespaces).isEmpty)
+					.keyboardShortcut(.return)
+			}
+		}
+		.padding(16)
+		.frame(width: 320)
 	}
 }

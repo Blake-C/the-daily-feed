@@ -135,6 +135,27 @@ final class SourcesViewModel {
 		addSource(name: resolvedName, url: discovery.feedURL, type: .rss, sourceTags: sourceTags)
 	}
 
+	func updateSource(id: Int64, name: String, url: String, tags: [String]) {
+		guard let parsed = URL(string: url),
+		      let scheme = parsed.scheme?.lowercased(),
+		      scheme == "http" || scheme == "https"
+		else {
+			errorMessage = "Invalid feed URL — only http:// and https:// sources are supported."
+			return
+		}
+		guard var source = sources.first(where: { $0.id == id }) else { return }
+		let trimmedName = name.trimmingCharacters(in: .whitespaces)
+		source.name = trimmedName.isEmpty ? source.name : trimmedName
+		source.url = url
+		source.tags = tags.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: ",")
+		do {
+			try sourceRepo.update(source)
+			reload()
+		} catch {
+			errorMessage = error.localizedDescription
+		}
+	}
+
 	func deleteSource(id: Int64) {
 		do {
 			try sourceRepo.delete(id: id)

@@ -188,8 +188,8 @@ settings from the macos settings? @done(Wed. 04/15/2026 - 04:30:00 PM)
 
 ✔ Look over project of orphaned code. @done(Fri. 04/17/2026 - 02:36:22 AM)
 
-☐ Look over project for security issues.
+✔ Look over project for security issues. @done(Fri. 04/17/2026 - 02:49:34 AM)
 
-☐ Create README.md file at root of project detailing application features. Keep it short and succinct. List third party libraries and tools used. Add a note this application was coded by Claude and was not reviewed by a developer.
+✔ Create README.md file at root of project detailing application features. Keep it short and succinct. List third party libraries and tools used. Add a note this application was coded by Claude and was not reviewed by a developer. @done(Fri. 04/17/2026 - 03:18:09 AM)
 
-☐ Review the project and be sure we are using the most up to date UI framework for macos 26. Look for any legacy structures and suggest alternative solutions. The goal here is to be aligned with how other macos 26 application are structured.
+✔ Review the project and be sure we are using the most up to date UI framework for macos 26. Look for any legacy structures and suggest alternative solutions. The goal here is to be aligned with how other macos 26 application are structured. @done(Fri. 04/17/2026 - 03:13:31 AM)
