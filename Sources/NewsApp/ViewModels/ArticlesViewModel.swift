@@ -78,6 +78,7 @@ final class ArticlesViewModel: ObservableObject {
 		let query = buildQuery(offset: currentOffset)
 		do {
 			let newArticles = try articleRepo.fetch(query: query)
+			guard !Task.isCancelled else { return }
 			if newArticles.isEmpty || newArticles.count < pageSize {
 				hasMore = false
 			}
@@ -91,7 +92,7 @@ final class ArticlesViewModel: ObservableObject {
 	/// Call when the user scrolls near the last visible article.
 	func prefetchIfNeeded(currentIndex: Int) {
 		let threshold = articles.count - 20
-		guard currentIndex >= threshold, !isLoading, hasMore else { return }
+		guard currentIndex >= threshold, !isLoading, !isRefreshing, hasMore else { return }
 		loadTask?.cancel()
 		loadTask = Task { await loadNextPage() }
 	}
@@ -107,6 +108,8 @@ final class ArticlesViewModel: ObservableObject {
 		if notifyIfNew {
 			await NotificationService.shared.notifyNewArticles(count: result.fetched)
 		}
+		// Cancel any in-flight page load so stale results don't overwrite the refresh.
+		loadTask?.cancel()
 		// Reload in-place so active filters, selection, and scroll position are preserved.
 		// Only a hard reset (filter change or initial load) should scroll back to the top.
 		await reloadInPlace()
@@ -115,10 +118,6 @@ final class ArticlesViewModel: ObservableObject {
 	/// Replaces the current page of articles without clearing the array first,
 	/// avoiding the blank-flash and scroll-reset that `reset()` + `loadNextPage()` causes.
 	private func reloadInPlace() async {
-		guard !isLoading else { return }
-		isLoading = true
-		defer { isLoading = false }
-
 		availableTagNames = (try? articleRepo.fetchAvailableTagNames(
 			sourceId: selectedSourceId,
 			dateRange: dateRangeFilter
@@ -337,6 +336,7 @@ final class ArticlesViewModel: ObservableObject {
 	}
 
 	private func reset() {
+		loadTask?.cancel()
 		articles = []
 		currentOffset = 0
 		hasMore = true
