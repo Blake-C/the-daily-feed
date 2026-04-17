@@ -374,7 +374,7 @@ struct ArticleDetailView: View {
 			if let result = await detailVM.loadContent(for: article) {
 				readabilityResult = result
 				// Route through articlesVM so onReadArticleContentCached fires for daily summary.
-				vm.cacheContent(id: article.id, rawContent: result.htmlContent, readableContent: result.htmlContent)
+				vm.cacheContent(id: article.id, readableContent: result.htmlContent)
 			}
 		}
 		.onChange(of: detailVM.errorMessage) { _, msg in

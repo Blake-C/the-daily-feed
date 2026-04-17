@@ -38,13 +38,13 @@ final class SourceRepository: @unchecked Sendable {
 			try conn.execute(
 				sql: """
 					UPDATE news_sources
-					SET name = ?, url = ?, type = ?, faviconURL = ?, rating = ?,
+					SET name = ?, url = ?, type = ?, faviconURL = ?,
 					    isEnabled = ?, tags = ?, sortOrder = ?
 					WHERE id = ?
 					""",
 				arguments: [
 					source.name, source.url, source.type.rawValue,
-					source.faviconURL, source.rating,
+					source.faviconURL,
 					source.isEnabled, source.tags, source.sortOrder,
 					id,
 				]
@@ -126,7 +126,6 @@ final class SourceRepository: @unchecked Sendable {
 					url: d.url,
 					type: SourceType(rawValue: d.type) ?? .rss,
 					faviconURL: nil,
-					rating: 0,
 					isEnabled: true,
 					tags: d.tags.joined(separator: ","),
 					addedAt: Date(),

@@ -14,12 +14,6 @@ final class TagRepository: @unchecked Sendable {
 		}
 	}
 
-	func fetchActive() throws -> [Tag] {
-		try db.read { conn in
-			try Tag.filter(Tag.Columns.isActive == true).order(Tag.Columns.name).fetchAll(conn)
-		}
-	}
-
 	func insert(_ tag: inout Tag) throws {
 		try db.write { conn in
 			try tag.insert(conn)

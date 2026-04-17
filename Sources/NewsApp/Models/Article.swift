@@ -16,8 +16,6 @@ struct Article: Identifiable, Codable, FetchableRecord, PersistableRecord {
 	var isRead: Bool
 	var isHidden: Bool         // User dismissed this article
 	var isBookmarked: Bool     // User saved for later
-	var starRating: Int        // 0 = unrated, 1–5
-	var rawContent: String?    // Cached raw HTML
 	var readableContent: String? // Cached Readability-extracted content
 	var dailySummary: String?  // Ollama-generated daily briefing
 
@@ -26,7 +24,7 @@ struct Article: Identifiable, Codable, FetchableRecord, PersistableRecord {
 	enum Columns: String, ColumnExpression {
 		case id, sourceId, title, rewrittenTitle, author, summary
 		case thumbnailURL, articleURL, publishedAt, fetchedAt
-		case tags, isRead, isHidden, isBookmarked, starRating, rawContent, readableContent
+		case tags, isRead, isHidden, isBookmarked, readableContent
 		case dailySummary
 	}
 

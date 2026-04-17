@@ -24,7 +24,7 @@ final class DatabaseManager: @unchecked Sendable {
 		// The database is a plaintext SQLite file. Full-disk encryption (SQLCipher)
 		// is not used because:
 		//   • The database contains only publicly available news articles and
-		//     lightweight user preferences (read status, ratings). No credentials,
+		//     lightweight user preferences (read status, bookmarks). No credentials,
 		//     PII, or sensitive personal data are stored here.
 		//   • API keys are stored in UserDefaults via @AppStorage, not in this file.
 		//   • macOS system-level Full Disk Encryption (FileVault) provides

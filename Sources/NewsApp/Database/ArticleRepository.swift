@@ -65,14 +65,13 @@ final class ArticleRepository: @unchecked Sendable {
 
 	func fetch(query: ArticleQuery) throws -> [Article] {
 		try db.read { conn in
-			// Exclude rawContent / readableContent from the grid query — these can
-			// be large HTML blobs that the card view never uses. They are fetched
-			// on-demand via fetchReadableContent(id:) when the detail view opens.
+			// Exclude readableContent from the grid query — it can be a large HTML
+			// blob the card view never uses. Fetched on-demand via fetchReadableContent(id:).
 			let selectClause = """
 				SELECT id, sourceId, title, rewrittenTitle, author, summary,
 				       thumbnailURL, articleURL, publishedAt, fetchedAt,
-				       tags, isRead, isHidden, isBookmarked, starRating,
-				       NULL AS rawContent, NULL AS readableContent, NULL AS dailySummary
+				       tags, isRead, isHidden, isBookmarked,
+				       NULL AS readableContent, NULL AS dailySummary
 				FROM articles
 				"""
 
@@ -129,8 +128,8 @@ final class ArticleRepository: @unchecked Sendable {
 				sql: """
 					SELECT id, sourceId, title, rewrittenTitle, author, summary,
 					       thumbnailURL, articleURL, publishedAt, fetchedAt,
-					       tags, isRead, isHidden, isBookmarked, starRating,
-					       NULL AS rawContent, NULL AS readableContent, NULL AS dailySummary
+					       tags, isRead, isHidden, isBookmarked,
+					       NULL AS readableContent, NULL AS dailySummary
 					FROM articles WHERE id = ?
 					""",
 				arguments: [id]
@@ -153,7 +152,7 @@ final class ArticleRepository: @unchecked Sendable {
 	}
 
 	/// Insert new articles; update feed metadata for existing ones while
-	/// preserving user-set flags (isRead, isHidden, starRating, cached content).
+	/// preserving user-set flags (isRead, isHidden, and cached content).
 	func upsert(_ articles: [Article]) throws {
 		guard !articles.isEmpty else { return }
 		try db.write { conn in
@@ -163,9 +162,9 @@ final class ArticleRepository: @unchecked Sendable {
 					INSERT INTO articles
 					  (id, sourceId, title, rewrittenTitle, author, summary,
 					   thumbnailURL, articleURL, publishedAt, fetchedAt,
-					   tags, isRead, isHidden, isBookmarked, starRating, rawContent, readableContent)
+					   tags, isRead, isHidden, isBookmarked, readableContent)
 					VALUES
-					  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, NULL, NULL)
+					  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, NULL)
 					ON CONFLICT(id) DO UPDATE SET
 					  title        = excluded.title,
 					  author       = excluded.author,
@@ -257,11 +256,11 @@ final class ArticleRepository: @unchecked Sendable {
 		}
 	}
 
-	func updateContent(id: String, rawContent: String?, readableContent: String?) throws {
+	func updateContent(id: String, readableContent: String?) throws {
 		try db.write { conn in
 			try conn.execute(
-				sql: "UPDATE articles SET rawContent = ?, readableContent = ? WHERE id = ?",
-				arguments: [rawContent, readableContent, id]
+				sql: "UPDATE articles SET readableContent = ? WHERE id = ?",
+				arguments: [readableContent, id]
 			)
 
 			// Sync FTS: re-index with the now-available body text.
@@ -301,8 +300,8 @@ final class ArticleRepository: @unchecked Sendable {
 		}
 	}
 
-	/// Deletes read, unstarred, unbookmarked articles published before `cutoff`.
-	/// Unread, starred, and bookmarked articles are always preserved.
+	/// Deletes read, unbookmarked articles published before `cutoff`.
+	/// Unread and bookmarked articles are always preserved.
 	/// Returns the number of articles removed.
 	@discardableResult
 	func pruneArticles(olderThan cutoff: Date) throws -> Int {
@@ -313,7 +312,7 @@ final class ArticleRepository: @unchecked Sendable {
 				conn,
 				sql: """
 				SELECT id FROM articles
-				WHERE publishedAt < ? AND isRead = 1 AND starRating = 0 AND isBookmarked = 0
+				WHERE publishedAt < ? AND isRead = 1 AND isBookmarked = 0
 				""",
 				arguments: [cutoff]
 			)
@@ -328,7 +327,7 @@ final class ArticleRepository: @unchecked Sendable {
 			try conn.execute(
 				sql: """
 				DELETE FROM articles
-				WHERE publishedAt < ? AND isRead = 1 AND starRating = 0 AND isBookmarked = 0
+				WHERE publishedAt < ? AND isRead = 1 AND isBookmarked = 0
 				""",
 				arguments: [cutoff]
 			)
@@ -409,8 +408,8 @@ final class ArticleRepository: @unchecked Sendable {
 				sql: """
 				SELECT id, sourceId, title, rewrittenTitle, author, summary,
 				       thumbnailURL, articleURL, publishedAt, fetchedAt,
-				       tags, isRead, isHidden, isBookmarked, starRating,
-				       NULL AS rawContent, NULL AS readableContent, dailySummary
+				       tags, isRead, isHidden, isBookmarked,
+				       NULL AS readableContent, dailySummary
 				FROM articles
 				WHERE isRead = 1 AND isHidden = 0 AND publishedAt >= ?
 				ORDER BY publishedAt DESC
@@ -430,8 +429,8 @@ final class ArticleRepository: @unchecked Sendable {
 				sql: """
 				SELECT id, sourceId, title, rewrittenTitle, author, summary,
 				       thumbnailURL, articleURL, publishedAt, fetchedAt,
-				       tags, isRead, isHidden, isBookmarked, starRating,
-				       NULL AS rawContent, readableContent, NULL AS dailySummary
+				       tags, isRead, isHidden, isBookmarked,
+				       readableContent, NULL AS dailySummary
 				FROM articles
 				WHERE isRead = 1 AND isHidden = 0 AND publishedAt >= ?
 				  AND (dailySummary IS NULL OR dailySummary = '')

@@ -37,11 +37,7 @@ final class ArticleDetailViewModel: ObservableObject {
 		do {
 			let result = try await ReadabilityService.shared.extract(from: url)
 			// Persist for future opens so WKWebView is never needed again for this article.
-			try? articleRepo.updateContent(
-				id: article.id,
-				rawContent: result.htmlContent,
-				readableContent: result.htmlContent
-			)
+			try? articleRepo.updateContent(id: article.id, readableContent: result.htmlContent)
 			return result
 		} catch {
 			errorMessage = "Could not load article: \(error.localizedDescription)"

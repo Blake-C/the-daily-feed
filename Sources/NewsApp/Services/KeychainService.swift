@@ -36,10 +36,6 @@ final class KeychainService: @unchecked Sendable {
 		return String(data: data, encoding: .utf8) ?? ""
 	}
 
-	func delete(_ key: String) {
-		SecItemDelete(baseQuery(for: key) as CFDictionary)
-	}
-
 	// MARK: - Private
 
 	private func baseQuery(for key: String) -> [String: Any] {

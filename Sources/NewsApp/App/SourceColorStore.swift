@@ -38,7 +38,7 @@ final class SourceColorStore {
 		persist(color, for: id)
 	}
 
-	static func defaultColor(for id: Int64) -> Color {
+	private static func defaultColor(for id: Int64) -> Color {
 		let hue = Double(abs(id.hashValue) % 360) / 360.0
 		return Color(hue: hue, saturation: 0.55, brightness: 0.75)
 	}

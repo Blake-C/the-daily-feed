@@ -44,33 +44,6 @@ final class OllamaService: @unchecked Sendable {
 
 	// MARK: - Article Quiz
 
-	// Fixed template — {title}/{content} are the only substitutions, both truncated
-	// before use. Output is display-only question text; never executed.
-	static let quizPromptTemplate = """
-		You are a comprehension quiz generator for a news reader application.
-		Given the article below, generate exactly 5 questions to test the reader's understanding and encourage deeper thinking.
-
-		Rules:
-		- Include at most 2 true/false questions and at least 3 multiple-choice questions
-		- 1 to 2 questions may explore related topics or broader context beyond the article text to encourage further research
-		- Multiple-choice questions must have exactly 4 answer options
-		- True/false questions must use exactly ["True", "False"] as the options array, in that order
-		- correctIndex is the 0-based index of the correct answer in the options array
-		- explanation is one sentence explaining why the answer is correct
-		- sourceExcerpt is the first 12–18 words verbatim from the article paragraph that the question is based on; omit for context/research questions not tied to a specific paragraph
-
-		Respond ONLY in valid JSON with no markdown or extra text:
-		{"questions": [
-		  {"type": "truefalse", "question": "...", "options": ["True", "False"], "correctIndex": 0, "explanation": "...", "sourceExcerpt": "verbatim opening words of source paragraph..."},
-		  {"type": "multiplechoice", "question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 2, "explanation": "...", "sourceExcerpt": "verbatim opening words of source paragraph..."}
-		]}
-
-		Article title: {title}
-
-		Article content:
-		{content}
-		"""
-
 	/// Generates a single quiz question (1-based index 1–5).
 	/// Questions 1–3 are multiple-choice; 4–5 are true/false.
 	/// Uses JSON-format mode and a 90 s timeout for better reliability.
@@ -409,10 +382,6 @@ struct OllamaArticleResult: Codable {
 
 struct OllamaDailySummaryResult: Codable {
 	let briefing: String
-}
-
-struct OllamaQuizResult: Codable {
-	let questions: [QuizQuestion]
 }
 
 struct OllamaSourceSuggestion: Codable {

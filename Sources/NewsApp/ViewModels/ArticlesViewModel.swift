@@ -1,5 +1,4 @@
 import Foundation
-import Combine
 
 @MainActor
 final class ArticlesViewModel: ObservableObject {
@@ -265,11 +264,10 @@ final class ArticlesViewModel: ObservableObject {
 		}
 	}
 
-	func cacheContent(id: String, rawContent: String, readableContent: String) {
+	func cacheContent(id: String, readableContent: String) {
 		do {
-			try articleRepo.updateContent(id: id, rawContent: rawContent, readableContent: readableContent)
+			try articleRepo.updateContent(id: id, readableContent: readableContent)
 			if let idx = articles.firstIndex(where: { $0.id == id }) {
-				articles[idx].rawContent = rawContent
 				articles[idx].readableContent = readableContent
 				// Fire the daily-summary hook only for articles already marked read so
 				// we have the best content available at the time of summarization.

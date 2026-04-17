@@ -1,5 +1,4 @@
 import SwiftUI
-import Combine
 
 @MainActor
 final class AppState: ObservableObject {
@@ -27,7 +26,6 @@ final class AppState: ObservableObject {
 			? Self.defaultOllamaModel
 			: ollamaModel
 	}
-	@AppStorage("weatherCity") var weatherCity: String = ""
 	/// Auto-refresh interval in minutes. 0 = off.
 	@AppStorage("autoRefreshInterval") var autoRefreshInterval: Int = 0
 	/// Article retention window in days. 0 = keep forever.

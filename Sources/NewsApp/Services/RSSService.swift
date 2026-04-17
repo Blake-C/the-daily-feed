@@ -50,8 +50,6 @@ final class RSSService: @unchecked Sendable {
 					isRead: false,
 					isHidden: false,
 					isBookmarked: false,
-					starRating: 0,
-					rawContent: nil,
 					readableContent: nil
 				)
 			} ?? []
@@ -75,8 +73,6 @@ final class RSSService: @unchecked Sendable {
 					isRead: false,
 					isHidden: false,
 					isBookmarked: false,
-					starRating: 0,
-					rawContent: nil,
 					readableContent: nil
 				)
 			} ?? []
@@ -100,8 +96,6 @@ final class RSSService: @unchecked Sendable {
 					isRead: false,
 					isHidden: false,
 					isBookmarked: false,
-					starRating: 0,
-					rawContent: nil,
 					readableContent: nil
 				)
 			} ?? []

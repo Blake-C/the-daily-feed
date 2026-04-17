@@ -12,7 +12,6 @@ struct NewsSource: Identifiable, Codable, FetchableRecord, PersistableRecord {
 	var url: String
 	var type: SourceType
 	var faviconURL: String?
-	var rating: Int          // 0 = unrated, 1–5
 	var isEnabled: Bool
 	var tags: String         // Comma-separated default tags for this source
 	var addedAt: Date
@@ -28,7 +27,7 @@ struct NewsSource: Identifiable, Codable, FetchableRecord, PersistableRecord {
 	}
 
 	enum Columns: String, ColumnExpression {
-		case id, name, url, type, faviconURL, rating, isEnabled, tags, addedAt, lastFetchedAt
+		case id, name, url, type, faviconURL, isEnabled, tags, addedAt, lastFetchedAt
 		case sortOrder, lastError, badgeClearedAt
 	}
 
