@@ -89,8 +89,14 @@ final class OllamaService: @unchecked Sendable {
 		var alreadyUsedBlock = ""
 		if !previousQuestions.isEmpty {
 			let lines = previousQuestions.enumerated().map { idx, q -> String in
-				let excerpt = q.paragraphHint.map { " (paragraph: \"\($0.prefix(40))…\")" } ?? ""
-				return "Q\(idx + 1): \(q.question)\(excerpt)"
+				let safeQuestion = q.question
+					.replacingOccurrences(of: "\n", with: " ")
+					.replacingOccurrences(of: "\r", with: " ")
+				let safeExcerpt = q.paragraphHint?
+					.replacingOccurrences(of: "\n", with: " ")
+					.replacingOccurrences(of: "\r", with: " ")
+				let excerpt = safeExcerpt.map { " (paragraph: \"\(String($0.prefix(40)))…\")" } ?? ""
+				return "Q\(idx + 1): \(String(safeQuestion.prefix(160)))\(excerpt)"
 			}
 			alreadyUsedBlock = """
 

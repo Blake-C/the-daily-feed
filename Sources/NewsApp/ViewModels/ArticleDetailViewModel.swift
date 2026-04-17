@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 @MainActor
@@ -110,7 +111,11 @@ final class ArticleDetailViewModel: ObservableObject {
 
 	// MARK: - Quiz cache
 
-	private func quizCacheKey(_ articleId: String) -> String { "quiz_q_\(articleId)" }
+	private func quizCacheKey(_ articleId: String) -> String {
+		let digest = SHA256.hash(data: Data(articleId.utf8))
+		let hex = digest.prefix(16).map { String(format: "%02x", $0) }.joined()
+		return "quiz_q_\(hex)"
+	}
 
 	private func loadCachedQuiz(for articleId: String) -> [QuizQuestion]? {
 		guard

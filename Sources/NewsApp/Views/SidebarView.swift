@@ -196,16 +196,20 @@ struct SidebarView: View {
 							articlesVM.filterBySource(source.id)
 						}
 						.contextMenu {
-							if let error = source.lastError, let url = URL(string: source.url) {
+							if let error = source.lastError {
+							if let url = URL(string: source.url),
+							   ["http", "https"].contains(url.scheme?.lowercased() ?? "")
+							{
 								Button {
 									NSWorkspace.shared.open(url)
 								} label: {
 									Label("Open in Browser", systemImage: "arrow.up.right.square")
 								}
-								Text(error)
-									.font(.caption)
-								Divider()
 							}
+							Text(error)
+								.font(.caption)
+							Divider()
+						}
 							if unread > 0 {
 								Button {
 									sourcesVM.dismissBadge(sourceId: source.id, dateRange: articlesVM.dateRangeFilter)

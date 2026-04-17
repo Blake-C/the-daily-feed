@@ -133,7 +133,10 @@ struct ArticleDetailView: View {
 					.help("Share article")
 
 					Button {
-						NSWorkspace.shared.open(articleURL)
+						let scheme = articleURL.scheme?.lowercased() ?? ""
+						if scheme == "http" || scheme == "https" {
+							NSWorkspace.shared.open(articleURL)
+						}
 					} label: {
 						Image(systemName: "arrow.up.right.square")
 							.font(.system(size: 15))
@@ -532,15 +535,13 @@ private struct _ArticleWebView: NSViewRepresentable {
 		   !scrollParagraphHint.isEmpty
 		{
 			context.coordinator.lastScrollTrigger = scrollParagraphTrigger
-			let escaped = scrollParagraphHint
-				.replacingOccurrences(of: "\\", with: "\\\\")
-				.replacingOccurrences(of: "'", with: "\\'")
-				.replacingOccurrences(of: "\n", with: " ")
-				.replacingOccurrences(of: "\r", with: " ")
-			let js = """
+			// Use callAsyncJavaScript so WebKit owns parameter encoding —
+			// no manual escaping needed, preventing JS injection via LLM-sourced hint text.
+			wv.callAsyncJavaScript(
+				"""
 				(function() {
-				  var hint = '\(escaped)'.toLowerCase();
-				  var num = \(scrollParagraphNumber);
+				  var hint = hint_arg.toLowerCase();
+				  var num = num_arg;
 				  var selectors = ['p','li','blockquote','td','h2','h3','h4'];
 				  var target = null;
 				  for (var s = 0; s < selectors.length && !target; s++) {
@@ -565,8 +566,12 @@ private struct _ArticleWebView: NSViewRepresentable {
 				  container.appendChild(badge);
 				  target.scrollIntoView({behavior: 'smooth', block: 'center'});
 				})();
-				"""
-			wv.evaluateJavaScript(js, completionHandler: nil)
+				""",
+				arguments: ["hint_arg": scrollParagraphHint, "num_arg": scrollParagraphNumber],
+				in: nil,
+				in: .page,
+				completionHandler: nil
+			)
 		}
 	}
 

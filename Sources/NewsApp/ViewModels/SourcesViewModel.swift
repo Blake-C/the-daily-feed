@@ -70,6 +70,13 @@ final class SourcesViewModel: ObservableObject {
 	}
 
 	func addSource(name: String, url: String, type: SourceType, sourceTags: [String]) {
+		guard let parsed = URL(string: url),
+		      let scheme = parsed.scheme?.lowercased(),
+		      scheme == "http" || scheme == "https"
+		else {
+			errorMessage = "Invalid feed URL — only http:// and https:// sources are supported."
+			return
+		}
 		var source = NewsSource(
 			id: nil,
 			name: name,
@@ -185,7 +192,11 @@ final class SourcesViewModel: ObservableObject {
 			let existingURLs = Set(sources.map { $0.url.lowercased() })
 			var imported = 0
 			for outline in outlines {
-				guard !existingURLs.contains(outline.xmlUrl.lowercased()) else { continue }
+				guard !existingURLs.contains(outline.xmlUrl.lowercased()),
+				      let parsedFeedURL = URL(string: outline.xmlUrl),
+				      let feedScheme = parsedFeedURL.scheme?.lowercased(),
+				      feedScheme == "http" || feedScheme == "https"
+				else { continue }
 				var source = NewsSource(
 					id: nil,
 					name: outline.title,

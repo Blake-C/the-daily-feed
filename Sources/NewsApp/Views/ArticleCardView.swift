@@ -165,7 +165,10 @@ struct ArticleCardView: View {
 				}
 				Divider()
 				Button {
-					NSWorkspace.shared.open(articleURL)
+					let scheme = articleURL.scheme?.lowercased() ?? ""
+					if scheme == "http" || scheme == "https" {
+						NSWorkspace.shared.open(articleURL)
+					}
 				} label: {
 					Label("Open in Browser", systemImage: "arrow.up.right.square")
 				}
