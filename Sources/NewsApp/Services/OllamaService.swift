@@ -85,34 +85,23 @@ final class OllamaService: @unchecked Sendable {
 			? "{\"type\":\"multiplechoice\",\"question\":\"...\",\"options\":[\"opt1\",\"opt2\",\"opt3\",\"opt4\"],\"correctIndex\":0,\"explanation\":\"...\",\"sourceExcerpt\":\"...\"}"
 			: "{\"type\":\"truefalse\",\"question\":\"...\",\"options\":[\"True\",\"False\"],\"correctIndex\":0,\"explanation\":\"...\",\"sourceExcerpt\":\"...\"}"
 
-		// Build the "already used" block so Ollama avoids duplicate coverage.
+		// Build the "already used" block for semantic deduplication.
+		// Paragraph-level deduplication is handled structurally — used paragraphs are
+		// stripped from the content before this call, so they can't be referenced at all.
 		var alreadyUsedBlock = ""
 		if !previousQuestions.isEmpty {
 			let lines = previousQuestions.enumerated().map { idx, q -> String in
 				let safeQuestion = q.question
 					.replacingOccurrences(of: "\n", with: " ")
 					.replacingOccurrences(of: "\r", with: " ")
-				let safeExcerpt = q.paragraphHint?
-					.replacingOccurrences(of: "\n", with: " ")
-					.replacingOccurrences(of: "\r", with: " ")
-				let excerpt = safeExcerpt.map { " | paragraph: \"\(String($0.prefix(40)))…\"" } ?? ""
-				let correctText = q.options.indices.contains(q.correctIndex)
-					? " | correct answer: \"\(q.options[q.correctIndex])\""
-					: ""
-				let optionList = q.options.enumerated()
-					.map { "\($0.offset):\($0.element)" }
-					.joined(separator: ", ")
-				return "Q\(idx + 1): \(String(safeQuestion.prefix(160))) | options: [\(optionList)]\(correctText)\(excerpt)"
+				return "Q\(idx + 1): \(String(safeQuestion.prefix(160)))"
 			}
 			alreadyUsedBlock = """
 
-				ALREADY ASKED — you MUST NOT reuse any of the following paragraphs or test the same underlying fact, even if phrased differently:
+				ALREADY ASKED — do NOT test the same fact or event as any of these, even if phrased differently:
 				\(lines.joined(separator: "\n"))
 
-				STRICT RULES:
-				- DO NOT base your question on any paragraph whose excerpt appears above. Each question must come from a completely different paragraph.
-				- A question is a duplicate if it tests the same fact or event as an existing question, regardless of phrasing. This is especially important for yes/no and true/false questions — "Did X happen?" and "Was X reported?" about the same event are duplicates.
-				- If you cannot find a new unused paragraph, generate a question about a genuinely different aspect of the article.
+				Yes/no and true/false questions about the same event are duplicates regardless of phrasing.
 				"""
 		}
 

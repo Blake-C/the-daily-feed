@@ -68,6 +68,7 @@ final class ArticleDetailViewModel {
 		defer { isGeneratingQuiz = false; quizStatusMessage = nil }
 
 		var generated: [QuizQuestion] = []
+		var availableContent = content
 
 		for number in 1...5 {
 			quizStatusMessage = "Generating question \(number) of 5…"
@@ -79,7 +80,7 @@ final class ArticleDetailViewModel {
 					let q = try await OllamaService.shared.generateQuizQuestion(
 						number: number,
 						title: article.title,
-						content: content,
+						content: availableContent,
 						previousQuestions: generated,
 						endpoint: endpoint,
 						model: model
@@ -95,6 +96,10 @@ final class ArticleDetailViewModel {
 			if let q = accepted {
 				generated.append(q)
 				quizQuestions = generated
+				// Strip the used paragraph so subsequent questions can't draw from it.
+				if let hint = q.paragraphHint, !hint.isEmpty {
+					availableContent = Self.stripParagraph(containing: hint, from: availableContent)
+				}
 			} else if let err = lastError {
 				errorMessage = "Skipped question \(number): \(err.localizedDescription)"
 			}
@@ -143,6 +148,16 @@ final class ArticleDetailViewModel {
 			let union = candidateWords.union(existingWords).count
 			return Double(intersection) / Double(union) >= 0.45
 		}
+	}
+
+	/// Removes the paragraph containing `hint` from `content` so it can't be reused.
+	/// Matches on the first 40 characters of the hint for robustness against minor truncation.
+	private static func stripParagraph(containing hint: String, from content: String) -> String {
+		let needle = String(hint.lowercased().prefix(40))
+		return content
+			.components(separatedBy: "\n")
+			.filter { !$0.lowercased().contains(needle) }
+			.joined(separator: "\n")
 	}
 
 	private func quizCacheKey(_ articleId: String) -> String {
