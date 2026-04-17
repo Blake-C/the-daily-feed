@@ -98,11 +98,11 @@ struct SettingsView: View {
 		Form {
 			Section {
 				LabeledContent("Endpoint") {
-					TextField("http://localhost:11434", text: $appState.ollamaEndpoint)
+					TextField("http://host:port", text: $appState.ollamaEndpoint)
 						.textFieldStyle(.roundedBorder)
 				}
 				LabeledContent("Model") {
-					TextField("gemma4:e4b", text: $appState.ollamaModel)
+					TextField("e.g. llama3.2, gemma3", text: $appState.ollamaModel)
 						.textFieldStyle(.roundedBorder)
 				}
 
