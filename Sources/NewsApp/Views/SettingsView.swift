@@ -62,7 +62,10 @@ struct SettingsView: View {
 			}
 
 			Section {
-				LabeledContent("API Key") {
+				VStack(alignment: .leading, spacing: 4) {
+					Text("API Key")
+						.font(.system(size: 12))
+						.foregroundStyle(.secondary)
 					SecureField("Paste your OpenWeatherMap key", text: $appState.openWeatherApiKey)
 						.textFieldStyle(.roundedBorder)
 				}
