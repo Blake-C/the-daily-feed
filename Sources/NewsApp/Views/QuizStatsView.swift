@@ -8,55 +8,57 @@ struct QuizStatsView: View {
 	@State private var selectedArticle: Article?
 
 	var body: some View {
-		ScrollView {
-			LazyVStack(alignment: .leading, spacing: 0) {
-				// Header
-				VStack(alignment: .leading, spacing: 4) {
-					Text("Quiz Stats")
-						.font(.system(size: 22, weight: .bold, design: .serif))
-					Text("Your comprehension scores over time")
-						.font(.system(size: 12))
-						.foregroundStyle(.secondary)
-				}
-				.frame(maxWidth: .infinity, alignment: .leading)
-				.padding(.horizontal, 24)
-				.padding(.top, 20)
-				.padding(.bottom, 16)
+		Group {
+			if vm.yearStats.quizCount == 0 {
+				ContentUnavailableView(
+					"No Quizzes Yet",
+					systemImage: "brain.head.profile",
+					description: Text("Open an article and tap \"Test Your Knowledge\" to take your first quiz.")
+				)
+				.frame(maxWidth: .infinity, maxHeight: .infinity)
+			} else {
+				ScrollView {
+					LazyVStack(alignment: .leading, spacing: 0) {
+						// Header
+						VStack(alignment: .leading, spacing: 4) {
+							Text("Quiz Stats")
+								.font(.system(size: 22, weight: .bold, design: .serif))
+							Text("Your comprehension scores over time")
+								.font(.system(size: 12))
+								.foregroundStyle(.secondary)
+						}
+						.frame(maxWidth: .infinity, alignment: .leading)
+						.padding(.horizontal, 24)
+						.padding(.top, 20)
+						.padding(.bottom, 16)
 
-				if vm.yearStats.quizCount == 0 {
-					ContentUnavailableView(
-						"No Quizzes Yet",
-						systemImage: "brain.head.profile",
-						description: Text("Open an article and tap \"Test Your Knowledge\" to take your first quiz.")
-					)
-					.padding(.top, 40)
-				} else {
-					// Period summary cards
-					HStack(spacing: 12) {
-						PeriodStatCard(label: "Today",      stats: vm.todayStats)
-						PeriodStatCard(label: "This Month", stats: vm.monthStats)
-						PeriodStatCard(label: "This Year",  stats: vm.yearStats)
-					}
-					.padding(.horizontal, 24)
-					.padding(.bottom, 20)
-
-					// Recent results
-					VStack(alignment: .leading, spacing: 4) {
-						Text("Recent Quizzes")
-							.font(.system(size: 14, weight: .semibold))
-							.padding(.horizontal, 24)
-							.padding(.bottom, 6)
-
-						VStack(spacing: 8) {
-							ForEach(vm.recentResults) { result in
-								QuizResultRow(result: result) {
-									selectedArticle = vm.fetchArticle(id: result.articleId)
-								}
-							}
+						// Period summary cards
+						HStack(spacing: 12) {
+							PeriodStatCard(label: "Today",      stats: vm.todayStats)
+							PeriodStatCard(label: "This Month", stats: vm.monthStats)
+							PeriodStatCard(label: "This Year",  stats: vm.yearStats)
 						}
 						.padding(.horizontal, 24)
+						.padding(.bottom, 20)
+
+						// Recent results
+						VStack(alignment: .leading, spacing: 4) {
+							Text("Recent Quizzes")
+								.font(.system(size: 14, weight: .semibold))
+								.padding(.horizontal, 24)
+								.padding(.bottom, 6)
+
+							VStack(spacing: 8) {
+								ForEach(vm.recentResults) { result in
+									QuizResultRow(result: result) {
+										selectedArticle = vm.fetchArticle(id: result.articleId)
+									}
+								}
+							}
+							.padding(.horizontal, 24)
+						}
+						.padding(.bottom, 32)
 					}
-					.padding(.bottom, 32)
 				}
 			}
 		}
