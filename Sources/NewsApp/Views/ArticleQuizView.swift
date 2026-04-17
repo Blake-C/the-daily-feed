@@ -8,7 +8,7 @@ struct ArticleQuizView: View {
 	let disputeResults: [Int: QuizDisputeResult]
 	let disputingIndices: Set<Int>
 	let onClose: () -> Void
-	var onScrollToParagraph: ((String) -> Void)? = nil
+	var onScrollToParagraph: ((String, Int) -> Void)? = nil
 	let onDispute: (Int, Int) async -> Void
 	let onScoreSaved: (Int, Int) -> Void
 
@@ -79,7 +79,7 @@ struct ArticleQuizView: View {
 									guard selectedAnswers[index] == nil else { return }
 									selectedAnswers[index] = chosen
 									if let hint = question.paragraphHint, !hint.isEmpty {
-										onScrollToParagraph?(hint)
+										onScrollToParagraph?(hint, index + 1)
 									}
 									checkAndSave()
 								},

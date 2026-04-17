@@ -20,6 +20,7 @@ struct ArticleDetailView: View {
 
 	// Paragraph scroll state — driven by quiz answer reveals
 	@State private var scrollParagraphHint = ""
+	@State private var scrollParagraphNumber = 0
 	@State private var scrollParagraphTrigger = 0
 
 	// Find-in-article state
@@ -276,6 +277,7 @@ struct ArticleDetailView: View {
 								findTrigger: findTrigger,
 								findBackward: findBackward,
 								scrollParagraphHint: scrollParagraphHint,
+								scrollParagraphNumber: scrollParagraphNumber,
 								scrollParagraphTrigger: scrollParagraphTrigger
 							)
 							.padding(.horizontal, 24)
@@ -298,8 +300,9 @@ struct ArticleDetailView: View {
 							disputeResults: detailVM.disputeResults,
 							disputingIndices: detailVM.disputingIndices,
 							onClose: { showQuiz = false },
-							onScrollToParagraph: { hint in
+							onScrollToParagraph: { hint, number in
 								scrollParagraphHint = hint
+								scrollParagraphNumber = number
 								scrollParagraphTrigger += 1
 							},
 							onDispute: { questionIndex, userChosenIndex in
@@ -411,6 +414,7 @@ struct ArticleWebContentView: View {
 	var findTrigger: Int = 0
 	var findBackward: Bool = false
 	var scrollParagraphHint: String = ""
+	var scrollParagraphNumber: Int = 0
 	var scrollParagraphTrigger: Int = 0
 
 	var body: some View {
@@ -420,6 +424,7 @@ struct ArticleWebContentView: View {
 			findTrigger: findTrigger,
 			findBackward: findBackward,
 			scrollParagraphHint: scrollParagraphHint,
+			scrollParagraphNumber: scrollParagraphNumber,
 			scrollParagraphTrigger: scrollParagraphTrigger
 		)
 		// Provide the plain-text content as the accessibility representation so
@@ -440,6 +445,7 @@ private struct _ArticleWebView: NSViewRepresentable {
 	var findTrigger: Int = 0
 	var findBackward: Bool = false
 	var scrollParagraphHint: String = ""
+	var scrollParagraphNumber: Int = 0
 	var scrollParagraphTrigger: Int = 0
 	@AppStorage("articleFontSize") private var fontSize: Int = 17
 
@@ -508,8 +514,9 @@ private struct _ArticleWebView: NSViewRepresentable {
 			}
 		}
 
-		// Scroll the article to the paragraph containing the hint phrase when the
-		// quiz explanation is revealed. A brief amber highlight marks the location.
+		// When the quiz explanation is revealed, scroll to the source paragraph and
+		// permanently mark it with an amber highlight and a numbered question badge.
+		// Multiple questions from the same paragraph each get their own badge token.
 		if context.coordinator.lastScrollTrigger != scrollParagraphTrigger,
 		   !scrollParagraphHint.isEmpty
 		{
@@ -522,6 +529,7 @@ private struct _ArticleWebView: NSViewRepresentable {
 			let js = """
 				(function() {
 				  var hint = '\(escaped)'.toLowerCase();
+				  var num = \(scrollParagraphNumber);
 				  var selectors = ['p','li','blockquote','td','h2','h3','h4'];
 				  var target = null;
 				  for (var s = 0; s < selectors.length && !target; s++) {
@@ -533,10 +541,18 @@ private struct _ArticleWebView: NSViewRepresentable {
 				    }
 				  }
 				  if (!target) return;
+				  target.classList.add('quiz-highlighted');
+				  var container = target.querySelector('.quiz-badge-container');
+				  if (!container) {
+				    container = document.createElement('span');
+				    container.className = 'quiz-badge-container';
+				    target.appendChild(container);
+				  }
+				  var badge = document.createElement('span');
+				  badge.className = 'quiz-badge';
+				  badge.textContent = String(num);
+				  container.appendChild(badge);
 				  target.scrollIntoView({behavior: 'smooth', block: 'center'});
-				  target.style.transition = 'background-color 0.4s ease';
-				  target.style.backgroundColor = 'rgba(255, 190, 0, 0.28)';
-				  setTimeout(function() { target.style.backgroundColor = ''; }, 2200);
 				})();
 				"""
 			wv.evaluateJavaScript(js, completionHandler: nil)
@@ -575,6 +591,41 @@ private struct _ArticleWebView: NSViewRepresentable {
 		  figure { margin: 16px 0; }
 		  figcaption { font-size: 13px; color: light-dark(#777, #888); margin-top: 6px; }
 		  pre, code { font-family: "SF Mono", monospace; font-size: 14px; }
+		  .quiz-highlighted {
+		    position: relative;
+		    background-color: rgba(255, 185, 0, 0.18);
+		    border-radius: 4px;
+		    padding-right: 26px;
+		  }
+		  @media (prefers-color-scheme: dark) {
+		    .quiz-highlighted { background-color: rgba(255, 185, 0, 0.14); }
+		  }
+		  .quiz-badge-container {
+		    position: absolute;
+		    top: 4px;
+		    right: 4px;
+		    display: flex;
+		    gap: 3px;
+		    flex-wrap: wrap;
+		    justify-content: flex-end;
+		    pointer-events: none;
+		  }
+		  .quiz-badge {
+		    display: inline-flex;
+		    align-items: center;
+		    justify-content: center;
+		    min-width: 17px;
+		    height: 17px;
+		    border-radius: 9px;
+		    padding: 0 4px;
+		    background: rgba(210, 120, 0, 0.88);
+		    color: #fff;
+		    font-size: 10px;
+		    font-weight: 700;
+		    font-family: -apple-system, system-ui, sans-serif;
+		    line-height: 1;
+		    box-sizing: border-box;
+		  }
 		</style>
 		</head>
 		<body>\(htmlContent)</body>
