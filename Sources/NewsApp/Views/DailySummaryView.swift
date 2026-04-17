@@ -132,10 +132,6 @@ private struct DailySummaryCard: View {
 						}
 					}
 
-					Image(systemName: "arrow.up.right.square")
-						.font(.system(size: 12))
-						.foregroundStyle(.secondary)
-						.padding(.top, 2)
 				}
 			}
 			.buttonStyle(.plain)
