@@ -261,7 +261,7 @@ private struct QuizQuestionCard: View {
 				ForEach(Array(question.options.enumerated()), id: \.offset) { optIndex, option in
 					AnswerOptionRow(
 						label: optionLabel(optIndex),
-						text: stripOptionPrefix(option),
+						text: optionText(option, index: optIndex),
 						state: optionState(optIndex),
 						onTap: { onSelect(optIndex) }
 					)
@@ -351,8 +351,35 @@ private struct QuizQuestionCard: View {
 		}
 	}
 
+	private static let yesNoStarters: Set<String> = [
+		"did", "does", "do", "is", "are", "was", "were",
+		"has", "have", "had", "can", "could", "will", "would",
+		"should", "may", "might", "must",
+	]
+
+	private var isYesNoQuestion: Bool {
+		guard question.type == .trueOrFalse else { return false }
+		let first = question.question
+			.trimmingCharacters(in: .whitespacesAndNewlines)
+			.split(separator: " ", maxSplits: 1)
+			.first
+			.map { String($0).lowercased().trimmingCharacters(in: .punctuationCharacters) }
+			?? ""
+		return Self.yesNoStarters.contains(first)
+	}
+
 	private func optionLabel(_ i: Int) -> String {
 		question.type == .trueOrFalse ? "" : ["A", "B", "C", "D"][safe: i] ?? ""
+	}
+
+	private func optionText(_ raw: String, index: Int) -> String {
+		let stripped = stripOptionPrefix(raw)
+		guard isYesNoQuestion else { return stripped }
+		switch stripped.lowercased() {
+		case "true":  return "Yes"
+		case "false": return "No"
+		default:      return stripped
+		}
 	}
 
 	private func optionState(_ i: Int) -> AnswerOptionState {
