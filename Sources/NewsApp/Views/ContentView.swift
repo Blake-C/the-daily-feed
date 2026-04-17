@@ -47,6 +47,14 @@ struct ContentView: View {
 				}
 			}
 		}
+		.searchable(
+			text: Binding(
+				get: { articlesVM.searchText },
+				set: { articlesVM.applySearch($0) }
+			),
+			placement: .toolbar,
+			prompt: "Search title, author, body…"
+		)
 		.toolbar {
 			ToolbarItem(placement: .primaryAction) {
 				Button {
@@ -104,13 +112,6 @@ struct ContentView: View {
 				.help("Filter articles by date range")
 			}
 
-			ToolbarItem(placement: .principal) {
-				SearchField(text: Binding(
-					get: { articlesVM.searchText },
-					set: { articlesVM.applySearch($0) }
-				))
-				.frame(width: 280)
-			}
 		}
 		.sheet(item: $selectedDailySummaryArticle) { article in
 			ArticleDetailView(article: article, vm: articlesVM, sourceName: sourceNames[article.sourceId])
