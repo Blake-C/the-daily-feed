@@ -6,6 +6,7 @@ final class ArticleDetailViewModel: ObservableObject {
 	@Published var isProcessingAI = false
 	@Published var isGeneratingQuiz = false
 	@Published var quizQuestions: [QuizQuestion] = []
+	@Published var quizStatusMessage: String?
 	@Published var errorMessage: String?
 
 	private let articleRepo = ArticleRepository()
@@ -53,20 +54,57 @@ final class ArticleDetailViewModel: ObservableObject {
 		model: String
 	) async {
 		guard !isGeneratingQuiz else { return }
+
+		// Serve cached questions immediately without hitting Ollama.
+		if let cached = loadCachedQuiz(for: article.id) {
+			quizQuestions = cached
+			return
+		}
+
 		isGeneratingQuiz = true
 		quizQuestions = []
-		defer { isGeneratingQuiz = false }
+		quizStatusMessage = nil
+		defer { isGeneratingQuiz = false; quizStatusMessage = nil }
 
-		do {
-			quizQuestions = try await OllamaService.shared.generateQuiz(
-				title: article.title,
-				content: content,
-				endpoint: endpoint,
-				model: model
-			)
-		} catch {
-			errorMessage = "Quiz generation failed: \(error.localizedDescription)"
+		var lastError: Error?
+		let retryMessages = [nil, "Taking longer than expected, retrying…", "One more attempt…"]
+
+		for attempt in 0..<3 {
+			quizStatusMessage = retryMessages[attempt]
+			do {
+				let questions = try await OllamaService.shared.generateQuiz(
+					title: article.title,
+					content: content,
+					endpoint: endpoint,
+					model: model
+				)
+				quizQuestions = questions
+				cacheQuiz(questions, for: article.id)
+				return
+			} catch {
+				lastError = error
+			}
 		}
+
+		errorMessage = "Quiz generation failed: \(lastError?.localizedDescription ?? "Unknown error")"
+	}
+
+	// MARK: - Quiz cache
+
+	private func quizCacheKey(_ articleId: String) -> String { "quiz_q_\(articleId)" }
+
+	private func loadCachedQuiz(for articleId: String) -> [QuizQuestion]? {
+		guard
+			let data = UserDefaults.standard.data(forKey: quizCacheKey(articleId)),
+			let questions = try? JSONDecoder().decode([QuizQuestion].self, from: data),
+			!questions.isEmpty
+		else { return nil }
+		return questions
+	}
+
+	private func cacheQuiz(_ questions: [QuizQuestion], for articleId: String) {
+		guard let data = try? JSONEncoder().encode(questions) else { return }
+		UserDefaults.standard.set(data, forKey: quizCacheKey(articleId))
 	}
 
 	func saveQuizResult(articleId: String, articleTitle: String, score: Int, total: Int) {
