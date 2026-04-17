@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct ContentView: View {
@@ -191,6 +192,9 @@ struct ContentView: View {
 			Task {
 				await DailySummaryService.shared.processPending(endpoint: endpoint, model: model)
 			}
+		}
+		.onChange(of: articlesVM.errorMessage) { _, msg in
+			if msg != nil { NSSound.beep() }
 		}
 		.alert("Error", isPresented: Binding(
 			get: { articlesVM.errorMessage != nil },
