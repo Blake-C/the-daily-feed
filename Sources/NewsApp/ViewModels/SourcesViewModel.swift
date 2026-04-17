@@ -39,10 +39,10 @@ final class SourcesViewModel: ObservableObject {
 
 	/// Clears the new-article badge for one source (or all when sourceId is nil)
 	/// without touching any article's read status.
-	func dismissBadge(sourceId: Int64?) {
+	func dismissBadge(sourceId: Int64?, dateRange: DateRangeFilter = .today) {
 		do {
 			try sourceRepo.clearBadge(sourceId: sourceId)
-			refreshUnreadCounts()
+			refreshUnreadCounts(dateRange: dateRange)
 		} catch {
 			errorMessage = error.localizedDescription
 		}

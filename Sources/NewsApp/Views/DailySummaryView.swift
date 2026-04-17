@@ -3,7 +3,14 @@ import SwiftUI
 struct DailySummaryView: View {
 	@ObservedObject var vm: DailySummaryViewModel
 	var sourceNames: [Int64: String] = [:]
+	var searchText: String = ""
 	var onSelectArticle: (Article) -> Void
+
+	private var filteredArticles: [Article] {
+		guard !searchText.isEmpty else { return vm.articles }
+		let q = searchText.lowercased()
+		return vm.articles.filter { $0.title.lowercased().contains(q) }
+	}
 
 	private func columnCount(for width: CGFloat) -> Int {
 		switch width {
@@ -33,7 +40,7 @@ struct DailySummaryView: View {
 					.padding(.top, 20)
 					.padding(.bottom, 16)
 
-					if vm.articles.isEmpty {
+					if filteredArticles.isEmpty {
 						ContentUnavailableView(
 							"No Articles Yet",
 							systemImage: "doc.text.magnifyingglass",
@@ -42,7 +49,7 @@ struct DailySummaryView: View {
 						.padding(.top, 40)
 					} else {
 						LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 16) {
-							ForEach(vm.articles) { article in
+							ForEach(filteredArticles) { article in
 								DailySummaryCard(
 									article: article,
 									sourceName: sourceNames[article.sourceId]

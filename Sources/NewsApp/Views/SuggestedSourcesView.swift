@@ -4,9 +4,20 @@ struct SuggestedSourcesView: View {
 	@ObservedObject var vm: SuggestedSourcesViewModel
 	@ObservedObject var sourcesVM: SourcesViewModel
 	@EnvironmentObject var appState: AppState
+	var searchText: String = ""
 
 	private var currentSourceNames: String {
 		sourcesVM.sources.map { $0.name }.joined(separator: ", ")
+	}
+
+	private var filteredSuggestions: [SuggestedSource] {
+		guard !searchText.isEmpty else { return vm.suggestions }
+		let q = searchText.lowercased()
+		return vm.suggestions.filter {
+			$0.name.lowercased().contains(q) ||
+			$0.summary.lowercased().contains(q) ||
+			$0.category.lowercased().contains(q)
+		}
 	}
 
 	var body: some View {
@@ -49,7 +60,7 @@ struct SuggestedSourcesView: View {
 				.padding(.top, 20)
 				.padding(.bottom, 16)
 
-				if vm.isRefreshing && vm.suggestions.isEmpty {
+				if vm.isRefreshing && filteredSuggestions.isEmpty {
 					VStack(spacing: 12) {
 						ProgressView()
 						Text("Finding sources…")
@@ -57,7 +68,7 @@ struct SuggestedSourcesView: View {
 							.foregroundStyle(.secondary)
 					}
 					.frame(width: geo.size.width, height: max(geo.size.height - 80, 200))
-				} else if vm.suggestions.isEmpty {
+				} else if filteredSuggestions.isEmpty {
 					ContentUnavailableView(
 						"No Suggestions Yet",
 						systemImage: "antenna.radiowaves.left.and.right",
@@ -66,7 +77,7 @@ struct SuggestedSourcesView: View {
 					.frame(width: geo.size.width, height: max(geo.size.height - 80, 200))
 				} else {
 					VStack(spacing: 12) {
-						ForEach(vm.suggestions) { suggestion in
+						ForEach(filteredSuggestions) { suggestion in
 							SuggestedSourceCard(suggestion: suggestion) {
 								sourcesVM.addSource(
 									name: suggestion.name,

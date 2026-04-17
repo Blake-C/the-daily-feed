@@ -128,7 +128,7 @@ struct SidebarView: View {
 					.contextMenu {
 						if totalUnread > 0 {
 							Button {
-								sourcesVM.dismissBadge(sourceId: nil)
+								sourcesVM.dismissBadge(sourceId: nil, dateRange: articlesVM.dateRangeFilter)
 							} label: {
 								Label("Dismiss New", systemImage: "bell.slash")
 							}
@@ -161,7 +161,7 @@ struct SidebarView: View {
 							}
 							if unread > 0 {
 								Button {
-									sourcesVM.dismissBadge(sourceId: source.id)
+									sourcesVM.dismissBadge(sourceId: source.id, dateRange: articlesVM.dateRangeFilter)
 								} label: {
 									Label("Dismiss New", systemImage: "bell.slash")
 								}

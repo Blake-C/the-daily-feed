@@ -32,14 +32,15 @@ struct ContentView: View {
 				if articlesVM.showDailySummary {
 					DailySummaryView(
 						vm: dailySummaryVM,
-						sourceNames: sourceNames
+						sourceNames: sourceNames,
+						searchText: articlesVM.searchText
 					) { article in
 						selectedDailySummaryArticle = article
 					}
 				} else if articlesVM.showSuggestedSources {
-					SuggestedSourcesView(vm: suggestedSourcesVM, sourcesVM: sourcesVM)
+					SuggestedSourcesView(vm: suggestedSourcesVM, sourcesVM: sourcesVM, searchText: articlesVM.searchText)
 				} else if articlesVM.showQuizStats {
-					QuizStatsView(vm: quizStatsVM, articlesVM: articlesVM, sourceNames: sourceNames)
+					QuizStatsView(vm: quizStatsVM, articlesVM: articlesVM, sourceNames: sourceNames, searchText: articlesVM.searchText)
 				} else {
 					TagFilterBarView(sourcesVM: sourcesVM, articlesVM: articlesVM)
 					ArticleGridView(vm: articlesVM, sourceName: selectedSourceName, sourcesCount: sourcesVM.sources.count, sourceNames: sourceNames)
@@ -127,7 +128,7 @@ struct ContentView: View {
 			sourcesVM.onSourceAdded = { [weak articlesVM, weak sourcesVM] in
 				Task {
 					await articlesVM?.refresh()
-					sourcesVM?.load()
+					sourcesVM?.load(dateRange: articlesVM?.dateRangeFilter ?? .today)
 				}
 			}
 			// Keep sidebar badges in sync whenever an article is marked read.
@@ -155,7 +156,7 @@ struct ContentView: View {
 			// Load cached articles immediately, then fetch fresh content from the network.
 			await articlesVM.initialLoad()
 			await articlesVM.refresh()
-			sourcesVM.load()  // Sync unread counts after the initial fetch
+			sourcesVM.load(dateRange: articlesVM.dateRangeFilter)  // Sync unread counts after the initial fetch
 
 			// Catch up on any today's read articles that need daily summaries.
 			if appState.dailySummaryEnabled {
@@ -176,7 +177,7 @@ struct ContentView: View {
 				try? await Task.sleep(for: .seconds(interval))
 				guard !Task.isCancelled else { break }
 				await articlesVM.refresh(notifyIfNew: true)
-				sourcesVM.load()  // Sync unread counts after background fetch
+				sourcesVM.load(dateRange: articlesVM.dateRangeFilter)  // Sync unread counts after background fetch
 			}
 		}
 		.onChange(of: articlesVM.dateRangeFilter) { _, newRange in

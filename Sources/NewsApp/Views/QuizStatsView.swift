@@ -4,8 +4,15 @@ struct QuizStatsView: View {
 	@ObservedObject var vm: QuizStatsViewModel
 	@ObservedObject var articlesVM: ArticlesViewModel
 	let sourceNames: [Int64: String]
+	var searchText: String = ""
 
 	@State private var selectedArticle: Article?
+
+	private var filteredResults: [QuizResult] {
+		guard !searchText.isEmpty else { return vm.recentResults }
+		let q = searchText.lowercased()
+		return vm.recentResults.filter { $0.articleTitle.lowercased().contains(q) }
+	}
 
 	var body: some View {
 		Group {
@@ -49,7 +56,7 @@ struct QuizStatsView: View {
 								.padding(.bottom, 6)
 
 							VStack(spacing: 8) {
-								ForEach(vm.recentResults) { result in
+								ForEach(filteredResults) { result in
 									QuizResultRow(result: result) {
 										selectedArticle = vm.fetchArticle(id: result.articleId)
 									}
