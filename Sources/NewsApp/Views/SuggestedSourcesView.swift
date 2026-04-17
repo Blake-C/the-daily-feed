@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct SuggestedSourcesView: View {
@@ -134,11 +135,26 @@ private struct SuggestedSourceCard: View {
 						}
 					}
 
-					if let websiteURL = URL(string: suggestion.websiteURL) {
-						Link(suggestion.websiteURL, destination: websiteURL)
-							.font(.system(size: 11))
-							.foregroundStyle(.secondary)
-							.lineLimit(1)
+					if let websiteURL = URL(string: suggestion.websiteURL),
+					   let scheme = websiteURL.scheme?.lowercased(),
+					   scheme == "http" || scheme == "https" {
+						Button {
+							let alert = NSAlert()
+							alert.messageText = "Open Link?"
+							alert.informativeText = websiteURL.absoluteString
+							alert.alertStyle = .informational
+							alert.addButton(withTitle: "Open")
+							alert.addButton(withTitle: "Cancel")
+							if alert.runModal() == .alertFirstButtonReturn {
+								NSWorkspace.shared.open(websiteURL)
+							}
+						} label: {
+							Text(suggestion.websiteURL)
+								.font(.system(size: 11))
+								.foregroundStyle(.secondary)
+								.lineLimit(1)
+						}
+						.buttonStyle(.plain)
 					}
 				}
 

@@ -141,7 +141,7 @@ settings from the macos settings? @done(Wed. 04/15/2026 - 04:30:00 PM)
 
 ✔ In the tooltip for "Open in browser" button on the article detail view, can we have the URL for the link to also appear in the tooltip? This is for security purposes so that we can see the link before clicking it. @done(Thur. 04/16/2026 - 12:00:00 PM)
 
-☐ There are still some instances of the authors name being missing or malformed. If it's difficult to code a solid solution to this could we perhaps use the Ollama connection to pass the author info to the LLM for formatting, we will want to be sure this is done securely as passing data to an LLM in this way could open us up to prompt injection. But with the right rules in place this might be a better option for getting empty or malformed author names removed or formatted correctly. I would also like to have the author individual names be selectable so that if I want to search the authors history I can copy their names. @partialDone(author byline is now text-selectable in article detail view; Thur. 04/16/2026 - 12:00:00 PM)
+✔ There are still some instances of the authors name being missing or malformed. If it's difficult to code a solid solution to this could we perhaps use the Ollama connection to pass the author info to the LLM for formatting, we will want to be sure this is done securely as passing data to an LLM in this way could open us up to prompt injection. But with the right rules in place this might be a better option for getting empty or malformed author names removed or formatted correctly. I would also like to have the author individual names be selectable so that if I want to search the authors history I can copy their names. @partialDone(author byline is now text-selectable in article detail view; Thur. 04/16/2026 - 12:00:00 PM) @done(Fri. 04/17/2026 - 02:09:13 AM)
 
 ✔ Above the title in list mode, add a list of filters that have been applied to the view. For example if the list has been filtered to posts from the past hours in the science category then display the text: "Science articles from the past hour". Or if you have the the list filtered to posts from the past 6 hours in the science category filtered to unread posts it should say: "Unread Science articles from the the past 6 hours". And so on for all the filtering options. This should be dynamic as it pulls in from the different filter sources and changes as the filters change. If we add new filters in the future this feature should also be updated. @done(Thur. 04/16/2026 - 12:00:00 PM)
 
@@ -151,7 +151,40 @@ settings from the macos settings? @done(Wed. 04/15/2026 - 04:30:00 PM)
 
 ✔ Using Ollama, it would be cool to have a feature that took the article and created a quiz UI once you've read an article. It can feed the article in to Ollama and generate questions (true/false, multi-choice, etc) where you an answer the questions and test how well you comprehended the article. The quiz UI shouldn't block the user from viewing the article as we want them to look back over the article to think more deeply about the topics in question. Perhaps this should be a button at the top of the article detail view for "testing your knowledge". This should also have a toggle that is off by default in the settings for the user to turn on when they want it. The questions can also be in relation to the topics in the article, this can get the user to look more deeply into other topics. @done(Thu. 04/16/2026 - 04:58:05 PM)
 
-☐ Look over Ollama features and make sure they are implemented in a manner that protect us from prompt injection and other threats that might come with using an LLM in this way.
+✔ When the the news sources fresh the application loading in the new data but doesn't respect the filters that were already applied. Maybe before loading new data take notes of the current filters so that they can be re-applied after the new source data loads in. Or if you have a better idea, let me know. The same thing happens when I dismiss the new article tokens on the left sidebar. @done(Thu. 04/16/2026 - 09:02:35 PM)
+
+✔ On the quiz, I'm still getting many failed quiz generations. Please try and implement other solutions for this. Also, When the response from Ollama fails, give it two more tries before erroring out. Provide a message to the user that it's taking longer than expected. If then there is no proper response, give the current error. @done(Thu. 04/16/2026 - 09:17:52 PM)
+
+✔ The bottom of the article detail view is pushing out of the application height. Make sure the article detail view stays within the bounds of the application window height wise. This should happen even as the height of the application is decreased. @done(Thu. 04/16/2026 - 09:25:40 PM)
+
+✔ On the quiz, allow the question and answers to be selected. I like to be able to have text to speech read the questions out to me along with their answers. Not being able to select the text prevents this. @done(Thu. 04/16/2026 - 08:44:19 PM)
+
+✔ On the quiz, add a button after the answer to dispute the answer given to a question. In this instance the question should be sent back to Ollama for review and a correction sent if needed. If the user is correct give the user an extra point, apologize, and show the correct answer. @done(Thu. 04/16/2026 - 09:42:51 PM)
+
+✔ On the quiz, can you increase the contrast between answers that were answered correctly and the ones that were incorrect. When it highlights both the red and green are hard to distinguish between each other with the current colors. @done(Thu. 04/16/2026 - 08:44:50 PM)
+
+✔ On the quiz, when the quiz does work, how about storing the questions so they don't have to regenerated each time the user wants to take the quiz. @done(Thu. 04/16/2026 - 09:06:21 PM)
+
+✔ On the quiz, can you make the little summary after a question has been answered selectable and give it's background a more neutral color. @done(Thu. 04/16/2026 - 08:45:16 PM)
+
+✔ When I click command + F, focus the cursor into the search field when searching the articles. @done(Thu. 04/16/2026 - 08:33:51 PM)
+
+✔ On the quiz, when a questions summary text is displayed could we have the article scroll to the paragraph where the summary came from. @done(Thu. 04/16/2026 - 10:33:28 PM)
+
+✔ The article quiz questions contains the A/B/C/D order at the start of each question even though it's already to the left of the question. Effectively duplicating the ordering for each question. Can we make sure those are not included in the text but remain on the left in the UI. @done(Thu. 04/16/2026 - 08:45:41 PM)
+
+✔ On the quiz stats screen can you make the article titles clickable so they open the article view. I would like to be able to look back at the article where the score came from. @done(Thu. 04/16/2026 - 09:06:13 PM)
+
+✔ In the daily summary the summary seems to only generate after I restart the application. @done(Thu. 04/16/2026 - 09:16:59 PM)
+
+✔ On the "Suggested Sources" screen, when there are no resources and I get the no sources at this time message and it's button, can we we have that centered in the view like on the other views and their messages are show. @done(Thu. 04/16/2026 - 09:17:10 PM)
+
+✔ When an error occurs, can you play the macOS 26 error sound so I get some sort of response while on other screens. @done(Thu. 04/16/2026 - 08:35:00 PM)
+✔ @done(Thu. 04/16/2026 - 08:35:00 PM)
+
+✔ The question generation is working much more reliably, but the questions keep being duplicates. Perhaps when we feed the article into Ollama we can number each paragraph and when the next question is generated we discourage the usage of the already used paragraphs. @done(Thu. 04/16/2026 - 10:33:14 PM)
+
+✔ Look over Ollama features and make sure they are implemented in a manner that protect us from prompt injection and other threats that might come with using an LLM in this way. @done(Fri. 04/17/2026 - 02:08:34 AM)
 
 ☐ Look over project of orphaned code.
 

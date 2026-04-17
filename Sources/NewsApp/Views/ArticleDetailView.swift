@@ -668,7 +668,15 @@ private struct _ArticleWebView: NSViewRepresentable {
 			{
 				let scheme = url.scheme?.lowercased() ?? ""
 				if scheme == "http" || scheme == "https" {
-					NSWorkspace.shared.open(url)
+					let alert = NSAlert()
+					alert.messageText = "Open Link?"
+					alert.informativeText = url.absoluteString
+					alert.alertStyle = .informational
+					alert.addButton(withTitle: "Open")
+					alert.addButton(withTitle: "Cancel")
+					if alert.runModal() == .alertFirstButtonReturn {
+						NSWorkspace.shared.open(url)
+					}
 				}
 				decisionHandler(.cancel)
 			} else {
