@@ -37,6 +37,17 @@ final class QuizRepository: @unchecked Sendable {
 		}
 	}
 
+	func deleteAll() throws {
+		try db.write { conn in
+			try conn.execute(sql: "DELETE FROM quiz_results")
+		}
+		// Also purge all per-article cached question sets from UserDefaults.
+		let defaults = UserDefaults.standard
+		defaults.dictionaryRepresentation().keys
+			.filter { $0.hasPrefix("quiz_q_") }
+			.forEach { defaults.removeObject(forKey: $0) }
+	}
+
 	func fetchStats(from startDate: Date) throws -> QuizPeriodStats {
 		try db.read { conn in
 			let row = try Row.fetchOne(

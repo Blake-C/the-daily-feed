@@ -122,6 +122,25 @@ struct SettingsView: View {
 			}
 
 			Section {
+				if let quizClearStatus {
+					Text(quizClearStatus)
+						.font(.system(size: 12))
+						.foregroundStyle(.secondary)
+				}
+				Button("Clear All Quiz Data") {
+					clearQuizData()
+				}
+				.buttonStyle(.bordered)
+			} header: {
+				Text("Quiz Data")
+					.font(.headline)
+			} footer: {
+				Text("Removes all saved quiz scores and clears cached question sets for every article. This cannot be undone.")
+					.foregroundStyle(.secondary)
+					.font(.caption)
+			}
+
+			Section {
 				VStack(alignment: .leading, spacing: 6) {
 					TextEditor(text: $appState.ollamaPrompt)
 						.font(.system(size: 12, design: .monospaced))
@@ -162,6 +181,16 @@ struct SettingsView: View {
 	}
 
 	@State private var ollamaTestStatus: String?
+	@State private var quizClearStatus: String?
+
+	private func clearQuizData() {
+		do {
+			try QuizRepository().deleteAll()
+			quizClearStatus = "Quiz data cleared."
+		} catch {
+			quizClearStatus = "Failed: \(error.localizedDescription)"
+		}
+	}
 
 	private func testOllama() async {
 		ollamaTestStatus = "Testing…"
