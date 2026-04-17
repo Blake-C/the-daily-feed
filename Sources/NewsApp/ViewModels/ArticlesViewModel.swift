@@ -107,8 +107,34 @@ final class ArticlesViewModel: ObservableObject {
 		if notifyIfNew {
 			await NotificationService.shared.notifyNewArticles(count: result.fetched)
 		}
-		reset()
-		await loadNextPage()
+		// Reload in-place so active filters, selection, and scroll position are preserved.
+		// Only a hard reset (filter change or initial load) should scroll back to the top.
+		await reloadInPlace()
+	}
+
+	/// Replaces the current page of articles without clearing the array first,
+	/// avoiding the blank-flash and scroll-reset that `reset()` + `loadNextPage()` causes.
+	private func reloadInPlace() async {
+		guard !isLoading else { return }
+		isLoading = true
+		defer { isLoading = false }
+
+		availableTagNames = (try? articleRepo.fetchAvailableTagNames(
+			sourceId: selectedSourceId,
+			dateRange: dateRangeFilter
+		)) ?? []
+		bookmarkCount = (try? articleRepo.fetchBookmarkCount()) ?? bookmarkCount
+		hiddenCount   = (try? articleRepo.fetchHiddenCount()) ?? hiddenCount
+
+		let query = buildQuery(offset: 0)
+		do {
+			let fetched = try articleRepo.fetch(query: query)
+			articles      = fetched
+			hasMore       = fetched.count >= pageSize
+			currentOffset = fetched.count
+		} catch {
+			errorMessage = error.localizedDescription
+		}
 	}
 
 	func applySearch(_ text: String) {
