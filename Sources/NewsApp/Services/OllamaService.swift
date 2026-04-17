@@ -56,11 +56,12 @@ final class OllamaService: @unchecked Sendable {
 		- True/false questions must use exactly ["True", "False"] as the options array, in that order
 		- correctIndex is the 0-based index of the correct answer in the options array
 		- explanation is one sentence explaining why the answer is correct
+		- sourceExcerpt is the first 12–18 words verbatim from the article paragraph that the question is based on; omit for context/research questions not tied to a specific paragraph
 
 		Respond ONLY in valid JSON with no markdown or extra text:
 		{"questions": [
-		  {"type": "truefalse", "question": "...", "options": ["True", "False"], "correctIndex": 0, "explanation": "..."},
-		  {"type": "multiplechoice", "question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 2, "explanation": "..."}
+		  {"type": "truefalse", "question": "...", "options": ["True", "False"], "correctIndex": 0, "explanation": "...", "sourceExcerpt": "verbatim opening words of source paragraph..."},
+		  {"type": "multiplechoice", "question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 2, "explanation": "...", "sourceExcerpt": "verbatim opening words of source paragraph..."}
 		]}
 
 		Article title: {title}

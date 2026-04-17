@@ -27,20 +27,25 @@ struct QuizQuestion: Identifiable {
 	let options: [String]
 	let correctIndex: Int
 	let explanation: String
+	/// Verbatim excerpt from the source paragraph used to generate this question.
+	/// Used to scroll the article to the relevant section when the explanation is revealed.
+	var paragraphHint: String?
 }
 
 extension QuizQuestion: Codable {
 	enum CodingKeys: String, CodingKey {
 		case type, question, options, correctIndex, explanation
+		case paragraphHint = "sourceExcerpt"
 	}
 
 	init(from decoder: Decoder) throws {
 		let c = try decoder.container(keyedBy: CodingKeys.self)
-		id          = UUID()
-		type        = try c.decode(QuizQuestionType.self, forKey: .type)
-		question    = try c.decode(String.self, forKey: .question)
-		options     = try c.decode([String].self, forKey: .options)
-		explanation = (try? c.decode(String.self, forKey: .explanation)) ?? ""
+		id            = UUID()
+		type          = try c.decode(QuizQuestionType.self, forKey: .type)
+		question      = try c.decode(String.self, forKey: .question)
+		options       = try c.decode([String].self, forKey: .options)
+		explanation   = (try? c.decode(String.self, forKey: .explanation)) ?? ""
+		paragraphHint = try? c.decode(String.self, forKey: .paragraphHint)
 		// Some models return correctIndex as a string (e.g. "2") — handle both
 		if let intVal = try? c.decode(Int.self, forKey: .correctIndex) {
 			correctIndex = intVal

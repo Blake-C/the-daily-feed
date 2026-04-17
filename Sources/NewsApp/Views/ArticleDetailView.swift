@@ -18,6 +18,10 @@ struct ArticleDetailView: View {
 	// Quiz state
 	@State private var showQuiz = false
 
+	// Paragraph scroll state — driven by quiz answer reveals
+	@State private var scrollParagraphHint = ""
+	@State private var scrollParagraphTrigger = 0
+
 	// Find-in-article state
 	@State private var showFind = false
 	@State private var findText = ""
@@ -270,7 +274,9 @@ struct ArticleDetailView: View {
 								accessibilityText: result.textContent,
 								findQuery: findText,
 								findTrigger: findTrigger,
-								findBackward: findBackward
+								findBackward: findBackward,
+								scrollParagraphHint: scrollParagraphHint,
+								scrollParagraphTrigger: scrollParagraphTrigger
 							)
 							.padding(.horizontal, 24)
 							.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -292,6 +298,10 @@ struct ArticleDetailView: View {
 							disputeResults: detailVM.disputeResults,
 							disputingIndices: detailVM.disputingIndices,
 							onClose: { showQuiz = false },
+							onScrollToParagraph: { hint in
+								scrollParagraphHint = hint
+								scrollParagraphTrigger += 1
+							},
 							onDispute: { questionIndex, userChosenIndex in
 								let content = readabilityResult?.textContent ?? article.summary ?? article.title
 								await detailVM.disputeAnswer(
@@ -400,13 +410,17 @@ struct ArticleWebContentView: View {
 	var findQuery: String = ""
 	var findTrigger: Int = 0
 	var findBackward: Bool = false
+	var scrollParagraphHint: String = ""
+	var scrollParagraphTrigger: Int = 0
 
 	var body: some View {
 		_ArticleWebView(
 			htmlContent: htmlContent,
 			findQuery: findQuery,
 			findTrigger: findTrigger,
-			findBackward: findBackward
+			findBackward: findBackward,
+			scrollParagraphHint: scrollParagraphHint,
+			scrollParagraphTrigger: scrollParagraphTrigger
 		)
 		// Provide the plain-text content as the accessibility representation so
 		// VoiceOver, TTS, and other assistive technologies can read the article.
@@ -425,6 +439,8 @@ private struct _ArticleWebView: NSViewRepresentable {
 	var findQuery: String = ""
 	var findTrigger: Int = 0
 	var findBackward: Bool = false
+	var scrollParagraphHint: String = ""
+	var scrollParagraphTrigger: Int = 0
 	@AppStorage("articleFontSize") private var fontSize: Int = 17
 
 	func makeNSView(context: Context) -> WKWebView {
@@ -480,15 +496,51 @@ private struct _ArticleWebView: NSViewRepresentable {
 		let queryChanged = context.coordinator.lastFindQuery != findQuery
 		let triggerChanged = context.coordinator.lastFindTrigger != findTrigger
 
-		guard queryChanged || triggerChanged else { return }
-		context.coordinator.lastFindQuery = findQuery
-		context.coordinator.lastFindTrigger = findTrigger
+		if queryChanged || triggerChanged {
+			context.coordinator.lastFindQuery = findQuery
+			context.coordinator.lastFindTrigger = findTrigger
 
-		guard !findQuery.isEmpty else { return }
-		let findConfig = WKFindConfiguration()
-		findConfig.wraps = true
-		findConfig.backwards = findBackward
-		wv.find(findQuery, configuration: findConfig) { _ in }
+			if !findQuery.isEmpty {
+				let findConfig = WKFindConfiguration()
+				findConfig.wraps = true
+				findConfig.backwards = findBackward
+				wv.find(findQuery, configuration: findConfig) { _ in }
+			}
+		}
+
+		// Scroll the article to the paragraph containing the hint phrase when the
+		// quiz explanation is revealed. A brief amber highlight marks the location.
+		if context.coordinator.lastScrollTrigger != scrollParagraphTrigger,
+		   !scrollParagraphHint.isEmpty
+		{
+			context.coordinator.lastScrollTrigger = scrollParagraphTrigger
+			let escaped = scrollParagraphHint
+				.replacingOccurrences(of: "\\", with: "\\\\")
+				.replacingOccurrences(of: "'", with: "\\'")
+				.replacingOccurrences(of: "\n", with: " ")
+				.replacingOccurrences(of: "\r", with: " ")
+			let js = """
+				(function() {
+				  var hint = '\(escaped)'.toLowerCase();
+				  var selectors = ['p','li','blockquote','td','h2','h3','h4'];
+				  var target = null;
+				  for (var s = 0; s < selectors.length && !target; s++) {
+				    var els = document.querySelectorAll(selectors[s]);
+				    for (var i = 0; i < els.length && !target; i++) {
+				      if (els[i].textContent.toLowerCase().indexOf(hint) !== -1) {
+				        target = els[i];
+				      }
+				    }
+				  }
+				  if (!target) return;
+				  target.scrollIntoView({behavior: 'smooth', block: 'center'});
+				  target.style.transition = 'background-color 0.4s ease';
+				  target.style.backgroundColor = 'rgba(255, 190, 0, 0.28)';
+				  setTimeout(function() { target.style.backgroundColor = ''; }, 2200);
+				})();
+				"""
+			wv.evaluateJavaScript(js, completionHandler: nil)
+		}
 	}
 
 	private func buildHTML() -> String {
@@ -538,6 +590,7 @@ private struct _ArticleWebView: NSViewRepresentable {
 		var loadedHTML: String = ""
 		var lastFindQuery: String = ""
 		var lastFindTrigger: Int = -1
+		var lastScrollTrigger: Int = -1
 
 		@MainActor
 		func webView(
