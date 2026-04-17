@@ -357,6 +357,12 @@ struct ArticleDetailView: View {
 			.frame(maxWidth: .infinity, maxHeight: .infinity)
 			.animation(.easeInOut(duration: 0.2), value: showQuiz)
 		}
+		.onKeyPress(.escape) {
+			guard showFind else { return .ignored }
+			showFind = false
+			findText = ""
+			return .handled
+		}
 		// Keyboard shortcuts — hidden buttons stay in the responder chain
 		.background {
 			Group {
