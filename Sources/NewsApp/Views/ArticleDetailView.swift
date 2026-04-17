@@ -266,7 +266,7 @@ struct ArticleDetailView: View {
 								findTrigger: findTrigger,
 								findBackward: findBackward
 							)
-							.frame(minHeight: 700)
+							.frame(minHeight: 300, maxHeight: .infinity)
 						} else {
 							Text("Loading article content…")
 								.foregroundStyle(.secondary)
@@ -286,6 +286,7 @@ struct ArticleDetailView: View {
 					ArticleQuizView(
 						questions: detailVM.quizQuestions,
 						isLoading: detailVM.isGeneratingQuiz,
+						statusMessage: detailVM.quizStatusMessage,
 						onClose: { showQuiz = false }
 					) { correct, total in
 						detailVM.saveQuizResult(
@@ -299,6 +300,7 @@ struct ArticleDetailView: View {
 					.transition(.move(edge: .trailing).combined(with: .opacity))
 				}
 			}
+			.frame(maxWidth: .infinity, maxHeight: .infinity)
 			.animation(.easeInOut(duration: 0.2), value: showQuiz)
 		}
 		// Keyboard shortcuts — hidden buttons stay in the responder chain
@@ -328,7 +330,14 @@ struct ArticleDetailView: View {
 		}
 		.task {
 			vm.markRead(article)
-			readabilityResult = await detailVM.loadContent(for: article)
+			if let result = await detailVM.loadContent(for: article) {
+				readabilityResult = result
+				// Route through articlesVM so onReadArticleContentCached fires for daily summary.
+				vm.cacheContent(id: article.id, rawContent: result.htmlContent, readableContent: result.htmlContent)
+			}
+		}
+		.onChange(of: detailVM.errorMessage) { _, msg in
+			if msg != nil { NSSound.beep() }
 		}
 		.alert("Error", isPresented: Binding(
 			get: { detailVM.errorMessage != nil },
