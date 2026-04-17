@@ -37,8 +37,8 @@ struct SuggestedSourcesView: View {
 					Button {
 						vm.refresh(
 							currentSourceNames: currentSourceNames,
-							endpoint: appState.ollamaEndpoint,
-							model: appState.ollamaModel
+							endpoint: appState.resolvedEndpoint,
+							model: appState.resolvedModel
 						)
 					} label: {
 						if vm.isRefreshing {
@@ -100,8 +100,8 @@ struct SuggestedSourcesView: View {
 			vm.syncAddedState(existingFeedURLs: Set(sourcesVM.sources.map { $0.url }))
 			vm.refreshIfNeeded(
 				currentSourceNames: currentSourceNames,
-				endpoint: appState.ollamaEndpoint,
-				model: appState.ollamaModel
+				endpoint: appState.resolvedEndpoint,
+				model: appState.resolvedModel
 			)
 		}
 		}

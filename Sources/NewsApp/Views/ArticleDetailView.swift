@@ -306,8 +306,8 @@ struct ArticleDetailView: View {
 								await detailVM.regenerateQuiz(
 									article: article,
 									content: content,
-									endpoint: appState.ollamaEndpoint,
-									model: appState.ollamaModel
+									endpoint: appState.resolvedEndpoint,
+									model: appState.resolvedModel
 								)
 							}
 						},
@@ -323,8 +323,8 @@ struct ArticleDetailView: View {
 									question: detailVM.quizQuestions[questionIndex],
 									userChosenIndex: userChosenIndex,
 									content: content,
-									endpoint: appState.ollamaEndpoint,
-									model: appState.ollamaModel
+									endpoint: appState.resolvedEndpoint,
+									model: appState.resolvedModel
 								)
 							}
 						) { correct, total in
@@ -395,8 +395,8 @@ struct ArticleDetailView: View {
 		await detailVM.generateQuiz(
 			article: article,
 			content: content,
-			endpoint: appState.ollamaEndpoint,
-			model: appState.ollamaModel
+			endpoint: appState.resolvedEndpoint,
+			model: appState.resolvedModel
 		)
 	}
 
@@ -405,8 +405,8 @@ struct ArticleDetailView: View {
 		if let result = await detailVM.rewriteWithAI(
 			article: article,
 			content: content,
-			endpoint: appState.ollamaEndpoint,
-			model: appState.ollamaModel,
+			endpoint: appState.resolvedEndpoint,
+			model: appState.resolvedModel,
 			customPrompt: appState.ollamaPrompt
 		) {
 			displayTitle = result.headline

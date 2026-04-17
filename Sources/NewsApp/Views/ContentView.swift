@@ -139,8 +139,8 @@ struct ContentView: View {
 			// for a read article. Runs only when the feature is enabled.
 			articlesVM.onReadArticleContentCached = { [weak appState] id, title, content in
 				guard let appState, appState.dailySummaryEnabled else { return }
-				let endpoint = appState.ollamaEndpoint
-				let model = appState.ollamaModel
+				let endpoint = appState.resolvedEndpoint
+				let model = appState.resolvedModel
 				Task {
 					await DailySummaryService.shared.summarize(
 						articleId: id,
@@ -160,8 +160,8 @@ struct ContentView: View {
 
 			// Catch up on any today's read articles that need daily summaries.
 			if appState.dailySummaryEnabled {
-				let endpoint = appState.ollamaEndpoint
-				let model = appState.ollamaModel
+				let endpoint = appState.resolvedEndpoint
+				let model = appState.resolvedModel
 				Task {
 					await DailySummaryService.shared.processPending(endpoint: endpoint, model: model)
 				}
@@ -188,8 +188,8 @@ struct ContentView: View {
 		// as the startup path).
 		.onChange(of: appState.dailySummaryEnabled) { _, enabled in
 			guard enabled else { return }
-			let endpoint = appState.ollamaEndpoint
-			let model = appState.ollamaModel
+			let endpoint = appState.resolvedEndpoint
+			let model = appState.resolvedModel
 			Task {
 				await DailySummaryService.shared.processPending(endpoint: endpoint, model: model)
 			}

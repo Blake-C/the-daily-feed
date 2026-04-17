@@ -7,8 +7,26 @@ final class AppState: ObservableObject {
 	@Published var showSettings = false
 
 	// Settings — persisted via UserDefaults
-	@AppStorage("ollamaEndpoint") var ollamaEndpoint: String = "http://localhost:11434"
-	@AppStorage("ollamaModel") var ollamaModel: String = "gemma4:e4b"
+	static let defaultOllamaEndpoint = "http://localhost:11434"
+	static let defaultOllamaModel    = "gemma4:e4b"
+
+	/// Raw stored value — empty means "use default". Bind UI fields to this.
+	@AppStorage("ollamaEndpoint") var ollamaEndpoint: String = ""
+	/// Raw stored value — empty means "use default". Bind UI fields to this.
+	@AppStorage("ollamaModel") var ollamaModel: String = ""
+
+	/// Effective endpoint passed to services — falls back to the default when the stored value is empty.
+	var resolvedEndpoint: String {
+		ollamaEndpoint.trimmingCharacters(in: .whitespaces).isEmpty
+			? Self.defaultOllamaEndpoint
+			: ollamaEndpoint
+	}
+	/// Effective model passed to services — falls back to the default when the stored value is empty.
+	var resolvedModel: String {
+		ollamaModel.trimmingCharacters(in: .whitespaces).isEmpty
+			? Self.defaultOllamaModel
+			: ollamaModel
+	}
 	@AppStorage("weatherCity") var weatherCity: String = ""
 	/// Auto-refresh interval in minutes. 0 = off.
 	@AppStorage("autoRefreshInterval") var autoRefreshInterval: Int = 0

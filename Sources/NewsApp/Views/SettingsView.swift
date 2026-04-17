@@ -90,7 +90,7 @@ struct SettingsView: View {
 	// MARK: - AI
 
 	private var isEndpointLocal: Bool {
-		guard let host = URL(string: appState.ollamaEndpoint)?.host?.lowercased() else { return true }
+		guard let host = URL(string: appState.resolvedEndpoint)?.host?.lowercased() else { return true }
 		return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]"
 	}
 
@@ -98,11 +98,11 @@ struct SettingsView: View {
 		Form {
 			Section {
 				LabeledContent("Endpoint") {
-					TextField("http://host:port", text: $appState.ollamaEndpoint)
+					TextField(AppState.defaultOllamaEndpoint, text: $appState.ollamaEndpoint)
 						.textFieldStyle(.roundedBorder)
 				}
 				LabeledContent("Model") {
-					TextField("e.g. llama3.2, gemma3", text: $appState.ollamaModel)
+					TextField(AppState.defaultOllamaModel, text: $appState.ollamaModel)
 						.textFieldStyle(.roundedBorder)
 				}
 
@@ -278,8 +278,8 @@ struct SettingsView: View {
 			let result = try await OllamaService.shared.rewriteAndSummarize(
 				title: "Test Article",
 				content: "This is a test to verify the Ollama connection is working.",
-				endpoint: appState.ollamaEndpoint,
-				model: appState.ollamaModel
+				endpoint: appState.resolvedEndpoint,
+				model: appState.resolvedModel
 			)
 			ollamaTestStatus = "Connected — \"\(result.headline)\""
 		} catch {
