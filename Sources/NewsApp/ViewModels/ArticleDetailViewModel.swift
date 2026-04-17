@@ -7,6 +7,8 @@ final class ArticleDetailViewModel: ObservableObject {
 	@Published var isGeneratingQuiz = false
 	@Published var quizQuestions: [QuizQuestion] = []
 	@Published var quizStatusMessage: String?
+	@Published var disputeResults: [Int: QuizDisputeResult] = [:]
+	@Published var disputingIndices: Set<Int> = []
 	@Published var errorMessage: String?
 
 	private let articleRepo = ArticleRepository()
@@ -105,6 +107,36 @@ final class ArticleDetailViewModel: ObservableObject {
 	private func cacheQuiz(_ questions: [QuizQuestion], for articleId: String) {
 		guard let data = try? JSONEncoder().encode(questions) else { return }
 		UserDefaults.standard.set(data, forKey: quizCacheKey(articleId))
+	}
+
+	func disputeAnswer(
+		questionIndex: Int,
+		question: QuizQuestion,
+		userChosenIndex: Int,
+		content: String,
+		endpoint: String,
+		model: String
+	) async {
+		guard !disputingIndices.contains(questionIndex),
+			  disputeResults[questionIndex] == nil else { return }
+
+		disputingIndices.insert(questionIndex)
+		defer { disputingIndices.remove(questionIndex) }
+
+		do {
+			let result = try await OllamaService.shared.reviewQuizAnswer(
+				questionText: question.question,
+				options: question.options,
+				originalCorrectIndex: question.correctIndex,
+				userChosenIndex: userChosenIndex,
+				articleExcerpt: content,
+				endpoint: endpoint,
+				model: model
+			)
+			disputeResults[questionIndex] = result
+		} catch {
+			errorMessage = "Dispute review failed: \(error.localizedDescription)"
+		}
 	}
 
 	func saveQuizResult(articleId: String, articleTitle: String, score: Int, total: Int) {

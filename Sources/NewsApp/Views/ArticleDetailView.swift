@@ -289,7 +289,20 @@ struct ArticleDetailView: View {
 							questions: detailVM.quizQuestions,
 							isLoading: detailVM.isGeneratingQuiz,
 							statusMessage: detailVM.quizStatusMessage,
-							onClose: { showQuiz = false }
+							disputeResults: detailVM.disputeResults,
+							disputingIndices: detailVM.disputingIndices,
+							onClose: { showQuiz = false },
+							onDispute: { questionIndex, userChosenIndex in
+								let content = readabilityResult?.textContent ?? article.summary ?? article.title
+								await detailVM.disputeAnswer(
+									questionIndex: questionIndex,
+									question: detailVM.quizQuestions[questionIndex],
+									userChosenIndex: userChosenIndex,
+									content: content,
+									endpoint: appState.ollamaEndpoint,
+									model: appState.ollamaModel
+								)
+							}
 						) { correct, total in
 							detailVM.saveQuizResult(
 								articleId: article.id,

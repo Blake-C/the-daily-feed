@@ -53,6 +53,12 @@ extension QuizQuestion: Codable {
 	}
 }
 
+struct QuizDisputeResult {
+	let userIsCorrect: Bool
+	let correctedAnswerIndex: Int
+	let explanation: String
+}
+
 struct QuizResult: Identifiable {
 	var id: Int64?
 	var articleId: String

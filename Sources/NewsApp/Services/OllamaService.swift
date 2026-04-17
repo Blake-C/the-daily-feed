@@ -99,6 +99,68 @@ final class OllamaService: @unchecked Sendable {
 		return result.questions
 	}
 
+	// MARK: - Answer Dispute
+
+	/// Re-examines a single quiz question when the user disputes the marked answer.
+	/// Returns a verdict indicating whether the user's choice was actually correct.
+	func reviewQuizAnswer(
+		questionText: String,
+		options: [String],
+		originalCorrectIndex: Int,
+		userChosenIndex: Int,
+		articleExcerpt: String,
+		endpoint: String,
+		model: String
+	) async throws -> QuizDisputeResult {
+		let optionList = options.enumerated()
+			.map { "\($0.offset): \($0.element)" }
+			.joined(separator: "\n")
+		let originalText = options.indices.contains(originalCorrectIndex) ? options[originalCorrectIndex] : "?"
+		let userText     = options.indices.contains(userChosenIndex)      ? options[userChosenIndex]      : "?"
+
+		let prompt = """
+			You are a fair quiz arbiter reviewing a disputed answer for a news comprehension quiz.
+
+			A student answered a question and was marked wrong. They believe their answer is correct.
+			Review the question carefully against the article excerpt and decide who is right.
+			If BOTH answers are defensible based on the article, rule in favour of the student.
+
+			Article excerpt:
+			\(String(articleExcerpt.prefix(1_500)))
+
+			Question: \(questionText)
+
+			Answer options (0-indexed):
+			\(optionList)
+
+			Original answer key: index \(originalCorrectIndex) ("\(originalText)")
+			Student's answer: index \(userChosenIndex) ("\(userText)")
+
+			Respond ONLY with this JSON object (no preamble, no markdown):
+			{"verdict": "user_correct" or "original_correct", "correctIndex": <number>, "explanation": "<one sentence>"}
+			"""
+
+		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model)
+		return try parseDisputeResult(from: responseText, fallbackIndex: originalCorrectIndex)
+	}
+
+	private func parseDisputeResult(from text: String, fallbackIndex: Int) throws -> QuizDisputeResult {
+		let cleaned = extractJSONObject(from: text)
+		guard let data = cleaned.data(using: .utf8) else {
+			throw NewsError.parseFailed("Could not encode dispute response")
+		}
+		struct DisputeResponse: Decodable {
+			let verdict: String
+			let correctIndex: Int?
+			let explanation: String
+		}
+		let resp = (try? JSONDecoder().decode(DisputeResponse.self, from: data))
+		let userIsCorrect = resp?.verdict.lowercased().contains("user") == true
+		let corrected = resp?.correctIndex ?? fallbackIndex
+		let explanation = resp?.explanation ?? "No explanation provided."
+		return QuizDisputeResult(userIsCorrect: userIsCorrect, correctedAnswerIndex: corrected, explanation: explanation)
+	}
+
 	// MARK: - Source Suggestions
 
 	// Fixed template — {sources} is the only user-influenced substitution and is

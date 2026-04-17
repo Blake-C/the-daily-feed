@@ -5,17 +5,26 @@ struct ArticleQuizView: View {
 	let questions: [QuizQuestion]
 	let isLoading: Bool
 	var statusMessage: String? = nil
+	let disputeResults: [Int: QuizDisputeResult]
+	let disputingIndices: Set<Int>
 	let onClose: () -> Void
+	let onDispute: (Int, Int) async -> Void
 	let onScoreSaved: (Int, Int) -> Void
 
 	@State private var selectedAnswers: [Int: Int] = [:]
 	@State private var scoreSaved = false
 
 	private var isComplete: Bool { selectedAnswers.count == questions.count && !questions.isEmpty }
+
 	private var correctCount: Int {
 		selectedAnswers.reduce(0) { sum, pair in
-			sum + (questions[pair.key].correctIndex == pair.value ? 1 : 0)
+			let effectiveCorrect = disputeResults[pair.key]?.correctedAnswerIndex ?? questions[pair.key].correctIndex
+			return sum + (effectiveCorrect == pair.value ? 1 : 0)
 		}
+	}
+
+	private var disputeBonusCount: Int {
+		disputeResults.values.filter { $0.userIsCorrect }.count
 	}
 
 	var body: some View {
@@ -63,10 +72,16 @@ struct ArticleQuizView: View {
 								index: index,
 								question: question,
 								selectedAnswer: selectedAnswers[index],
+								disputeResult: disputeResults[index],
+								isDisputing: disputingIndices.contains(index),
 								onSelect: { chosen in
 									guard selectedAnswers[index] == nil else { return }
 									selectedAnswers[index] = chosen
 									checkAndSave()
+								},
+								onDispute: {
+									guard let chosen = selectedAnswers[index] else { return }
+									Task { await onDispute(index, chosen) }
 								}
 							)
 						}
@@ -113,6 +128,12 @@ struct ArticleQuizView: View {
 				.font(.system(size: 14, weight: .medium))
 				.foregroundStyle(scoreColor)
 
+			if disputeBonusCount > 0 {
+				Text("Includes +\(disputeBonusCount) from successful dispute\(disputeBonusCount > 1 ? "s" : "")")
+					.font(.system(size: 11))
+					.foregroundStyle(.secondary)
+			}
+
 			Text(scoreMessage)
 				.font(.system(size: 12))
 				.foregroundStyle(.secondary)
@@ -157,9 +178,21 @@ private struct QuizQuestionCard: View {
 	let index: Int
 	let question: QuizQuestion
 	let selectedAnswer: Int?
+	let disputeResult: QuizDisputeResult?
+	let isDisputing: Bool
 	let onSelect: (Int) -> Void
+	let onDispute: () -> Void
 
 	private var isAnswered: Bool { selectedAnswer != nil }
+
+	private var effectiveCorrectIndex: Int {
+		disputeResult?.correctedAnswerIndex ?? question.correctIndex
+	}
+
+	private var userWasWrong: Bool {
+		guard let chosen = selectedAnswer else { return false }
+		return chosen != question.correctIndex
+	}
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 10) {
@@ -187,14 +220,15 @@ private struct QuizQuestionCard: View {
 				}
 			}
 
-			// Explanation (revealed after answering)
+			// Explanation area (revealed after answering)
 			if isAnswered {
+				let explanation = disputeResult?.explanation ?? question.explanation
 				HStack(alignment: .top, spacing: 6) {
 					Image(systemName: "lightbulb.fill")
 						.font(.system(size: 10))
 						.foregroundStyle(.secondary)
 						.padding(.top, 2)
-					Text(question.explanation)
+					Text(explanation)
 						.font(.system(size: 11))
 						.foregroundStyle(.secondary)
 						.fixedSize(horizontal: false, vertical: true)
@@ -202,10 +236,64 @@ private struct QuizQuestionCard: View {
 				}
 				.padding(8)
 				.background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 6))
+
+				// Dispute area
+				disputeArea
 			}
 		}
 		.padding(12)
 		.background(.background.secondary, in: RoundedRectangle(cornerRadius: 10))
+	}
+
+	@ViewBuilder
+	private var disputeArea: some View {
+		if let result = disputeResult {
+			// Result returned — show verdict banner
+			HStack(alignment: .top, spacing: 8) {
+				Image(systemName: result.userIsCorrect ? "checkmark.seal.fill" : "checkmark.circle")
+					.font(.system(size: 12))
+					.foregroundStyle(result.userIsCorrect ? Color.green : Color.secondary)
+					.padding(.top, 1)
+				VStack(alignment: .leading, spacing: 3) {
+					Text(result.userIsCorrect
+						 ? "You were right — we apologise!"
+						 : "Original answer confirmed")
+						.font(.system(size: 11, weight: .semibold))
+						.foregroundStyle(result.userIsCorrect ? Color.green : Color.secondary)
+					if result.userIsCorrect {
+						Text("Your answer has been accepted and your score updated.")
+							.font(.system(size: 11))
+							.foregroundStyle(.secondary)
+					}
+				}
+			}
+			.padding(8)
+			.frame(maxWidth: .infinity, alignment: .leading)
+			.background(
+				(result.userIsCorrect ? Color.green : Color.secondary).opacity(0.08),
+				in: RoundedRectangle(cornerRadius: 6)
+			)
+		} else if isDisputing {
+			// Ollama review in progress
+			HStack(spacing: 8) {
+				ProgressView().scaleEffect(0.75)
+				Text("Reviewing with Ollama…")
+					.font(.system(size: 11))
+					.foregroundStyle(.secondary)
+			}
+			.padding(8)
+			.frame(maxWidth: .infinity, alignment: .leading)
+			.background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
+		} else if userWasWrong {
+			// Offer dispute button
+			Button(action: onDispute) {
+				Label("Dispute this answer", systemImage: "flag")
+					.font(.system(size: 11))
+			}
+			.buttonStyle(.bordered)
+			.controlSize(.mini)
+			.help("Ask Ollama to re-examine this question")
+		}
 	}
 
 	private func optionLabel(_ i: Int) -> String {
@@ -214,7 +302,7 @@ private struct QuizQuestionCard: View {
 
 	private func optionState(_ i: Int) -> AnswerOptionState {
 		guard let chosen = selectedAnswer else { return .idle }
-		if i == question.correctIndex { return .correct }
+		if i == effectiveCorrectIndex { return .correct }
 		if i == chosen { return .wrong }
 		return .dimmed
 	}
@@ -252,28 +340,28 @@ private struct AnswerOptionRow: View {
 
 	private var bgColor: Color {
 		switch state {
-		case .idle:   return Color.secondary.opacity(0.08)
+		case .idle:    return Color.secondary.opacity(0.08)
 		case .correct: return Color.green.opacity(0.22)
-		case .wrong:  return Color.red.opacity(0.22)
-		case .dimmed: return Color.secondary.opacity(0.04)
+		case .wrong:   return Color.red.opacity(0.22)
+		case .dimmed:  return Color.secondary.opacity(0.04)
 		}
 	}
 
 	private var borderColor: Color {
 		switch state {
-		case .idle:   return Color.clear
+		case .idle:    return Color.clear
 		case .correct: return Color.green.opacity(0.75)
-		case .wrong:  return Color.red.opacity(0.75)
-		case .dimmed: return Color.clear
+		case .wrong:   return Color.red.opacity(0.75)
+		case .dimmed:  return Color.clear
 		}
 	}
 
 	private var labelColor: Color {
 		switch state {
-		case .idle:   return Color.accentColor
+		case .idle:    return Color.accentColor
 		case .correct: return Color.green
-		case .wrong:  return Color.red
-		case .dimmed: return Color.secondary.opacity(0.5)
+		case .wrong:   return Color.red
+		case .dimmed:  return Color.secondary.opacity(0.5)
 		}
 	}
 
