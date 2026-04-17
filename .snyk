@@ -1,0 +1,11 @@
+# Snyk (https://snyk.io) policy file
+version: v1.25.0
+ignore:
+  swift/InsecureStorage:
+    - '*':
+        reason: >-
+          Plaintext SQLite is intentional. The database stores only public news content.
+          File is protected by macOS Full Disk Encryption, restricted to 0o600 POSIX
+          permissions, and excluded from iCloud and Time Machine backups.
+        expires: 2099-01-01T00:00:00.000Z
+        created: 2026-04-17T00:00:00.000Z
