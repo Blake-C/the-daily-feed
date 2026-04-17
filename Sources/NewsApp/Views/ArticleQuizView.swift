@@ -258,7 +258,7 @@ private struct QuizQuestionCard: View {
 
 			// Answer options
 			VStack(alignment: .leading, spacing: 6) {
-				ForEach(Array(question.options.enumerated()), id: \.offset) { optIndex, option in
+				ForEach(Array(question.options.enumerated().filter { !$1.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }), id: \.offset) { optIndex, option in
 					AnswerOptionRow(
 						label: optionLabel(optIndex),
 						text: optionText(option, index: optIndex),
