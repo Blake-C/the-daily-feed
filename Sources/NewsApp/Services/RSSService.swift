@@ -29,24 +29,28 @@ final class RSSService: @unchecked Sendable {
 
 	private func mapFeed(_ feed: Feed, sourceId: Int64, sourceTags: String) -> [Article] {
 		let now = Date()
+		let tagger = ArticleTaggingService.shared
 		switch feed {
 		case .rss(let rss):
 			return rss.items?.compactMap { item -> Article? in
 				guard let link = item.link, !link.isEmpty else { return nil }
 				let id = item.guid?.value ?? link
+				let title = item.title ?? "Untitled"
+				let summary = item.description
+				let feedCategories = item.categories?.compactMap { $0.value } ?? []
 				return Article(
 					id: id,
 					sourceId: sourceId,
-					title: item.title ?? "Untitled",
+					title: title,
 					rewrittenTitle: nil,
 					author: item.author,
-					summary: nil,
+					summary: summary,
 					thumbnailURL: item.media?.mediaContents?.first?.attributes?.url
 						?? extractImageURL(from: item.content?.contentEncoded ?? item.description),
 					articleURL: link,
 					publishedAt: item.pubDate ?? now,
 					fetchedAt: now,
-					tags: sourceTags,
+					tags: tagger.tags(title: title, summary: summary, feedCategories: feedCategories, sourceTags: sourceTags),
 					isRead: false,
 					isHidden: false,
 					isBookmarked: false,
@@ -58,18 +62,21 @@ final class RSSService: @unchecked Sendable {
 			return atom.entries?.compactMap { entry -> Article? in
 				guard let link = entry.links?.first?.attributes?.href, !link.isEmpty else { return nil }
 				let id = entry.id ?? link
+				let title = entry.title ?? "Untitled"
+				let summary = entry.summary?.value
+				let feedCategories = entry.categories?.compactMap { $0.attributes?.term } ?? []
 				return Article(
 					id: id,
 					sourceId: sourceId,
-					title: entry.title ?? "Untitled",
+					title: title,
 					rewrittenTitle: nil,
 					author: entry.authors?.first?.name,
-					summary: nil,
+					summary: summary,
 					thumbnailURL: extractImageURL(from: entry.content?.value),
 					articleURL: link,
 					publishedAt: entry.published ?? entry.updated ?? now,
 					fetchedAt: now,
-					tags: sourceTags,
+					tags: tagger.tags(title: title, summary: summary, feedCategories: feedCategories, sourceTags: sourceTags),
 					isRead: false,
 					isHidden: false,
 					isBookmarked: false,
@@ -81,18 +88,21 @@ final class RSSService: @unchecked Sendable {
 			return json.items?.compactMap { item -> Article? in
 				guard let link = item.url, !link.isEmpty else { return nil }
 				let id = item.id ?? link
+				let title = item.title ?? "Untitled"
+				let summary = item.summary
+				let feedCategories = item.tags ?? []
 				return Article(
 					id: id,
 					sourceId: sourceId,
-					title: item.title ?? "Untitled",
+					title: title,
 					rewrittenTitle: nil,
 					author: item.author?.name,
-					summary: item.summary,
+					summary: summary,
 					thumbnailURL: item.image,
 					articleURL: link,
 					publishedAt: item.datePublished ?? now,
 					fetchedAt: now,
-					tags: sourceTags,
+					tags: tagger.tags(title: title, summary: summary, feedCategories: feedCategories, sourceTags: sourceTags),
 					isRead: false,
 					isHidden: false,
 					isBookmarked: false,
