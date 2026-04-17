@@ -203,10 +203,11 @@ struct ArticleDetailView: View {
 				Divider()
 			}
 
-			HStack(alignment: .top, spacing: 0) {
-				ScrollView {
-					VStack(alignment: .leading, spacing: 16) {
-						// Header meta
+			GeometryReader { geo in
+				HStack(alignment: .top, spacing: 0) {
+					// Article column — header pinned at top, WebView fills remaining height
+					VStack(alignment: .leading, spacing: 0) {
+						// Header meta (title, byline, date, AI summary)
 						VStack(alignment: .leading, spacing: 6) {
 							// Category tags
 							if !article.tagList.isEmpty {
@@ -224,7 +225,7 @@ struct ArticleDetailView: View {
 								.font(.system(size: 26, weight: .bold, design: .serif))
 								.textSelection(.enabled)
 
-							// Byline / summary row
+							// Byline
 							if let byline = readabilityResult?.byline ?? article.author, !byline.trimmingCharacters(in: .whitespaces).isEmpty {
 								Text("By \(byline)")
 									.font(.system(size: 13, weight: .medium))
@@ -254,10 +255,15 @@ struct ArticleDetailView: View {
 									.background(Color.accentColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
 							}
 						}
+						.padding(.horizontal, 24)
+						.padding(.top, 16)
+						.padding(.bottom, 12)
+						.frame(maxWidth: 760, alignment: .leading)
+						.frame(maxWidth: .infinity, alignment: .leading)
 
 						Divider()
 
-						// Article content
+						// Article body — WKWebView fills remaining height with native scrolling
 						if let result = readabilityResult {
 							ArticleWebContentView(
 								htmlContent: result.htmlContent,
@@ -266,39 +272,37 @@ struct ArticleDetailView: View {
 								findTrigger: findTrigger,
 								findBackward: findBackward
 							)
-							.frame(minHeight: 300, maxHeight: .infinity)
+							.padding(.horizontal, 24)
+							.frame(maxWidth: .infinity, maxHeight: .infinity)
 						} else {
 							Text("Loading article content…")
 								.foregroundStyle(.secondary)
-								.frame(maxWidth: .infinity, alignment: .center)
-								.padding(.top, 40)
+								.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
 						}
 					}
-					.padding(.horizontal, 24)
-					.padding(.vertical, 16)
-					.frame(maxWidth: 760, alignment: .leading)
-					.frame(maxWidth: .infinity)
-				}
+					.frame(height: geo.size.height)
 
-				// Quiz side panel
-				if showQuiz {
-					Divider()
-					ArticleQuizView(
-						questions: detailVM.quizQuestions,
-						isLoading: detailVM.isGeneratingQuiz,
-						statusMessage: detailVM.quizStatusMessage,
-						onClose: { showQuiz = false }
-					) { correct, total in
-						detailVM.saveQuizResult(
-							articleId: article.id,
-							articleTitle: article.title,
-							score: correct,
-							total: total
-						)
+					// Quiz side panel — capped to available height, scrolls internally
+					if showQuiz {
+						Divider()
+						ArticleQuizView(
+							questions: detailVM.quizQuestions,
+							isLoading: detailVM.isGeneratingQuiz,
+							statusMessage: detailVM.quizStatusMessage,
+							onClose: { showQuiz = false }
+						) { correct, total in
+							detailVM.saveQuizResult(
+								articleId: article.id,
+								articleTitle: article.title,
+								score: correct,
+								total: total
+							)
+						}
+						.frame(width: 340, height: geo.size.height)
+						.transition(.move(edge: .trailing).combined(with: .opacity))
 					}
-					.frame(width: 340)
-					.transition(.move(edge: .trailing).combined(with: .opacity))
 				}
+				.frame(width: geo.size.width)
 			}
 			.frame(maxWidth: .infinity, maxHeight: .infinity)
 			.animation(.easeInOut(duration: 0.2), value: showQuiz)
@@ -488,7 +492,7 @@ private struct _ArticleWebView: NSViewRepresentable {
 		    font-family: Georgia, "Times New Roman", serif;
 		    font-size: \(fontSize)px;
 		    line-height: 1.75;
-		    // max-width: 700px;
+		    max-width: 712px;
 		    margin: 0 auto;
 		    padding: 0 0 48px;
 		    color: light-dark(#1a1a1a, #e8e8e8);
