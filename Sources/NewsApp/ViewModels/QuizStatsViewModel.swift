@@ -8,6 +8,11 @@ final class QuizStatsViewModel: ObservableObject {
 	@Published var recentResults: [QuizResult] = []
 
 	private let repo = QuizRepository()
+	private let articleRepo = ArticleRepository()
+
+	func fetchArticle(id: String) -> Article? {
+		try? articleRepo.fetchById(id)
+	}
 
 	func load() {
 		let cal = Calendar.current

@@ -122,6 +122,22 @@ final class ArticleRepository: @unchecked Sendable {
 		}
 	}
 
+	func fetchById(_ id: String) throws -> Article? {
+		try db.read { conn in
+			try Article.fetchOne(
+				conn,
+				sql: """
+					SELECT id, sourceId, title, rewrittenTitle, author, summary,
+					       thumbnailURL, articleURL, publishedAt, fetchedAt,
+					       tags, isRead, isHidden, isBookmarked, starRating,
+					       NULL AS rawContent, NULL AS readableContent, NULL AS dailySummary
+					FROM articles WHERE id = ?
+					""",
+				arguments: [id]
+			)
+		}
+	}
+
 	/// Returns only the cached Readability HTML for a single article, or nil if
 	/// it hasn't been extracted yet. Used by the detail view to short-circuit
 	/// the WKWebView pipeline when content is already available.

@@ -2,6 +2,10 @@ import SwiftUI
 
 struct QuizStatsView: View {
 	@ObservedObject var vm: QuizStatsViewModel
+	@ObservedObject var articlesVM: ArticlesViewModel
+	let sourceNames: [Int64: String]
+
+	@State private var selectedArticle: Article?
 
 	var body: some View {
 		ScrollView {
@@ -45,7 +49,9 @@ struct QuizStatsView: View {
 
 						VStack(spacing: 8) {
 							ForEach(vm.recentResults) { result in
-								QuizResultRow(result: result)
+								QuizResultRow(result: result) {
+									selectedArticle = vm.fetchArticle(id: result.articleId)
+								}
 							}
 						}
 						.padding(.horizontal, 24)
@@ -55,6 +61,10 @@ struct QuizStatsView: View {
 			}
 		}
 		.onAppear { vm.load() }
+		.sheet(item: $selectedArticle) { article in
+			ArticleDetailView(article: article, vm: articlesVM, sourceName: sourceNames[article.sourceId])
+				.frame(minWidth: 860, minHeight: 700)
+		}
 	}
 }
 
@@ -111,6 +121,7 @@ private struct PeriodStatCard: View {
 
 private struct QuizResultRow: View {
 	let result: QuizResult
+	let onTap: () -> Void
 
 	private var percentageColor: Color {
 		switch result.percentage {
@@ -121,35 +132,43 @@ private struct QuizResultRow: View {
 	}
 
 	var body: some View {
-		HStack(spacing: 12) {
-			// Score badge
-			Text("\(result.percentage)%")
-				.font(.system(size: 13, weight: .bold, design: .rounded))
-				.foregroundStyle(percentageColor)
-				.frame(width: 46, alignment: .trailing)
-				.monospacedDigit()
+		Button(action: onTap) {
+			HStack(spacing: 12) {
+				// Score badge
+				Text("\(result.percentage)%")
+					.font(.system(size: 13, weight: .bold, design: .rounded))
+					.foregroundStyle(percentageColor)
+					.frame(width: 46, alignment: .trailing)
+					.monospacedDigit()
 
-			VStack(alignment: .leading, spacing: 2) {
-				Text(result.articleTitle)
-					.font(.system(size: 13, weight: .medium))
-					.lineLimit(1)
-				HStack(spacing: 4) {
-					Text("\(result.score)/\(result.totalQuestions) correct")
-						.font(.system(size: 11))
-						.foregroundStyle(.secondary)
-					Text("·")
-						.foregroundStyle(.quaternary)
-						.font(.system(size: 11))
-					Text(result.completedAt, style: .date)
-						.font(.system(size: 11))
-						.foregroundStyle(.tertiary)
+				VStack(alignment: .leading, spacing: 2) {
+					Text(result.articleTitle)
+						.font(.system(size: 13, weight: .medium))
+						.lineLimit(1)
+					HStack(spacing: 4) {
+						Text("\(result.score)/\(result.totalQuestions) correct")
+							.font(.system(size: 11))
+							.foregroundStyle(.secondary)
+						Text("·")
+							.foregroundStyle(.quaternary)
+							.font(.system(size: 11))
+						Text(result.completedAt, style: .date)
+							.font(.system(size: 11))
+							.foregroundStyle(.tertiary)
+					}
 				}
-			}
 
-			Spacer(minLength: 0)
+				Spacer(minLength: 0)
+
+				Image(systemName: "chevron.right")
+					.font(.system(size: 10, weight: .medium))
+					.foregroundStyle(.tertiary)
+			}
+			.padding(.horizontal, 12)
+			.padding(.vertical, 8)
+			.background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
 		}
-		.padding(.horizontal, 12)
-		.padding(.vertical, 8)
-		.background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
+		.buttonStyle(.plain)
+		.help("Open article")
 	}
 }
