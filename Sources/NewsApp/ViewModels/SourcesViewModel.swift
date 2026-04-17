@@ -21,7 +21,12 @@ final class SourcesViewModel: ObservableObject {
 	private let tagRepo = TagRepository()
 	private let articleRepo = ArticleRepository()
 
+	/// The last date range passed to load() or refreshUnreadCounts().
+	/// All internal reload calls use this so badges never silently reset to .today.
+	private var activeDateRange: DateRangeFilter = .today
+
 	func load(dateRange: DateRangeFilter = .today) {
+		activeDateRange = dateRange
 		do {
 			sources = try sourceRepo.fetchAll()
 			tags = try tagRepo.fetchAll()
@@ -34,6 +39,7 @@ final class SourcesViewModel: ObservableObject {
 	/// Lightweight re-query of unread counts without reloading sources or tags.
 	/// Pass the active date range so badges stay in sync with the grid filter.
 	func refreshUnreadCounts(dateRange: DateRangeFilter = .today) {
+		activeDateRange = dateRange
 		unreadCounts = (try? articleRepo.fetchUnreadCountsBySource(dateRange: dateRange)) ?? [:]
 	}
 
@@ -46,6 +52,11 @@ final class SourcesViewModel: ObservableObject {
 		} catch {
 			errorMessage = error.localizedDescription
 		}
+	}
+
+	/// Reloads sources, tags, and unread counts using the last active date range.
+	private func reload() {
+		load(dateRange: activeDateRange)
 	}
 
 	func moveSources(from offsets: IndexSet, to destination: Int) {
@@ -75,7 +86,7 @@ final class SourcesViewModel: ObservableObject {
 		)
 		do {
 			try sourceRepo.insert(&source)
-			load()
+			reload()
 			// Fetch articles immediately so they appear without a manual refresh.
 			let inserted = source
 			Task {
@@ -120,7 +131,7 @@ final class SourcesViewModel: ObservableObject {
 	func deleteSource(id: Int64) {
 		do {
 			try sourceRepo.delete(id: id)
-			load()
+			reload()
 		} catch {
 			errorMessage = error.localizedDescription
 		}
@@ -131,7 +142,7 @@ final class SourcesViewModel: ObservableObject {
 		updated.isEnabled = !source.isEnabled
 		do {
 			try sourceRepo.update(updated)
-			load()
+			reload()
 		} catch {
 			errorMessage = error.localizedDescription
 		}
@@ -141,7 +152,7 @@ final class SourcesViewModel: ObservableObject {
 		var tag = Tag(id: nil, name: name, isBuiltIn: false, isActive: true)
 		do {
 			try tagRepo.insert(&tag)
-			load()
+			reload()
 		} catch {
 			errorMessage = error.localizedDescription
 		}
@@ -151,7 +162,7 @@ final class SourcesViewModel: ObservableObject {
 		guard let id = tag.id else { return }
 		do {
 			try tagRepo.toggle(id: id, isActive: !tag.isActive)
-			load()
+			reload()
 		} catch {
 			errorMessage = error.localizedDescription
 		}
@@ -160,7 +171,7 @@ final class SourcesViewModel: ObservableObject {
 	func deleteTag(id: Int64) {
 		do {
 			try tagRepo.delete(id: id)
-			load()
+			reload()
 		} catch {
 			errorMessage = error.localizedDescription
 		}
@@ -193,7 +204,7 @@ final class SourcesViewModel: ObservableObject {
 				try sourceRepo.insert(&source)
 				imported += 1
 			}
-			load()
+			reload()
 			let skipped = outlines.count - imported
 			var message = "\(imported) source\(imported == 1 ? "" : "s") imported"
 			if skipped > 0 { message += ", \(skipped) already present" }
