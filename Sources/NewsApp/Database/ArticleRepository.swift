@@ -227,7 +227,7 @@ final class ArticleRepository: @unchecked Sendable {
 	func markRead(id: String) throws {
 		try db.write { conn in
 			try conn.execute(
-				sql: "UPDATE articles SET isRead = 1 WHERE id = ?",
+				sql: "UPDATE articles SET isRead = 1, readAt = COALESCE(readAt, datetime('now')) WHERE id = ?",
 				arguments: [id]
 			)
 		}
@@ -409,10 +409,10 @@ final class ArticleRepository: @unchecked Sendable {
 				SELECT id, sourceId, title, rewrittenTitle, author, summary,
 				       thumbnailURL, articleURL, publishedAt, fetchedAt,
 				       tags, isRead, isHidden, isBookmarked,
-				       NULL AS readableContent, dailySummary
+				       NULL AS readableContent, dailySummary, readAt
 				FROM articles
-				WHERE isRead = 1 AND isHidden = 0 AND publishedAt >= ?
-				ORDER BY publishedAt DESC
+				WHERE isRead = 1 AND isHidden = 0 AND readAt >= ?
+				ORDER BY COALESCE(readAt, publishedAt) ASC
 				""",
 				arguments: [startOfToday]
 			)

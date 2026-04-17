@@ -178,6 +178,13 @@ final class DatabaseManager: @unchecked Sendable {
 			try db.create(index: "quiz_results_completedAt", on: "quiz_results", columns: ["completedAt"])
 		}
 
+		migrator.registerMigration("v7_read_at") { db in
+			try db.alter(table: "articles") { t in
+				t.add(column: "readAt", .datetime)
+			}
+			try db.create(index: "articles_readAt", on: "articles", columns: ["readAt"])
+		}
+
 		try migrator.migrate(dbQueue)
 	}
 }

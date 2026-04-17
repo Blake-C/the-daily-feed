@@ -18,6 +18,7 @@ struct Article: Identifiable, Codable, FetchableRecord, PersistableRecord {
 	var isBookmarked: Bool     // User saved for later
 	var readableContent: String? // Cached Readability-extracted content
 	var dailySummary: String?  // Ollama-generated daily briefing
+	var readAt: Date?          // Timestamp of first read; nil until opened
 
 	static let databaseTableName = "articles"
 
@@ -25,7 +26,7 @@ struct Article: Identifiable, Codable, FetchableRecord, PersistableRecord {
 		case id, sourceId, title, rewrittenTitle, author, summary
 		case thumbnailURL, articleURL, publishedAt, fetchedAt
 		case tags, isRead, isHidden, isBookmarked, readableContent
-		case dailySummary
+		case dailySummary, readAt
 	}
 
 	var tagList: [String] {
