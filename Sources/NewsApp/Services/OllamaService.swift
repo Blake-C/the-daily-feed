@@ -106,11 +106,13 @@ final class OllamaService: @unchecked Sendable {
 			}
 			alreadyUsedBlock = """
 
-				ALREADY ASKED — you MUST NOT repeat any of these questions or test the same underlying fact, even if phrased differently:
+				ALREADY ASKED — you MUST NOT reuse any of the following paragraphs or test the same underlying fact, even if phrased differently:
 				\(lines.joined(separator: "\n"))
 
-				A question is a duplicate if it tests the same fact or event as an existing question, regardless of phrasing. This is especially important for yes/no and true/false questions — "Did X happen?" and "Was X reported?" about the same event are duplicates.
-				Choose a different fact from a paragraph that has NOT been referenced above.
+				STRICT RULES:
+				- DO NOT base your question on any paragraph whose excerpt appears above. Each question must come from a completely different paragraph.
+				- A question is a duplicate if it tests the same fact or event as an existing question, regardless of phrasing. This is especially important for yes/no and true/false questions — "Did X happen?" and "Was X reported?" about the same event are duplicates.
+				- If you cannot find a new unused paragraph, generate a question about a genuinely different aspect of the article.
 				"""
 		}
 
@@ -123,7 +125,7 @@ final class OllamaService: @unchecked Sendable {
 			Rules:
 			- correctIndex: 0-based index of the correct answer
 			- explanation: one sentence explaining why the answer is correct, citing the relevant part of the article
-			- sourceExcerpt: first 12-15 words verbatim from the paragraph the question is based on (required — every question must be tied to a specific paragraph)
+			- sourceExcerpt: first 12-15 words verbatim from the paragraph the question is based on (required — every question must come from a unique paragraph not used by any previous question)
 
 			Respond with ONLY this JSON object and nothing else:
 			\(example)
