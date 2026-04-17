@@ -17,19 +17,12 @@ final class ArticleTaggingService: @unchecked Sendable {
 	///   - title: Article title
 	///   - summary: Article description / summary from the feed
 	///   - feedCategories: Raw category strings from the feed item
-	///   - sourceTags: Comma-separated tags already assigned to the source
 	func tags(
 		title: String,
 		summary: String?,
-		feedCategories: [String],
-		sourceTags: String
+		feedCategories: [String]
 	) -> String {
 		var matched = Set<String>()
-
-		// Seed with source-level tags so manual assignments are preserved.
-		for tag in sourceTags.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) where !tag.isEmpty {
-			matched.insert(tag)
-		}
 
 		// Layer 1 — normalise feed-native categories against the known vocabulary.
 		for raw in feedCategories {

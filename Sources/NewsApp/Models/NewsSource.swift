@@ -13,7 +13,6 @@ struct NewsSource: Identifiable, Codable, FetchableRecord, PersistableRecord {
 	var type: SourceType
 	var faviconURL: String?
 	var isEnabled: Bool
-	var tags: String         // Comma-separated default tags for this source
 	var addedAt: Date
 	var lastFetchedAt: Date?
 	var sortOrder: Int       // User-defined display order
@@ -27,11 +26,8 @@ struct NewsSource: Identifiable, Codable, FetchableRecord, PersistableRecord {
 	}
 
 	enum Columns: String, ColumnExpression {
-		case id, name, url, type, faviconURL, isEnabled, tags, addedAt, lastFetchedAt
+		case id, name, url, type, faviconURL, isEnabled, addedAt, lastFetchedAt
 		case sortOrder, lastError, badgeClearedAt
 	}
 
-	var tagList: [String] {
-		tags.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-	}
 }

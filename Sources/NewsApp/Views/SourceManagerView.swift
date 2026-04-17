@@ -21,7 +21,6 @@ struct SourceManagerView: View {
 
 	@State private var newSourceName = ""
 	@State private var newSourceURL = ""
-	@State private var newSourceTags = ""
 	@State private var showAddSource = false
 	@State private var showImporter = false
 	@State private var showExporter = false
@@ -88,14 +87,12 @@ struct SourceManagerView: View {
 				VStack(alignment: .leading, spacing: 8) {
 					TextField("Source name (optional — auto-detected)", text: $newSourceName)
 					TextField("URL (RSS feed or website)", text: $newSourceURL)
-					TextField("Tags (comma-separated)", text: $newSourceTags)
 
 					HStack(spacing: 8) {
 						Button("Add Source") {
 							guard !newSourceURL.isEmpty else { return }
-							let tags = newSourceTags.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-							vm.discoverAndAddSource(name: newSourceName, urlString: newSourceURL, sourceTags: tags)
-							newSourceName = ""; newSourceURL = ""; newSourceTags = ""
+							vm.discoverAndAddSource(name: newSourceName, urlString: newSourceURL)
+							newSourceName = ""; newSourceURL = ""
 						}
 						.buttonStyle(.borderedProminent)
 						.disabled(newSourceURL.isEmpty || vm.discoveryInProgress)
@@ -118,9 +115,8 @@ struct SourceManagerView: View {
 				set: { if !$0 { vm.pendingDiscovery = nil } }
 			)) {
 				Button("Use This Feed") {
-					let tags = newSourceTags.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-					vm.confirmPendingDiscovery(name: newSourceName, sourceTags: tags)
-					newSourceName = ""; newSourceTags = ""
+					vm.confirmPendingDiscovery(name: newSourceName)
+					newSourceName = ""
 				}
 				Button("Cancel", role: .cancel) { vm.pendingDiscovery = nil }
 			} message: {
@@ -223,7 +219,6 @@ private struct SourceRow: View {
 	@State private var showEdit = false
 	@State private var editName = ""
 	@State private var editURL = ""
-	@State private var editTags = ""
 
 	var body: some View {
 		HStack(spacing: 8) {
@@ -261,7 +256,6 @@ private struct SourceRow: View {
 			Button {
 				editName = source.name
 				editURL = source.url
-				editTags = source.tagList.joined(separator: ", ")
 				showEdit = true
 			} label: {
 				Image(systemName: "pencil")
@@ -274,11 +268,9 @@ private struct SourceRow: View {
 				EditSourcePopover(
 					name: $editName,
 					url: $editURL,
-					tags: $editTags,
 					onSave: {
 						guard let id = source.id else { return }
-						let tagList = editTags.split(separator: ",").map(String.init)
-						vm.updateSource(id: id, name: editName, url: editURL, tags: tagList)
+						vm.updateSource(id: id, name: editName, url: editURL)
 						showEdit = false
 					},
 					onCancel: { showEdit = false }
@@ -317,7 +309,6 @@ private struct SourceRow: View {
 private struct EditSourcePopover: View {
 	@Binding var name: String
 	@Binding var url: String
-	@Binding var tags: String
 	let onSave: () -> Void
 	let onCancel: () -> Void
 
@@ -342,14 +333,6 @@ private struct EditSourcePopover: View {
 					.textFieldStyle(.roundedBorder)
 			}
 
-			VStack(alignment: .leading, spacing: 6) {
-				Label("Tags", systemImage: "tag")
-					.font(.system(size: 11, weight: .medium))
-					.foregroundStyle(.secondary)
-				TextField("Comma-separated tags", text: $tags)
-					.textFieldStyle(.roundedBorder)
-			}
-
 			HStack {
 				Button("Cancel", role: .cancel, action: onCancel)
 					.buttonStyle(.bordered)
@@ -361,6 +344,6 @@ private struct EditSourcePopover: View {
 			}
 		}
 		.padding(16)
-		.frame(width: 320)
+		.frame(width: 280)
 	}
 }

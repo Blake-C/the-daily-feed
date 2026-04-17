@@ -70,7 +70,7 @@ final class SourcesViewModel {
 		}
 	}
 
-	func addSource(name: String, url: String, type: SourceType, sourceTags: [String]) {
+	func addSource(name: String, url: String, type: SourceType) {
 		guard let parsed = URL(string: url),
 		      let scheme = parsed.scheme?.lowercased(),
 		      scheme == "http" || scheme == "https"
@@ -85,7 +85,6 @@ final class SourcesViewModel {
 			type: type,
 			faviconURL: nil,
 			isEnabled: true,
-			tags: sourceTags.joined(separator: ","),
 			addedAt: Date(),
 			lastFetchedAt: nil,
 			sortOrder: 0,
@@ -108,7 +107,7 @@ final class SourcesViewModel {
 	/// Runs feed autodiscovery on `urlString`, then either adds the source
 	/// immediately (if the URL is already a valid feed) or sets
 	/// `pendingDiscovery` so the UI can confirm before using the discovered URL.
-	func discoverAndAddSource(name: String, urlString: String, sourceTags: [String]) {
+	func discoverAndAddSource(name: String, urlString: String) {
 		discoveryInProgress = true
 		Task {
 			defer { discoveryInProgress = false }
@@ -117,25 +116,22 @@ final class SourcesViewModel {
 				return
 			}
 			if result.wasDiscovered {
-				// A different feed URL was found — surface it for user confirmation.
 				pendingDiscovery = result
 			} else {
-				// URL was already a valid feed — add it straight away.
 				let resolvedName = name.isEmpty ? (result.suggestedName ?? urlString) : name
-				addSource(name: resolvedName, url: result.feedURL, type: .rss, sourceTags: sourceTags)
+				addSource(name: resolvedName, url: result.feedURL, type: .rss)
 			}
 		}
 	}
 
-	/// Confirms a pending autodiscovery result and adds the source.
-	func confirmPendingDiscovery(name: String, sourceTags: [String]) {
+	func confirmPendingDiscovery(name: String) {
 		guard let discovery = pendingDiscovery else { return }
 		pendingDiscovery = nil
 		let resolvedName = name.isEmpty ? (discovery.suggestedName ?? discovery.feedURL) : name
-		addSource(name: resolvedName, url: discovery.feedURL, type: .rss, sourceTags: sourceTags)
+		addSource(name: resolvedName, url: discovery.feedURL, type: .rss)
 	}
 
-	func updateSource(id: Int64, name: String, url: String, tags: [String]) {
+	func updateSource(id: Int64, name: String, url: String) {
 		guard let parsed = URL(string: url),
 		      let scheme = parsed.scheme?.lowercased(),
 		      scheme == "http" || scheme == "https"
@@ -147,7 +143,6 @@ final class SourcesViewModel {
 		let trimmedName = name.trimmingCharacters(in: .whitespaces)
 		source.name = trimmedName.isEmpty ? source.name : trimmedName
 		source.url = url
-		source.tags = tags.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: ",")
 		do {
 			try sourceRepo.update(source)
 			reload()
@@ -226,7 +221,6 @@ final class SourcesViewModel {
 					type: .rss,
 					faviconURL: nil,
 					isEnabled: true,
-					tags: "",
 					addedAt: Date(),
 					lastFetchedAt: nil,
 					sortOrder: 0,

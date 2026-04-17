@@ -82,8 +82,7 @@ struct SuggestedSourcesView: View {
 								sourcesVM.addSource(
 									name: suggestion.name,
 									url: suggestion.feedURL,
-									type: .rss,
-									sourceTags: []
+									type: .rss
 								)
 								vm.markAdded(id: suggestion.id)
 							} onDismiss: {

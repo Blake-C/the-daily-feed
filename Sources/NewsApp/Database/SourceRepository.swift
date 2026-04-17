@@ -39,13 +39,13 @@ final class SourceRepository: @unchecked Sendable {
 				sql: """
 					UPDATE news_sources
 					SET name = ?, url = ?, type = ?, faviconURL = ?,
-					    isEnabled = ?, tags = ?, sortOrder = ?
+					    isEnabled = ?, sortOrder = ?
 					WHERE id = ?
 					""",
 				arguments: [
 					source.name, source.url, source.type.rawValue,
 					source.faviconURL,
-					source.isEnabled, source.tags, source.sortOrder,
+					source.isEnabled, source.sortOrder,
 					id,
 				]
 			)
@@ -127,7 +127,6 @@ final class SourceRepository: @unchecked Sendable {
 					type: SourceType(rawValue: d.type) ?? .rss,
 					faviconURL: nil,
 					isEnabled: true,
-					tags: d.tags.joined(separator: ","),
 					addedAt: Date(),
 					lastFetchedAt: nil,
 					sortOrder: index,

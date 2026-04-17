@@ -16,7 +16,7 @@ final class RSSService: @unchecked Sendable {
 			parser.parseAsync { result in
 				switch result {
 				case .success(let feed):
-					let articles = self.mapFeed(feed, sourceId: sourceId, sourceTags: source.tags)
+					let articles = self.mapFeed(feed, sourceId: sourceId)
 					continuation.resume(returning: articles)
 				case .failure(let error):
 					continuation.resume(throwing: error)
@@ -27,7 +27,7 @@ final class RSSService: @unchecked Sendable {
 
 	// MARK: - Private mapping
 
-	private func mapFeed(_ feed: Feed, sourceId: Int64, sourceTags: String) -> [Article] {
+	private func mapFeed(_ feed: Feed, sourceId: Int64) -> [Article] {
 		let now = Date()
 		let tagger = ArticleTaggingService.shared
 		switch feed {
@@ -50,7 +50,7 @@ final class RSSService: @unchecked Sendable {
 					articleURL: link,
 					publishedAt: item.pubDate ?? now,
 					fetchedAt: now,
-					tags: tagger.tags(title: title, summary: summary, feedCategories: feedCategories, sourceTags: sourceTags),
+					tags: tagger.tags(title: title, summary: summary, feedCategories: feedCategories),
 					isRead: false,
 					isHidden: false,
 					isBookmarked: false,
@@ -76,7 +76,7 @@ final class RSSService: @unchecked Sendable {
 					articleURL: link,
 					publishedAt: entry.published ?? entry.updated ?? now,
 					fetchedAt: now,
-					tags: tagger.tags(title: title, summary: summary, feedCategories: feedCategories, sourceTags: sourceTags),
+					tags: tagger.tags(title: title, summary: summary, feedCategories: feedCategories),
 					isRead: false,
 					isHidden: false,
 					isBookmarked: false,
@@ -102,7 +102,7 @@ final class RSSService: @unchecked Sendable {
 					articleURL: link,
 					publishedAt: item.datePublished ?? now,
 					fetchedAt: now,
-					tags: tagger.tags(title: title, summary: summary, feedCategories: feedCategories, sourceTags: sourceTags),
+					tags: tagger.tags(title: title, summary: summary, feedCategories: feedCategories),
 					isRead: false,
 					isHidden: false,
 					isBookmarked: false,
