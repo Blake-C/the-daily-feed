@@ -106,6 +106,7 @@ struct SettingsView: View {
 					Text("e.g. \(AppState.defaultOllamaEndpoint)")
 						.font(.caption)
 						.foregroundStyle(.tertiary)
+						.frame(maxWidth: .infinity, alignment: .trailing)
 				}
 
 				VStack(alignment: .leading, spacing: 4) {
@@ -117,6 +118,7 @@ struct SettingsView: View {
 					Text("e.g. \(AppState.defaultOllamaModel)")
 						.font(.caption)
 						.foregroundStyle(.tertiary)
+						.frame(maxWidth: .infinity, alignment: .trailing)
 				}
 
 				if !isEndpointLocal {
