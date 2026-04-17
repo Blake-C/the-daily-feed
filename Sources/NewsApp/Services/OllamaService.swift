@@ -95,15 +95,22 @@ final class OllamaService: @unchecked Sendable {
 				let safeExcerpt = q.paragraphHint?
 					.replacingOccurrences(of: "\n", with: " ")
 					.replacingOccurrences(of: "\r", with: " ")
-				let excerpt = safeExcerpt.map { " (paragraph: \"\(String($0.prefix(40)))…\")" } ?? ""
-				return "Q\(idx + 1): \(String(safeQuestion.prefix(160)))\(excerpt)"
+				let excerpt = safeExcerpt.map { " | paragraph: \"\(String($0.prefix(40)))…\"" } ?? ""
+				let correctText = q.options.indices.contains(q.correctIndex)
+					? " | correct answer: \"\(q.options[q.correctIndex])\""
+					: ""
+				let optionList = q.options.enumerated()
+					.map { "\($0.offset):\($0.element)" }
+					.joined(separator: ", ")
+				return "Q\(idx + 1): \(String(safeQuestion.prefix(160))) | options: [\(optionList)]\(correctText)\(excerpt)"
 			}
 			alreadyUsedBlock = """
 
-				ALREADY ASKED — you MUST NOT repeat, paraphrase, or draw from the same paragraph as any of these:
+				ALREADY ASKED — you MUST NOT repeat any of these questions or test the same underlying fact, even if phrased differently:
 				\(lines.joined(separator: "\n"))
 
-				Choose a paragraph that has NOT been referenced above.
+				A question is a duplicate if it tests the same fact or event as an existing question, regardless of phrasing. This is especially important for yes/no and true/false questions — "Did X happen?" and "Was X reported?" about the same event are duplicates.
+				Choose a different fact from a paragraph that has NOT been referenced above.
 				"""
 		}
 

@@ -71,8 +71,10 @@ final class ArticleDetailViewModel {
 
 		for number in 1...5 {
 			quizStatusMessage = "Generating question \(number) of 5…"
+			var accepted: QuizQuestion?
 			var lastError: Error?
-			for _ in 0..<2 {
+			// Up to 3 attempts: handles both transient errors and duplicate questions.
+			for _ in 0..<3 {
 				do {
 					let q = try await OllamaService.shared.generateQuizQuestion(
 						number: number,
@@ -82,16 +84,18 @@ final class ArticleDetailViewModel {
 						endpoint: endpoint,
 						model: model
 					)
-					generated.append(q)
-					quizQuestions = generated
+					if Self.isDuplicate(q, among: generated) { continue }
+					accepted = q
 					lastError = nil
 					break
 				} catch {
 					lastError = error
 				}
 			}
-			if let err = lastError {
-				// Skip this question but continue with the rest
+			if let q = accepted {
+				generated.append(q)
+				quizQuestions = generated
+			} else if let err = lastError {
 				errorMessage = "Skipped question \(number): \(err.localizedDescription)"
 			}
 		}
@@ -112,6 +116,34 @@ final class ArticleDetailViewModel {
 	}
 
 	// MARK: - Quiz cache
+
+	private static let similarityStopWords: Set<String> = [
+		"the", "a", "an", "is", "are", "was", "were", "did", "do", "does",
+		"in", "on", "at", "to", "of", "and", "or", "but", "not", "this",
+		"that", "it", "its", "for", "with", "by", "from", "be", "been",
+		"have", "has", "had", "which", "what", "when", "how", "who",
+	]
+
+	/// Returns true if `candidate` tests the same fact as any question in `existing`,
+	/// measured by Jaccard similarity on content words (threshold: 0.45).
+	private static func isDuplicate(_ candidate: QuizQuestion, among existing: [QuizQuestion]) -> Bool {
+		let words: (String) -> Set<String> = { text in
+			Set(
+				text.lowercased()
+					.components(separatedBy: .alphanumerics.inverted)
+					.filter { !$0.isEmpty && !similarityStopWords.contains($0) }
+			)
+		}
+		let candidateWords = words(candidate.question)
+		guard candidateWords.count >= 3 else { return false }
+		return existing.contains { q in
+			let existingWords = words(q.question)
+			guard existingWords.count >= 3 else { return false }
+			let intersection = candidateWords.intersection(existingWords).count
+			let union = candidateWords.union(existingWords).count
+			return Double(intersection) / Double(union) >= 0.45
+		}
+	}
 
 	private func quizCacheKey(_ articleId: String) -> String {
 		let digest = SHA256.hash(data: Data(articleId.utf8))
