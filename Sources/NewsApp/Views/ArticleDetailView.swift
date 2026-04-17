@@ -22,6 +22,7 @@ struct ArticleDetailView: View {
 	@State private var scrollParagraphHint = ""
 	@State private var scrollParagraphNumber = 0
 	@State private var scrollParagraphTrigger = 0
+	@State private var clearHighlightsTrigger = 0
 
 	// Find-in-article state
 	@State private var showFind = false
@@ -281,7 +282,8 @@ struct ArticleDetailView: View {
 								findBackward: findBackward,
 								scrollParagraphHint: scrollParagraphHint,
 								scrollParagraphNumber: scrollParagraphNumber,
-								scrollParagraphTrigger: scrollParagraphTrigger
+								scrollParagraphTrigger: scrollParagraphTrigger,
+								clearHighlightsTrigger: clearHighlightsTrigger
 							)
 							.padding(.horizontal, 24)
 							.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -304,6 +306,9 @@ struct ArticleDetailView: View {
 							disputingIndices: detailVM.disputingIndices,
 							onClose: { showQuiz = false },
 						onRegenerate: {
+							scrollParagraphHint = ""
+							scrollParagraphNumber = 0
+							clearHighlightsTrigger += 1
 							Task {
 								let content = readabilityResult?.textContent ?? article.readableContent ?? article.summary ?? article.title
 								await detailVM.regenerateQuiz(
@@ -435,6 +440,7 @@ struct ArticleWebContentView: View {
 	var scrollParagraphHint: String = ""
 	var scrollParagraphNumber: Int = 0
 	var scrollParagraphTrigger: Int = 0
+	var clearHighlightsTrigger: Int = 0
 
 	var body: some View {
 		_ArticleWebView(
@@ -444,7 +450,8 @@ struct ArticleWebContentView: View {
 			findBackward: findBackward,
 			scrollParagraphHint: scrollParagraphHint,
 			scrollParagraphNumber: scrollParagraphNumber,
-			scrollParagraphTrigger: scrollParagraphTrigger
+			scrollParagraphTrigger: scrollParagraphTrigger,
+			clearHighlightsTrigger: clearHighlightsTrigger
 		)
 		// Provide the plain-text content as the accessibility representation so
 		// VoiceOver, TTS, and other assistive technologies can read the article.
@@ -466,6 +473,7 @@ private struct _ArticleWebView: NSViewRepresentable {
 	var scrollParagraphHint: String = ""
 	var scrollParagraphNumber: Int = 0
 	var scrollParagraphTrigger: Int = 0
+	var clearHighlightsTrigger: Int = 0
 	@AppStorage("articleFontSize") private var fontSize: Int = 17
 
 	func makeNSView(context: Context) -> WKWebView {
@@ -531,6 +539,23 @@ private struct _ArticleWebView: NSViewRepresentable {
 				findConfig.backwards = findBackward
 				wv.find(findQuery, configuration: findConfig) { _ in }
 			}
+		}
+
+		// When quiz questions are regenerated, strip all existing highlights and badges.
+		if context.coordinator.lastClearTrigger != clearHighlightsTrigger {
+			context.coordinator.lastClearTrigger = clearHighlightsTrigger
+			context.coordinator.lastScrollTrigger = -1
+			wv.evaluateJavaScript(
+				"""
+				(function() {
+				  document.querySelectorAll('.quiz-highlighted').forEach(function(el) {
+				    el.classList.remove('quiz-highlighted');
+				    var c = el.querySelector('.quiz-badge-container');
+				    if (c) c.remove();
+				  });
+				})();
+				"""
+			)
 		}
 
 		// When the quiz explanation is revealed, scroll to the source paragraph and
@@ -663,6 +688,7 @@ private struct _ArticleWebView: NSViewRepresentable {
 		var lastFindQuery: String = ""
 		var lastFindTrigger: Int = -1
 		var lastScrollTrigger: Int = -1
+		var lastClearTrigger: Int = -1
 
 		@MainActor
 		func webView(
