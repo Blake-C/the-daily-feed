@@ -51,7 +51,7 @@ final class ArticleTaggingService: @unchecked Sendable {
 		let lower = cleaned.lowercased()
 
 		// Direct match against known tag names.
-		for tag in Tag.defaultTags where tag.lowercased() == lower {
+		for tag in Self.knownTags where tag.lowercased() == lower {
 			return tag
 		}
 		// Keyword match the category string itself.
@@ -59,11 +59,13 @@ final class ArticleTaggingService: @unchecked Sendable {
 			return tag
 		}
 		// Partial prefix match — handles things like "U.S. Politics" → "Politics".
-		for tag in Tag.defaultTags where lower.contains(tag.lowercased()) {
+		for tag in Self.knownTags where lower.contains(tag.lowercased()) {
 			return tag
 		}
 		return nil
 	}
+
+	private static let knownTags: [String] = Array(keywordMap.keys).sorted()
 
 	// MARK: - Keyword dictionary
 

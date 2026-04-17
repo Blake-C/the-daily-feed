@@ -42,7 +42,7 @@ struct ContentView: View {
 				} else if articlesVM.showQuizStats {
 					QuizStatsView(vm: quizStatsVM, articlesVM: articlesVM, sourceNames: sourceNames, searchText: articlesVM.searchText)
 				} else {
-					TagFilterBarView(sourcesVM: sourcesVM, articlesVM: articlesVM)
+					TagFilterBarView(articlesVM: articlesVM)
 					ArticleGridView(vm: articlesVM, sourceName: selectedSourceName, sourcesCount: sourcesVM.sources.count, sourceNames: sourceNames)
 				}
 			}
@@ -211,7 +211,6 @@ struct ContentView: View {
 	private func seedIfNeeded() async {
 		do {
 			try SourceRepository().seedDefaultSources()
-			try TagRepository().seedDefaultTags()
 		} catch {}
 	}
 }

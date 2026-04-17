@@ -25,13 +25,11 @@ struct SourceManagerView: View {
 	@State private var showImporter = false
 	@State private var showExporter = false
 
-	@State private var newTagName = ""
-
 	var body: some View {
 		VStack(spacing: 0) {
 			// Header
 			HStack {
-				Text("Manage Sources & Tags")
+				Text("Manage Sources")
 					.font(.headline)
 				Spacer()
 				Button("Done") { dismiss() }
@@ -41,14 +39,8 @@ struct SourceManagerView: View {
 
 			Divider()
 
-			TabView {
-				sourcesTab
-					.tabItem { Label("Sources", systemImage: "dot.radiowaves.left.and.right") }
-
-				tagsTab
-					.tabItem { Label("Tags", systemImage: "tag") }
-			}
-			.padding()
+			sourcesTab
+				.padding()
 		}
 		.onAppear { vm.load() }
 		.fileImporter(isPresented: $showImporter, allowedContentTypes: [opmlType]) { result in
@@ -154,60 +146,6 @@ struct SourceManagerView: View {
 		UTType(tag: "opml", tagClass: .filenameExtension, conformingTo: .xml) ?? .xml
 	}
 
-	// MARK: - Tags tab
-
-	private var tagsTab: some View {
-		VStack(alignment: .leading, spacing: 12) {
-			GroupBox("Add Custom Tag") {
-				HStack {
-					TextField("Tag name", text: $newTagName)
-						.textFieldStyle(.roundedBorder)
-					Button("Add") {
-						guard !newTagName.isEmpty else { return }
-						vm.addTag(name: newTagName)
-						newTagName = ""
-					}
-					.buttonStyle(.borderedProminent)
-					.disabled(newTagName.isEmpty)
-				}
-			}
-
-			List {
-				ForEach(vm.tags) { tag in
-					HStack {
-						Toggle(isOn: Binding(
-							get: { tag.isActive },
-							set: { _ in vm.toggleTag(tag) }
-						)) {
-							HStack {
-								Text(tag.name)
-								if tag.isBuiltIn {
-									Text("Built-in")
-										.font(.caption)
-										.foregroundStyle(.secondary)
-										.padding(.horizontal, 6)
-										.padding(.vertical, 2)
-										.background(Color.secondary.opacity(0.1), in: Capsule())
-								}
-							}
-						}
-						Spacer()
-						if !tag.isBuiltIn {
-							Button(role: .destructive) {
-								if let id = tag.id { vm.deleteTag(id: id) }
-							} label: {
-								Image(systemName: "trash")
-									.foregroundStyle(.red)
-									.font(.caption)
-							}
-							.buttonStyle(.plain)
-						}
-					}
-				}
-			}
-			.listStyle(.inset)
-		}
-	}
 }
 
 private struct SourceRow: View {

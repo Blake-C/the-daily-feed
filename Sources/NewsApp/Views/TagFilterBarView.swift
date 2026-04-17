@@ -1,19 +1,16 @@
 import SwiftUI
 
 struct TagFilterBarView: View {
-	var sourcesVM: SourcesViewModel
 	var articlesVM: ArticlesViewModel
 
 	private var hasActiveFilters: Bool { !articlesVM.activeTags.isEmpty }
 
-	/// Tags that have at least one article in the current view context, plus any
-	/// currently active tag (so the user can deselect even if results went to zero).
-	private var visibleTags: [Tag] {
-		guard !articlesVM.availableTagNames.isEmpty || hasActiveFilters else { return [] }
-		return sourcesVM.tags.filter { tag in
-			articlesVM.availableTagNames.contains(tag.name)
-				|| articlesVM.activeTags.contains(tag.name)
-		}
+	/// All tag names that appear on at least one article in the current context,
+	/// plus any currently active tag so the user can deselect even if results hit zero.
+	private var visibleTags: [String] {
+		let names = articlesVM.availableTagNames.union(articlesVM.activeTags)
+		guard !names.isEmpty else { return [] }
+		return names.sorted()
 	}
 
 	var body: some View {
@@ -21,12 +18,12 @@ struct TagFilterBarView: View {
 			HStack(spacing: 0) {
 				ScrollView(.horizontal, showsIndicators: false) {
 					HStack(spacing: 8) {
-						ForEach(visibleTags) { tag in
+						ForEach(visibleTags, id: \.self) { tag in
 							TagChip(
-								name: tag.name,
-								isActive: articlesVM.activeTags.contains(tag.name)
+								name: tag,
+								isActive: articlesVM.activeTags.contains(tag)
 							) {
-								articlesVM.toggleTag(tag.name)
+								articlesVM.toggleTag(tag)
 							}
 						}
 					}

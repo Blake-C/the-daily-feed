@@ -4,7 +4,6 @@ import Foundation
 @MainActor
 final class SourcesViewModel {
 	var sources: [NewsSource] = []
-	var tags: [Tag] = []
 	var errorMessage: String?
 	var importSummary: String?
 	/// Unread article counts keyed by source ID. Refreshed on every load().
@@ -19,7 +18,6 @@ final class SourcesViewModel {
 	var onSourceAdded: (() -> Void)?
 
 	private let sourceRepo = SourceRepository()
-	private let tagRepo = TagRepository()
 	private let articleRepo = ArticleRepository()
 
 	/// The last date range passed to load() or refreshUnreadCounts().
@@ -30,15 +28,13 @@ final class SourcesViewModel {
 		activeDateRange = dateRange
 		do {
 			sources = try sourceRepo.fetchAll()
-			tags = try tagRepo.fetchAll()
 			unreadCounts = (try? articleRepo.fetchUnreadCountsBySource(dateRange: dateRange)) ?? [:]
 		} catch {
 			errorMessage = error.localizedDescription
 		}
 	}
 
-	/// Lightweight re-query of unread counts without reloading sources or tags.
-	/// Pass the active date range so badges stay in sync with the grid filter.
+	/// Lightweight re-query of unread counts without reloading sources.
 	func refreshUnreadCounts(dateRange: DateRangeFilter = .today) {
 		activeDateRange = dateRange
 		unreadCounts = (try? articleRepo.fetchUnreadCountsBySource(dateRange: dateRange)) ?? [:]
@@ -55,7 +51,6 @@ final class SourcesViewModel {
 		}
 	}
 
-	/// Reloads sources, tags, and unread counts using the last active date range.
 	private func reload() {
 		load(dateRange: activeDateRange)
 	}
@@ -93,7 +88,6 @@ final class SourcesViewModel {
 		do {
 			try sourceRepo.insert(&source)
 			reload()
-			// Fetch articles immediately so they appear without a manual refresh.
 			let inserted = source
 			Task {
 				try? await FeedRefreshService.shared.refresh(source: inserted)
@@ -165,35 +159,6 @@ final class SourcesViewModel {
 		updated.isEnabled = !source.isEnabled
 		do {
 			try sourceRepo.update(updated)
-			reload()
-		} catch {
-			errorMessage = error.localizedDescription
-		}
-	}
-
-	func addTag(name: String) {
-		var tag = Tag(id: nil, name: name, isBuiltIn: false, isActive: true)
-		do {
-			try tagRepo.insert(&tag)
-			reload()
-		} catch {
-			errorMessage = error.localizedDescription
-		}
-	}
-
-	func toggleTag(_ tag: Tag) {
-		guard let id = tag.id else { return }
-		do {
-			try tagRepo.toggle(id: id, isActive: !tag.isActive)
-			reload()
-		} catch {
-			errorMessage = error.localizedDescription
-		}
-	}
-
-	func deleteTag(id: Int64) {
-		do {
-			try tagRepo.delete(id: id)
 			reload()
 		} catch {
 			errorMessage = error.localizedDescription
