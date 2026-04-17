@@ -68,27 +68,39 @@ final class ArticleDetailViewModel: ObservableObject {
 		quizStatusMessage = nil
 		defer { isGeneratingQuiz = false; quizStatusMessage = nil }
 
-		var lastError: Error?
-		let retryMessages = [nil, "Taking longer than expected, retrying…", "One more attempt…"]
+		var generated: [QuizQuestion] = []
 
-		for attempt in 0..<3 {
-			quizStatusMessage = retryMessages[attempt]
-			do {
-				let questions = try await OllamaService.shared.generateQuiz(
-					title: article.title,
-					content: content,
-					endpoint: endpoint,
-					model: model
-				)
-				quizQuestions = questions
-				cacheQuiz(questions, for: article.id)
-				return
-			} catch {
-				lastError = error
+		for number in 1...5 {
+			quizStatusMessage = "Generating question \(number) of 5…"
+			var lastError: Error?
+			for _ in 0..<2 {
+				do {
+					let q = try await OllamaService.shared.generateQuizQuestion(
+						number: number,
+						title: article.title,
+						content: content,
+						endpoint: endpoint,
+						model: model
+					)
+					generated.append(q)
+					quizQuestions = generated
+					lastError = nil
+					break
+				} catch {
+					lastError = error
+				}
+			}
+			if let err = lastError {
+				// Skip this question but continue with the rest
+				errorMessage = "Skipped question \(number): \(err.localizedDescription)"
 			}
 		}
 
-		errorMessage = "Quiz generation failed: \(lastError?.localizedDescription ?? "Unknown error")"
+		if generated.isEmpty {
+			errorMessage = "Quiz generation failed — no questions could be generated."
+		} else {
+			cacheQuiz(generated, for: article.id)
+		}
 	}
 
 	// MARK: - Quiz cache

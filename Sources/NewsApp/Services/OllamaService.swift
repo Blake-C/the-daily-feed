@@ -70,34 +70,60 @@ final class OllamaService: @unchecked Sendable {
 		{content}
 		"""
 
-	/// Generates 5 comprehension and related-topic questions for the given article.
-	func generateQuiz(
+	/// Generates a single quiz question (1-based index 1–5).
+	/// Questions 1–3 are multiple-choice; 4–5 are true/false.
+	/// Uses JSON-format mode and a 90 s timeout for better reliability.
+	func generateQuizQuestion(
+		number: Int,
 		title: String,
 		content: String,
 		endpoint: String,
 		model: String
-	) async throws -> [QuizQuestion] {
-		let safeTitle = String(title.trimmingCharacters(in: .whitespacesAndNewlines).prefix(200))
-		let safeContent = String(content.trimmingCharacters(in: .whitespacesAndNewlines).prefix(4_000))
+	) async throws -> QuizQuestion {
+		let safeTitle   = String(title.trimmingCharacters(in: .whitespacesAndNewlines).prefix(200))
+		let safeContent = String(content.trimmingCharacters(in: .whitespacesAndNewlines).prefix(3_500))
+		let isMC        = number <= 3
 
-		let prompt = Self.quizPromptTemplate
-			.replacingOccurrences(of: "{title}", with: safeTitle)
-			.replacingOccurrences(of: "{content}", with: safeContent)
+		let typeRule = isMC
+			? "multiple-choice with exactly 4 answer options"
+			: "true/false — options must be exactly [\"True\", \"False\"] in that order"
 
-		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model)
-		return try parseQuiz(from: responseText)
-	}
+		let example = isMC
+			? "{\"type\":\"multiplechoice\",\"question\":\"...\",\"options\":[\"opt1\",\"opt2\",\"opt3\",\"opt4\"],\"correctIndex\":0,\"explanation\":\"...\",\"sourceExcerpt\":\"...\"}"
+			: "{\"type\":\"truefalse\",\"question\":\"...\",\"options\":[\"True\",\"False\"],\"correctIndex\":0,\"explanation\":\"...\",\"sourceExcerpt\":\"...\"}"
 
-	private func parseQuiz(from text: String) throws -> [QuizQuestion] {
-		let cleaned = extractJSONObject(from: text)
+		let prompt = """
+			Generate ONE \(typeRule) comprehension question about this news article.
+			This is question \(number) of 5.
+
+			Rules:
+			- correctIndex: 0-based index of the correct answer
+			- explanation: one sentence explaining why the answer is correct
+			- sourceExcerpt: first 12-15 words verbatim from the paragraph the question is based on (omit if not tied to a specific paragraph)
+
+			Respond with ONLY this JSON object and nothing else:
+			\(example)
+
+			Article title: \(safeTitle)
+			Article content: \(safeContent)
+			"""
+
+		let responseText = try await generate(
+			prompt: prompt,
+			endpoint: endpoint,
+			model: model,
+			jsonFormat: true,
+			timeoutInterval: 90
+		)
+		let cleaned = extractJSONObject(from: responseText)
 		guard
-			let data = cleaned.data(using: .utf8),
-			let result = try? JSONDecoder().decode(OllamaQuizResult.self, from: data),
-			!result.questions.isEmpty
+			let data     = cleaned.data(using: .utf8),
+			let question = try? JSONDecoder().decode(QuizQuestion.self, from: data),
+			!question.question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 		else {
-			throw NewsError.parseFailed("Could not parse quiz JSON: \(cleaned.prefix(200))")
+			throw NewsError.parseFailed("Could not parse question \(number): \(cleaned.prefix(120))")
 		}
-		return result.questions
+		return question
 	}
 
 	// MARK: - Answer Dispute
@@ -280,21 +306,28 @@ final class OllamaService: @unchecked Sendable {
 		return String(stripped[start...end])
 	}
 
-	private func generate(prompt: String, endpoint: String, model: String) async throws -> String {
+	private func generate(
+		prompt: String,
+		endpoint: String,
+		model: String,
+		jsonFormat: Bool = false,
+		timeoutInterval: TimeInterval = 60
+	) async throws -> String {
 		guard let baseURL = URL(string: endpoint) else {
 			throw NewsError.invalidURL(endpoint)
 		}
 		let url = baseURL.appendingPathComponent("api/generate")
 
-		var request = URLRequest(url: url, timeoutInterval: 60)
+		var request = URLRequest(url: url, timeoutInterval: timeoutInterval)
 		request.httpMethod = "POST"
 		request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-		let body: [String: Any] = [
+		var body: [String: Any] = [
 			"model": model,
 			"prompt": prompt,
 			"stream": false,
 		]
+		if jsonFormat { body["format"] = "json" }
 		request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
 		let (data, response) = try await URLSession.shared.data(for: request)

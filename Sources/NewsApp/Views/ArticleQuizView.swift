@@ -49,7 +49,7 @@ struct ArticleQuizView: View {
 
 			ScrollView {
 				VStack(alignment: .leading, spacing: 16) {
-					if isLoading {
+					if isLoading && questions.isEmpty {
 						VStack(spacing: 10) {
 							ProgressView().scaleEffect(0.8)
 							Text(statusMessage ?? "Generating questions…")
@@ -88,6 +88,17 @@ struct ArticleQuizView: View {
 									Task { await onDispute(index, chosen) }
 								}
 							)
+						}
+
+						if isLoading {
+							HStack(spacing: 8) {
+								ProgressView().scaleEffect(0.7)
+								Text(statusMessage ?? "Generating questions…")
+									.font(.system(size: 11))
+									.foregroundStyle(.secondary)
+							}
+							.frame(maxWidth: .infinity, alignment: .leading)
+							.padding(.horizontal, 4)
 						}
 
 						if isComplete {
