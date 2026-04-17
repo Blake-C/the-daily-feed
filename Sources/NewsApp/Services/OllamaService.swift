@@ -73,16 +73,35 @@ final class OllamaService: @unchecked Sendable {
 	/// Generates a single quiz question (1-based index 1–5).
 	/// Questions 1–3 are multiple-choice; 4–5 are true/false.
 	/// Uses JSON-format mode and a 90 s timeout for better reliability.
+	/// Splits plain text into non-empty paragraphs and returns them as
+	/// "[1] text\n[2] text…" — capped so the whole string stays under `limit` chars.
+	static func numberParagraphs(_ text: String, limit: Int = 3_500) -> String {
+		let paras = text
+			.components(separatedBy: "\n")
+			.map { $0.trimmingCharacters(in: .whitespaces) }
+			.filter { !$0.isEmpty }
+		var result = ""
+		for (i, para) in paras.enumerated() {
+			let line = "[\(i + 1)] \(para)\n"
+			if result.count + line.count > limit { break }
+			result += line
+		}
+		return result.trimmingCharacters(in: .whitespacesAndNewlines)
+	}
+
 	func generateQuizQuestion(
 		number: Int,
 		title: String,
 		content: String,
+		previousQuestions: [QuizQuestion] = [],
 		endpoint: String,
 		model: String
 	) async throws -> QuizQuestion {
 		let safeTitle   = String(title.trimmingCharacters(in: .whitespacesAndNewlines).prefix(200))
-		let safeContent = String(content.trimmingCharacters(in: .whitespacesAndNewlines).prefix(3_500))
-		let isMC        = number <= 3
+		let numberedContent = Self.numberParagraphs(
+			content.trimmingCharacters(in: .whitespacesAndNewlines)
+		)
+		let isMC = number <= 3
 
 		let typeRule = isMC
 			? "multiple-choice with exactly 4 answer options"
@@ -92,9 +111,25 @@ final class OllamaService: @unchecked Sendable {
 			? "{\"type\":\"multiplechoice\",\"question\":\"...\",\"options\":[\"opt1\",\"opt2\",\"opt3\",\"opt4\"],\"correctIndex\":0,\"explanation\":\"...\",\"sourceExcerpt\":\"...\"}"
 			: "{\"type\":\"truefalse\",\"question\":\"...\",\"options\":[\"True\",\"False\"],\"correctIndex\":0,\"explanation\":\"...\",\"sourceExcerpt\":\"...\"}"
 
+		// Build the "already used" block so Ollama avoids duplicate coverage.
+		var alreadyUsedBlock = ""
+		if !previousQuestions.isEmpty {
+			let lines = previousQuestions.enumerated().map { idx, q -> String in
+				let excerpt = q.paragraphHint.map { " (paragraph: \"\($0.prefix(40))…\")" } ?? ""
+				return "Q\(idx + 1): \(q.question)\(excerpt)"
+			}
+			alreadyUsedBlock = """
+
+				ALREADY ASKED — you MUST NOT repeat, paraphrase, or draw from the same paragraph as any of these:
+				\(lines.joined(separator: "\n"))
+
+				Choose a paragraph that has NOT been referenced above.
+				"""
+		}
+
 		let prompt = """
 			Generate ONE \(typeRule) comprehension question about this news article.
-			This is question \(number) of 5.
+			This is question \(number) of 5.\(alreadyUsedBlock)
 
 			Rules:
 			- correctIndex: 0-based index of the correct answer
@@ -105,7 +140,9 @@ final class OllamaService: @unchecked Sendable {
 			\(example)
 
 			Article title: \(safeTitle)
-			Article content: \(safeContent)
+
+			Article content (paragraphs are numbered for your reference — use paragraph numbers to identify unique sections):
+			\(numberedContent)
 			"""
 
 		let responseText = try await generate(

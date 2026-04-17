@@ -79,6 +79,7 @@ final class ArticleDetailViewModel: ObservableObject {
 						number: number,
 						title: article.title,
 						content: content,
+						previousQuestions: generated,
 						endpoint: endpoint,
 						model: model
 					)
