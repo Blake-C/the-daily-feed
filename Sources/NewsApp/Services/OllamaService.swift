@@ -33,11 +33,12 @@ final class OllamaService: @unchecked Sendable {
 		let template = customPromptTemplate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 			? Self.defaultPromptTemplate
 			: customPromptTemplate
+		let safeTitle = String(title.trimmingCharacters(in: .whitespacesAndNewlines).prefix(200))
 		let prompt = template
-			.replacingOccurrences(of: "{title}", with: title)
+			.replacingOccurrences(of: "{title}", with: safeTitle)
 			.replacingOccurrences(of: "{content}", with: String(content.prefix(4000)))
 
-		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model)
+		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model, jsonFormat: true)
 		return try parseArticleResult(from: responseText)
 	}
 
@@ -204,7 +205,7 @@ final class OllamaService: @unchecked Sendable {
 			{"verdict": "user_correct" or "original_correct", "correctIndex": <number>, "explanation": "<one sentence>"}
 			"""
 
-		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model)
+		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model, jsonFormat: true)
 		return try parseDisputeResult(from: responseText, fallbackIndex: originalCorrectIndex)
 	}
 
@@ -260,7 +261,7 @@ final class OllamaService: @unchecked Sendable {
 		let safeContext = String(currentSourceNames.trimmingCharacters(in: .whitespacesAndNewlines).prefix(500))
 		let prompt = Self.sourceSuggestionPromptTemplate
 			.replacingOccurrences(of: "{sources}", with: safeContext.isEmpty ? "various news sources" : safeContext)
-		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model)
+		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model, jsonFormat: true)
 		return try parseSourceSuggestions(from: responseText)
 	}
 
@@ -313,7 +314,7 @@ final class OllamaService: @unchecked Sendable {
 			.replacingOccurrences(of: "{title}", with: safeTitle)
 			.replacingOccurrences(of: "{content}", with: safeContent)
 
-		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model)
+		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model, jsonFormat: true)
 		return try parseDailySummary(from: responseText)
 	}
 
@@ -352,6 +353,15 @@ final class OllamaService: @unchecked Sendable {
 	) async throws -> String {
 		guard let baseURL = URL(string: endpoint) else {
 			throw NewsError.invalidURL(endpoint)
+		}
+		// Require HTTPS for any non-localhost endpoint so article content cannot
+		// be exfiltrated in plaintext to a remote server the user does not control.
+		let scheme = baseURL.scheme?.lowercased() ?? ""
+		let host   = baseURL.host?.lowercased() ?? ""
+		let isLocal = host == "localhost" || host == "127.0.0.1"
+			|| host == "::1" || host == "[::1]"
+		guard isLocal || scheme == "https" else {
+			throw NewsError.invalidURL("Remote Ollama endpoints must use HTTPS to protect article content in transit.")
 		}
 		let url = baseURL.appendingPathComponent("api/generate")
 

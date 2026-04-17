@@ -202,7 +202,7 @@ struct SettingsView: View {
 			} header: {
 				Text("AI Summary Prompt")
 			} footer: {
-				Text("Applies to the AI Summary feature only. Use {title} and {content} as placeholders for the article data.")
+				Text("Applies to the AI Summary feature only. Use {title} and {content} as placeholders. Only use templates from sources you trust — a custom template fully replaces the built-in instructions.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}
