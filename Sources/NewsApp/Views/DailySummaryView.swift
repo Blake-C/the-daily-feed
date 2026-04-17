@@ -46,7 +46,7 @@ struct DailySummaryView: View {
 							systemImage: "doc.text.magnifyingglass",
 							description: Text("Articles you read today will appear here with AI-generated briefings.")
 						)
-						.padding(.top, 40)
+						.frame(maxWidth: .infinity, minHeight: geo.size.height - 100)
 					} else {
 						LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 16) {
 							ForEach(filteredArticles) { article in
