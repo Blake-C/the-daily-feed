@@ -3,34 +3,33 @@ import SwiftUI
 struct SettingsView: View {
 	@EnvironmentObject var appState: AppState
 
+	@State private var ollamaTestStatus: String?
+	@State private var quizClearStatus: String?
+
 	var body: some View {
 		TabView {
-			feedTab
-				.tabItem { Label("Feed", systemImage: "newspaper") }
+			generalTab
+				.tabItem { Label("General", systemImage: "gearshape") }
 				.tag(0)
 
-			ollamaTab
-				.tabItem { Label("AI / Ollama", systemImage: "brain") }
+			aiTab
+				.tabItem { Label("AI", systemImage: "brain") }
 				.tag(1)
-
-			weatherTab
-				.tabItem { Label("Weather", systemImage: "cloud.sun") }
-				.tag(2)
 
 			appearanceTab
 				.tabItem { Label("Appearance", systemImage: "paintpalette") }
-				.tag(3)
+				.tag(2)
 		}
-		.frame(width: 480)
+		.frame(width: 500)
 		.padding(20)
 	}
 
-	// MARK: - Feed
+	// MARK: - General
 
-	private var feedTab: some View {
+	private var generalTab: some View {
 		Form {
 			Section {
-				Picker("Auto-Refresh Interval", selection: $appState.autoRefreshInterval) {
+				Picker("Interval", selection: $appState.autoRefreshInterval) {
 					Text("Off").tag(0)
 					Text("Every 15 minutes").tag(15)
 					Text("Every 30 minutes").tag(30)
@@ -38,28 +37,46 @@ struct SettingsView: View {
 				}
 				.pickerStyle(.radioGroup)
 			} header: {
-				Text("Refresh")
-					.font(.headline)
+				Text("Background Refresh")
 			} footer: {
-				Text("Automatically fetch new articles in the background. Articles are also fetched each time the app launches.")
+				Text("Fetches new articles while the app is open. A refresh also runs automatically at launch.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}
 
 			Section {
-				Picker("Keep read articles for", selection: $appState.articleRetentionDays) {
+				Picker("Remove read articles after", selection: $appState.articleRetentionDays) {
 					Text("7 days").tag(7)
 					Text("30 days").tag(30)
 					Text("60 days").tag(60)
 					Text("90 days").tag(90)
-					Text("Forever").tag(0)
+					Text("Never").tag(0)
 				}
 				.pickerStyle(.radioGroup)
 			} header: {
-				Text("Storage")
-					.font(.headline)
+				Text("Article Storage")
 			} footer: {
-				Text("Read articles older than this are removed during each refresh. Unread articles and bookmarked articles are always kept.")
+				Text("Only read articles are cleaned up. Unread and bookmarked articles are always kept regardless of this setting.")
+					.foregroundStyle(.secondary)
+					.font(.caption)
+			}
+
+			Section {
+				LabeledContent("API Key") {
+					SecureField("Paste your OpenWeatherMap key", text: $appState.openWeatherApiKey)
+						.textFieldStyle(.roundedBorder)
+				}
+				Picker("Temperature Unit", selection: Binding(
+					get: { UserDefaults.standard.bool(forKey: "useCelsius") },
+					set: { UserDefaults.standard.set($0, forKey: "useCelsius") }
+				)) {
+					Text("Fahrenheit (°F)").tag(false)
+					Text("Celsius (°C)").tag(true)
+				}
+			} header: {
+				Text("Weather")
+			} footer: {
+				Text("Shows current conditions in the app header. Leave the API key blank to hide the widget. A free key is available at openweathermap.org.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}
@@ -67,17 +84,17 @@ struct SettingsView: View {
 		.formStyle(.grouped)
 	}
 
-	// MARK: - Ollama
+	// MARK: - AI
 
 	private var isEndpointLocal: Bool {
 		guard let host = URL(string: appState.ollamaEndpoint)?.host?.lowercased() else { return true }
 		return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]"
 	}
 
-	private var ollamaTab: some View {
+	private var aiTab: some View {
 		Form {
 			Section {
-				LabeledContent("Endpoint URL") {
+				LabeledContent("Endpoint") {
 					TextField("http://localhost:11434", text: $appState.ollamaEndpoint)
 						.textFieldStyle(.roundedBorder)
 				}
@@ -91,51 +108,60 @@ struct SettingsView: View {
 						Image(systemName: "exclamationmark.triangle.fill")
 							.foregroundStyle(.orange)
 							.font(.system(size: 13))
-						Text("This endpoint is not localhost. Article content will be sent to a remote host. Only use a trusted server you control.")
+						Text("Remote endpoint — article content will be sent off-device. Only use a server you own and trust.")
 							.font(.system(size: 12))
 							.foregroundStyle(.secondary)
 							.fixedSize(horizontal: false, vertical: true)
 					}
 					.padding(.vertical, 4)
 				}
+
+				HStack {
+					if let status = ollamaTestStatus {
+						Text(status)
+							.font(.system(size: 12))
+							.foregroundStyle(.secondary)
+					}
+					Spacer()
+					Button("Test Connection") {
+						Task { await testOllama() }
+					}
+					.buttonStyle(.bordered)
+					.disabled(ollamaTestStatus == "Testing…")
+				}
 			} header: {
 				Text("Ollama Connection")
-					.font(.headline)
 			} footer: {
-				Text("Make sure Ollama is running locally with the specified model pulled. The AI summary feature uses this connection to generate improved headlines and summaries.")
+				Text("Ollama must be running with the chosen model already pulled. Run `ollama pull <model>` in Terminal to download a model.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}
 
 			Section {
-				Toggle("AI Summary", isOn: $appState.aiSummaryEnabled)
-				Toggle("Daily Summary", isOn: $appState.dailySummaryEnabled)
-				Toggle("Suggested Sources", isOn: $appState.suggestedSourcesEnabled)
-				Toggle("Article Quiz", isOn: $appState.quizEnabled)
+				featureToggle(
+					"AI Summary",
+					description: "Rewrites the article headline and generates an editorial summary on demand.",
+					isOn: $appState.aiSummaryEnabled
+				)
+				featureToggle(
+					"Daily Summary",
+					description: "Silently summarizes articles as you read them, collected in the Library sidebar.",
+					isOn: $appState.dailySummaryEnabled
+				)
+				featureToggle(
+					"Article Quiz",
+					description: "Generates comprehension questions to test your understanding of each article.",
+					isOn: $appState.quizEnabled
+				)
+				featureToggle(
+					"Suggested Sources",
+					description: "Recommends reputable RSS feeds based on what you already follow.",
+					isOn: $appState.suggestedSourcesEnabled
+				)
 			} header: {
 				Text("Features")
-					.font(.headline)
 			} footer: {
-				Text("AI Summary rewrites headlines and generates summaries on demand. Daily Summary silently summarizes articles you read each day. Suggested Sources periodically recommends RSS feeds you might not follow. Article Quiz generates comprehension questions to test your understanding of each article.")
-					.foregroundStyle(.secondary)
-					.font(.caption)
-			}
-
-			Section {
-				if let quizClearStatus {
-					Text(quizClearStatus)
-						.font(.system(size: 12))
-						.foregroundStyle(.secondary)
-				}
-				Button("Clear All Quiz Data") {
-					clearQuizData()
-				}
-				.buttonStyle(.bordered)
-			} header: {
-				Text("Quiz Data")
-					.font(.headline)
-			} footer: {
-				Text("Removes all saved quiz scores and clears cached question sets for every article. This cannot be undone.")
+				Text("All features require a working Ollama connection configured above.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}
@@ -144,95 +170,59 @@ struct SettingsView: View {
 				VStack(alignment: .leading, spacing: 6) {
 					TextEditor(text: $appState.ollamaPrompt)
 						.font(.system(size: 12, design: .monospaced))
-						.frame(minHeight: 120, maxHeight: 200)
+						.frame(minHeight: 100, maxHeight: 180)
 						.overlay(
 							RoundedRectangle(cornerRadius: 5)
 								.strokeBorder(Color.secondary.opacity(0.3), lineWidth: 1)
 						)
 					if appState.ollamaPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-						Text("Using built-in default prompt. Paste a custom template to override it.")
+						Text("Using the built-in default. Paste a custom template to override.")
 							.font(.system(size: 11))
 							.foregroundStyle(.secondary)
 					}
 				}
 			} header: {
-				Text("Custom Prompt Template")
-					.font(.headline)
+				Text("AI Summary Prompt")
 			} footer: {
-				Text("Use {title} and {content} as placeholders for the article data. Leave blank to use the default.")
+				Text("Applies to the AI Summary feature only. Use {title} and {content} as placeholders for the article data.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}
 
 			Section {
-				if let status = ollamaTestStatus {
-					Text(status)
-						.font(.system(size: 12))
-						.foregroundStyle(.secondary)
-				}
-				Button("Test Connection") {
-					Task { await testOllama() }
-				}
-				.buttonStyle(.bordered)
-				.disabled(ollamaTestStatus == "Testing…")
-			}
-		}
-		.formStyle(.grouped)
-	}
-
-	@State private var ollamaTestStatus: String?
-	@State private var quizClearStatus: String?
-
-	private func clearQuizData() {
-		do {
-			try QuizRepository().deleteAll()
-			quizClearStatus = "Quiz data cleared."
-		} catch {
-			quizClearStatus = "Failed: \(error.localizedDescription)"
-		}
-	}
-
-	private func testOllama() async {
-		ollamaTestStatus = "Testing…"
-		do {
-			let result = try await OllamaService.shared.rewriteAndSummarize(
-				title: "Test Article",
-				content: "This is a test to verify the Ollama connection is working.",
-				endpoint: appState.ollamaEndpoint,
-				model: appState.ollamaModel
-			)
-			ollamaTestStatus = "Connected. Model responded: \"\(result.headline)\""
-		} catch {
-			ollamaTestStatus = "Failed: \(error.localizedDescription)"
-		}
-	}
-
-	// MARK: - Weather
-
-	private var weatherTab: some View {
-		Form {
-			Section {
-				LabeledContent("API Key") {
-					SecureField("Enter OpenWeatherMap API key", text: $appState.openWeatherApiKey)
-						.textFieldStyle(.roundedBorder)
+				HStack {
+					if let status = quizClearStatus {
+						Text(status)
+							.font(.system(size: 12))
+							.foregroundStyle(.secondary)
+					}
+					Spacer()
+					Button("Clear Quiz Data", role: .destructive) {
+						clearQuizData()
+					}
+					.buttonStyle(.bordered)
 				}
 			} header: {
-				Text("OpenWeatherMap")
-					.font(.headline)
+				Text("Data")
 			} footer: {
-				Text("Leave blank to hide the weather widget. Get a free API key at openweathermap.org.")
+				Text("Deletes all saved quiz scores and clears cached question sets for every article. This cannot be undone.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}
-
-			Section {
-				Toggle("Use Celsius", isOn: Binding(
-					get: { UserDefaults.standard.bool(forKey: "useCelsius") },
-					set: { UserDefaults.standard.set($0, forKey: "useCelsius") }
-				))
-			}
 		}
 		.formStyle(.grouped)
+	}
+
+	@ViewBuilder
+	private func featureToggle(_ title: String, description: String, isOn: Binding<Bool>) -> some View {
+		Toggle(isOn: isOn) {
+			VStack(alignment: .leading, spacing: 2) {
+				Text(title)
+				Text(description)
+					.font(.caption)
+					.foregroundStyle(.secondary)
+			}
+		}
 	}
 
 	// MARK: - Appearance
@@ -240,22 +230,9 @@ struct SettingsView: View {
 	private var appearanceTab: some View {
 		Form {
 			Section {
-				LabeledContent("Accent Color") {
-					ColorPicker("Accent Color", selection: Binding(
-						get: { Color.accentColor },
-						set: { _ in } // macOS accent color is system-controlled
-					))
-					.labelsHidden()
-				}
-			} header: {
-				Text("Display")
-					.font(.headline)
-			}
-
-			Section {
-				VStack(alignment: .leading, spacing: 6) {
+				VStack(alignment: .leading, spacing: 8) {
 					HStack {
-						Text("Article Font Size")
+						Text("Font Size")
 						Spacer()
 						Text("\(appState.articleFontSize) pt")
 							.foregroundStyle(.secondary)
@@ -271,23 +248,48 @@ struct SettingsView: View {
 					)
 					HStack {
 						Text("Smaller")
-							.font(.system(size: 11))
+							.font(.caption)
 							.foregroundStyle(.tertiary)
 						Spacer()
 						Text("Larger")
-							.font(.system(size: 11))
+							.font(.caption)
 							.foregroundStyle(.tertiary)
 					}
 				}
 			} header: {
-				Text("Reading")
-					.font(.headline)
+				Text("Article Reading")
 			} footer: {
-				Text("Adjusts the body text size in article detail view. Default is 17 pt.")
+				Text("Controls the body text size in article view. Default is 17 pt.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}
 		}
 		.formStyle(.grouped)
+	}
+
+	// MARK: - Actions
+
+	private func testOllama() async {
+		ollamaTestStatus = "Testing…"
+		do {
+			let result = try await OllamaService.shared.rewriteAndSummarize(
+				title: "Test Article",
+				content: "This is a test to verify the Ollama connection is working.",
+				endpoint: appState.ollamaEndpoint,
+				model: appState.ollamaModel
+			)
+			ollamaTestStatus = "Connected — \"\(result.headline)\""
+		} catch {
+			ollamaTestStatus = "Failed: \(error.localizedDescription)"
+		}
+	}
+
+	private func clearQuizData() {
+		do {
+			try QuizRepository().deleteAll()
+			quizClearStatus = "Quiz data cleared."
+		} catch {
+			quizClearStatus = "Failed: \(error.localizedDescription)"
+		}
 	}
 }
