@@ -42,8 +42,56 @@ struct ArticleDetailView: View {
 		self.vm = vm
 		self.sourceName = sourceName
 		_displayTitle = State(initialValue: article.rewrittenTitle ?? article.title)
-		_displaySummary = State(initialValue: article.summary ?? "")
+		_displaySummary = State(initialValue: Self.sanitizeSummary(article.summary ?? ""))
 		_isBookmarked = State(initialValue: article.isBookmarked)
+	}
+
+	/// Clean RSS-provided summaries before showing them: strip HTML tags,
+	/// decode common entities, collapse whitespace, and truncate at a word
+	/// boundary so boilerplate "Read more"/comments links don't dominate the UI.
+	private static func sanitizeSummary(_ raw: String) -> String {
+		var text = raw.replacingOccurrences(of: #"<[^>]+>"#, with: " ", options: .regularExpression)
+
+		let namedEntities: [String: String] = [
+			"&amp;": "&", "&lt;": "<", "&gt;": ">",
+			"&quot;": "\"", "&apos;": "'", "&#39;": "'",
+			"&nbsp;": " ", "&hellip;": "…",
+			"&mdash;": "—", "&ndash;": "–",
+			"&lsquo;": "\u{2018}", "&rsquo;": "\u{2019}",
+			"&ldquo;": "\u{201C}", "&rdquo;": "\u{201D}",
+		]
+		for (entity, replacement) in namedEntities {
+			text = text.replacingOccurrences(of: entity, with: replacement)
+		}
+
+		if let regex = try? NSRegularExpression(pattern: #"&#(\d+);"#) {
+			let ns = text as NSString
+			let matches = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
+			for match in matches.reversed() {
+				let numberRange = match.range(at: 1)
+				guard numberRange.location != NSNotFound,
+					let code = UInt32(ns.substring(with: numberRange)),
+					let scalar = Unicode.Scalar(code)
+				else { continue }
+				text = (text as NSString).replacingCharacters(in: match.range, with: String(Character(scalar)))
+			}
+		}
+
+		text = text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+			.trimmingCharacters(in: .whitespacesAndNewlines)
+
+		let maxLength = 400
+		if text.count > maxLength {
+			let cutoff = text.index(text.startIndex, offsetBy: maxLength)
+			let head = text[..<cutoff]
+			if let lastSpace = head.lastIndex(of: " ") {
+				text = String(head[..<lastSpace]) + "…"
+			} else {
+				text = String(head) + "…"
+			}
+		}
+
+		return text
 	}
 
 	var body: some View {
@@ -429,7 +477,7 @@ struct ArticleDetailView: View {
 			customPrompt: appState.ollamaPrompt
 		) {
 			displayTitle = result.headline
-			displaySummary = result.summary
+			displaySummary = Self.sanitizeSummary(result.summary)
 			vm.updateAfterRewrite(id: article.id, title: result.headline, summary: result.summary)
 		}
 	}
