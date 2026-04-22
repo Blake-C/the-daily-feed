@@ -36,6 +36,14 @@ if [ -d "$BUNDLE_SRC" ]; then
 	cp -R "$BUNDLE_SRC" "$RESOURCES/"
 fi
 
+# Compile app icon: copy appiconset PNGs into a temporary iconset and run iconutil
+ICONSET_SRC="Sources/NewsApp/Resources/Assets.xcassets/AppIcon.appiconset"
+ICONSET_TMP="$(mktemp -d)/AppIcon.iconset"
+mkdir -p "$ICONSET_TMP"
+cp "$ICONSET_SRC"/icon_*.png "$ICONSET_TMP/"
+iconutil -c icns "$ICONSET_TMP" -o "$RESOURCES/AppIcon.icns"
+rm -rf "$(dirname "$ICONSET_TMP")"
+
 # Remove any leftover old bundle name
 rm -rf NewsApp.app
 
@@ -58,6 +66,8 @@ cat > "$CONTENTS/Info.plist" << 'PLIST'
 	<string>APPL</string>
 	<key>CFBundleExecutable</key>
 	<string>NewsApp</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSHighResolutionCapable</key>
