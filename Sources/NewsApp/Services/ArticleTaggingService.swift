@@ -54,6 +54,11 @@ final class ArticleTaggingService: @unchecked Sendable {
 		for tag in Self.knownTags where tag.lowercased() == lower {
 			return tag
 		}
+		// Explicit feed-category pass-throughs — checked before keyword map so niche
+		// terms like "docker" or "swift" aren't collapsed into broader taxonomy tags.
+		if let canonical = Self.recognisedFeedCategories[lower] {
+			return canonical
+		}
 		// Keyword match the category string itself.
 		for (tag, keywords) in Self.keywordMap where keywords.contains(lower) {
 			return tag
@@ -66,6 +71,50 @@ final class ArticleTaggingService: @unchecked Sendable {
 	}
 
 	private static let knownTags: [String] = Array(keywordMap.keys).sorted()
+
+	// Feed category strings that are recognised as valid tags and passed through
+	// with canonical casing rather than being mapped to a broader taxonomy tag.
+	private static let recognisedFeedCategories: [String: String] = [
+		"annual-plan": "annual-plan",
+		"arch": "arch",
+		"articles": "Articles",
+		"build-systems": "build-systems",
+		"claude-code": "claude-code",
+		"command-line": "command-line",
+		"composer": "composer",
+		"docker": "docker",
+		"foundation": "foundation",
+		"foundation-for-emails": "foundation-for-emails",
+		"goals": "goals",
+		"guides": "Guides",
+		"homebrew": "homebrew",
+		"javascript": "javascript",
+		"joomla": "joomla",
+		"knex": "knex",
+		"learning": "learning",
+		"linux": "linux",
+		"macos": "macOS",
+		"node": "node",
+		"notes": "Notes",
+		"pandoc": "pandoc",
+		"photography": "photography",
+		"php": "php",
+		"php7": "php7",
+		"phpcs": "phpcs",
+		"prettier": "prettier",
+		"question": "question",
+		"react": "react",
+		"remote": "remote",
+		"shell-script": "shell-script",
+		"snippets": "Snippets",
+		"sublime-text": "sublime-text",
+		"swift": "swift",
+		"thoughts": "thoughts",
+		"ubuntu": "ubuntu",
+		"windows": "windows",
+		"wordpress": "WordPress",
+		"wpcs": "wpcs",
+	]
 
 	// MARK: - Keyword dictionary
 
@@ -188,6 +237,16 @@ final class ArticleTaggingService: @unchecked Sendable {
 			"genome", "dna", "quantum", "mathematician", "nature journal",
 			"science journal", "discovery", "experiment",
 		],
+		"Software Development": [
+			"open source", "pull request", "code review", "software engineer",
+			"software developer", "programming language", "debugging", "refactoring",
+			"devops", "ci/cd", "continuous integration", "continuous deployment",
+			"agile", "scrum", "sprint planning", "unit test", "integration test",
+			"test-driven", "docker", "kubernetes", "microservices", "api design",
+			"software architecture", "version control", "git ", "github", "gitlab",
+			"repository", "deployment pipeline", "cloud native", "swift ", "kotlin",
+			"rust lang", "golang", "python developer", "java developer",
+		],
 		"Social Justice": [
 			"racial inequality", "civil rights", "discrimination", "protest",
 			"police brutality", "lgbtq", "gender pay gap", "immigration reform",
@@ -211,6 +270,25 @@ final class ArticleTaggingService: @unchecked Sendable {
 		"Travel": [
 			"tourism", "airline", "airport", "hotel", "passport",
 			"travel advisory", "destination", "visa", "cruise",
+		],
+		"Web Development": [
+			"html", "css", "javascript", "typescript", "react", "vue.js", "angular",
+			"svelte", "next.js", "nuxt", "remix", "webpack", "vite", "esbuild",
+			"node.js", "deno", "bun runtime", "rest api", "graphql", "websocket",
+			"web components", "frontend", "backend", "full-stack", "sass", "tailwind",
+			"bootstrap", "ruby on rails", "django", "flask", "laravel", "asp.net",
+			"web framework", "browser api", "progressive web app", "pwa",
+			"service worker", "web performance", "core web vitals",
+		],
+		"Web Security": [
+			"cross-site scripting", "xss", "csrf", "cross-site request forgery",
+			"sql injection", "owasp", "penetration testing", "pen test", "pen testing",
+			"bug bounty", "responsible disclosure", "vulnerability disclosure",
+			"cve-", "oauth", "jwt", "json web token", "tls certificate", "ssl certificate",
+			"web application firewall", "content security policy", "cors policy",
+			"injection attack", "authentication bypass", "session hijacking",
+			"clickjacking", "subdomain takeover", "server-side request forgery", "ssrf",
+			"directory traversal", "insecure deserialization",
 		],
 		"USA": [
 			"united states", " u.s. ", "american", "washington d.c.",
