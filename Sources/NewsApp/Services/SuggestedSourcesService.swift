@@ -35,25 +35,24 @@ actor SuggestedSourcesService {
 		return Date().timeIntervalSince(lastFetch) >= refreshInterval
 	}
 
-	func refreshIfNeeded(currentSourceNames: String, endpoint: String, model: String) async {
+	func refreshIfNeeded(currentSourceNames: String, config: AIProviderConfig) async {
 		guard needsRefresh() else { return }
-		await refresh(currentSourceNames: currentSourceNames, endpoint: endpoint, model: model)
+		await refresh(currentSourceNames: currentSourceNames, config: config)
 	}
 
-	func refresh(currentSourceNames: String, endpoint: String, model: String) async {
+	func refresh(currentSourceNames: String, config: AIProviderConfig) async {
 		guard !isRefreshing else { return }
 		isRefreshing = true
 		defer { isRefreshing = false }
 
 		do {
-			let ollamaSuggestions = try await OllamaService.shared.suggestSources(
+			let suggestions = try await AIService.shared.suggestSources(
 				currentSourceNames: currentSourceNames,
-				endpoint: endpoint,
-				model: model
+				config: config
 			)
 
 			var validated: [SuggestedSource] = []
-			for suggestion in ollamaSuggestions {
+			for suggestion in suggestions {
 				guard let discovery = await FeedDiscoveryService.shared.discover(urlString: suggestion.website) else {
 					continue
 				}

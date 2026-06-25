@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsView: View {
 	@Bindable var appState: AppState
 
-	@State private var ollamaTestStatus: String?
+	@State private var testStatus: String?
 	@State private var quizClearStatus: String?
 
 	var body: some View {
@@ -95,65 +95,33 @@ struct SettingsView: View {
 		return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]"
 	}
 
+	private var selectedProvider: AIProvider {
+		AIProvider(rawValue: appState.aiProvider) ?? .ollama
+	}
+
 	private var aiTab: some View {
 		Form {
 			Section {
-				VStack(alignment: .leading, spacing: 4) {
-					Text("Endpoint")
-						.font(.system(size: 12))
-						.foregroundStyle(.secondary)
-					TextField("", text: $appState.ollamaEndpoint)
-						.textFieldStyle(.roundedBorder)
-					Text("e.g. \(AppState.defaultOllamaEndpoint)")
-						.font(.caption)
-						.foregroundStyle(.tertiary)
-						.frame(maxWidth: .infinity, alignment: .trailing)
-				}
-
-				VStack(alignment: .leading, spacing: 4) {
-					Text("Model")
-						.font(.system(size: 12))
-						.foregroundStyle(.secondary)
-					TextField("", text: $appState.ollamaModel)
-						.textFieldStyle(.roundedBorder)
-					Text("e.g. \(AppState.defaultOllamaModel)")
-						.font(.caption)
-						.foregroundStyle(.tertiary)
-						.frame(maxWidth: .infinity, alignment: .trailing)
-				}
-
-				if !isEndpointLocal {
-					HStack(alignment: .top, spacing: 6) {
-						Image(systemName: "exclamationmark.triangle.fill")
-							.foregroundStyle(.orange)
-							.font(.system(size: 13))
-						Text("Remote endpoint — article content will be sent off-device. Only use a server you own and trust.")
-							.font(.system(size: 12))
-							.foregroundStyle(.secondary)
-							.fixedSize(horizontal: false, vertical: true)
+				Picker("Provider", selection: $appState.aiProvider) {
+					ForEach(AIProvider.allCases, id: \.rawValue) { provider in
+						Text(provider.displayName).tag(provider.rawValue)
 					}
-					.padding(.vertical, 4)
 				}
-
-				HStack {
-					if let status = ollamaTestStatus {
-						Text(status)
-							.font(.system(size: 12))
-							.foregroundStyle(.secondary)
-					}
-					Spacer()
-					Button("Test Connection") {
-						Task { await testOllama() }
-					}
-					.buttonStyle(.bordered)
-					.disabled(ollamaTestStatus == "Testing…")
-				}
+				.pickerStyle(.radioGroup)
 			} header: {
-				Text("Ollama Connection")
+				Text("AI Provider")
 			} footer: {
-				Text("Ollama must be running with the chosen model already pulled. Run `ollama pull <model>` in Terminal to download a model.")
+				Text("Choose where AI features run. On-device (Ollama) keeps article content local. Anthropic and OpenAI send article content to their servers.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
+			}
+
+			// Only the active provider's connection settings are shown, so it's
+			// always clear which service the app will contact.
+			switch selectedProvider {
+			case .ollama:    ollamaSection
+			case .anthropic: anthropicSection
+			case .openAI:    openAISection
 			}
 
 			Section {
@@ -180,7 +148,7 @@ struct SettingsView: View {
 			} header: {
 				Text("Features")
 			} footer: {
-				Text("All features require a working Ollama connection configured above.")
+				Text("All features require a working AI provider connection configured above.")
 					.foregroundStyle(.secondary)
 					.font(.caption)
 			}
@@ -230,6 +198,134 @@ struct SettingsView: View {
 			}
 		}
 		.formStyle(.grouped)
+	}
+
+	// MARK: - Provider sections
+
+	private var ollamaSection: some View {
+		Section {
+			VStack(alignment: .leading, spacing: 4) {
+				Text("Endpoint")
+					.font(.system(size: 12))
+					.foregroundStyle(.secondary)
+				TextField("", text: $appState.ollamaEndpoint)
+					.textFieldStyle(.roundedBorder)
+				Text("e.g. \(AppState.defaultOllamaEndpoint)")
+					.font(.caption)
+					.foregroundStyle(.tertiary)
+					.frame(maxWidth: .infinity, alignment: .trailing)
+			}
+
+			VStack(alignment: .leading, spacing: 4) {
+				Text("Model")
+					.font(.system(size: 12))
+					.foregroundStyle(.secondary)
+				TextField("", text: $appState.ollamaModel)
+					.textFieldStyle(.roundedBorder)
+				Text("e.g. \(AppState.defaultOllamaModel)")
+					.font(.caption)
+					.foregroundStyle(.tertiary)
+					.frame(maxWidth: .infinity, alignment: .trailing)
+			}
+
+			if !isEndpointLocal {
+				offDeviceNotice("Remote endpoint — article content will be sent off-device. Only use a server you own and trust.")
+			}
+
+			testRow
+		} header: {
+			Text("Ollama Connection")
+		} footer: {
+			Text("Ollama must be running with the chosen model already pulled. Run `ollama pull <model>` in Terminal to download a model.")
+				.foregroundStyle(.secondary)
+				.font(.caption)
+		}
+	}
+
+	private var anthropicSection: some View {
+		Section {
+			VStack(alignment: .leading, spacing: 4) {
+				Text("API Key")
+					.font(.system(size: 12))
+					.foregroundStyle(.secondary)
+				SecureField("", text: $appState.anthropicApiKey)
+					.textFieldStyle(.roundedBorder)
+				Text("Stored securely in your macOS Keychain.")
+					.font(.caption)
+					.foregroundStyle(.tertiary)
+					.frame(maxWidth: .infinity, alignment: .trailing)
+			}
+
+			ModelPickerField(title: "Model", models: AIProvider.anthropicModels, model: $appState.anthropicModel)
+
+			offDeviceNotice("Article content is sent to Anthropic to generate AI results.")
+
+			testRow
+		} header: {
+			Text("Anthropic (Claude)")
+		} footer: {
+			Text("Create an API key at console.anthropic.com. Usage is billed to your Anthropic account.")
+				.foregroundStyle(.secondary)
+				.font(.caption)
+		}
+	}
+
+	private var openAISection: some View {
+		Section {
+			VStack(alignment: .leading, spacing: 4) {
+				Text("API Key")
+					.font(.system(size: 12))
+					.foregroundStyle(.secondary)
+				SecureField("", text: $appState.openAIApiKey)
+					.textFieldStyle(.roundedBorder)
+				Text("Stored securely in your macOS Keychain.")
+					.font(.caption)
+					.foregroundStyle(.tertiary)
+					.frame(maxWidth: .infinity, alignment: .trailing)
+			}
+
+			ModelPickerField(title: "Model", models: AIProvider.openAIModels, model: $appState.openAIModel)
+
+			offDeviceNotice("Article content is sent to OpenAI to generate AI results.")
+
+			testRow
+		} header: {
+			Text("OpenAI")
+		} footer: {
+			Text("Create an API key at platform.openai.com. Usage is billed to your OpenAI account.")
+				.foregroundStyle(.secondary)
+				.font(.caption)
+		}
+	}
+
+	private var testRow: some View {
+		HStack {
+			if let status = testStatus {
+				Text(status)
+					.font(.system(size: 12))
+					.foregroundStyle(.secondary)
+			}
+			Spacer()
+			Button("Test Connection") {
+				Task { await testConnection() }
+			}
+			.buttonStyle(.bordered)
+			.disabled(testStatus == "Testing…")
+		}
+	}
+
+	@ViewBuilder
+	private func offDeviceNotice(_ message: String) -> some View {
+		HStack(alignment: .top, spacing: 6) {
+			Image(systemName: "exclamationmark.triangle.fill")
+				.foregroundStyle(.orange)
+				.font(.system(size: 13))
+			Text(message)
+				.font(.system(size: 12))
+				.foregroundStyle(.secondary)
+				.fixedSize(horizontal: false, vertical: true)
+		}
+		.padding(.vertical, 4)
 	}
 
 	@ViewBuilder
@@ -288,18 +384,17 @@ struct SettingsView: View {
 
 	// MARK: - Actions
 
-	private func testOllama() async {
-		ollamaTestStatus = "Testing…"
+	private func testConnection() async {
+		testStatus = "Testing…"
 		do {
-			let result = try await OllamaService.shared.rewriteAndSummarize(
+			let result = try await AIService.shared.rewriteAndSummarize(
 				title: "Test Article",
-				content: "This is a test to verify the Ollama connection is working.",
-				endpoint: appState.resolvedEndpoint,
-				model: appState.resolvedModel
+				content: "This is a test to verify the AI provider connection is working.",
+				config: appState.aiConfig
 			)
-			ollamaTestStatus = "Connected — \"\(result.headline)\""
+			testStatus = "Connected — \"\(result.headline)\""
 		} catch {
-			ollamaTestStatus = "Failed: \(error.localizedDescription)"
+			testStatus = "Failed: \(error.localizedDescription)"
 		}
 	}
 
@@ -310,5 +405,64 @@ struct SettingsView: View {
 		} catch {
 			quizClearStatus = "Failed: \(error.localizedDescription)"
 		}
+	}
+}
+
+// MARK: - Model picker
+
+/// A model selector showing a provider's curated models plus a "Custom…" option
+/// that reveals a free-text field, so users aren't locked to the bundled list if a
+/// provider's model identifiers change.
+private struct ModelPickerField: View {
+	let title: String
+	let models: [String]
+	@Binding var model: String
+	@State private var isCustom: Bool
+
+	private static let customTag = "__custom__"
+
+	init(title: String, models: [String], model: Binding<String>) {
+		self.title = title
+		self.models = models
+		self._model = model
+		let stored = model.wrappedValue.trimmingCharacters(in: .whitespaces)
+		// Treat a stored value that isn't one of the curated options as custom.
+		self._isCustom = State(initialValue: !stored.isEmpty && !models.contains(stored))
+	}
+
+	var body: some View {
+		VStack(alignment: .leading, spacing: 4) {
+			Text(title)
+				.font(.system(size: 12))
+				.foregroundStyle(.secondary)
+			Picker("", selection: pickerSelection) {
+				ForEach(models, id: \.self) { Text($0).tag($0) }
+				Text("Custom…").tag(Self.customTag)
+			}
+			.labelsHidden()
+			if isCustom {
+				TextField("Model identifier", text: $model)
+					.textFieldStyle(.roundedBorder)
+			}
+		}
+	}
+
+	private var pickerSelection: Binding<String> {
+		Binding(
+			get: {
+				if isCustom { return Self.customTag }
+				return models.contains(model) ? model : models[0]
+			},
+			set: { newValue in
+				if newValue == Self.customTag {
+					isCustom = true
+					// Start the custom field empty unless an off-list value is already stored.
+					if models.contains(model) { model = "" }
+				} else {
+					isCustom = false
+					model = newValue
+				}
+			}
+		)
 	}
 }

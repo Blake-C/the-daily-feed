@@ -134,6 +134,8 @@ enum NewsError: LocalizedError {
 	case fetchFailed(String)
 	case parseFailed(String)
 	case ollamaUnavailable
+	case aiUnavailable
+	case missingAPIKey
 	case weatherUnavailable
 
 	var errorDescription: String? {
@@ -142,6 +144,8 @@ enum NewsError: LocalizedError {
 		case .fetchFailed(let msg): "Fetch failed: \(msg)"
 		case .parseFailed(let msg): "Parse failed: \(msg)"
 		case .ollamaUnavailable: "Ollama server is unavailable"
+		case .aiUnavailable: "The AI provider is unavailable or returned an error. Check your API key and connection."
+		case .missingAPIKey: "No API key set for the selected AI provider. Add one in Settings."
 		case .weatherUnavailable: "Weather service unavailable"
 		}
 	}

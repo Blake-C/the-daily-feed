@@ -51,12 +51,11 @@ final class ArticleDetailViewModel {
 	func generateQuiz(
 		article: Article,
 		content: String,
-		endpoint: String,
-		model: String
+		config: AIProviderConfig
 	) async {
 		guard !isGeneratingQuiz else { return }
 
-		// Serve cached questions immediately without hitting Ollama.
+		// Serve cached questions immediately without hitting the provider.
 		if let cached = loadCachedQuiz(for: article.id) {
 			quizQuestions = cached
 			return
@@ -77,13 +76,12 @@ final class ArticleDetailViewModel {
 			// Up to 3 attempts: handles both transient errors and duplicate questions.
 			for _ in 0..<3 {
 				do {
-					let q = try await OllamaService.shared.generateQuizQuestion(
+					let q = try await AIService.shared.generateQuizQuestion(
 						number: number,
 						title: article.title,
 						content: availableContent,
 						previousQuestions: generated,
-						endpoint: endpoint,
-						model: model
+						config: config
 					)
 					if Self.isDuplicate(q, among: generated) { continue }
 					accepted = q
@@ -112,12 +110,12 @@ final class ArticleDetailViewModel {
 		}
 	}
 
-	func regenerateQuiz(article: Article, content: String, endpoint: String, model: String) async {
+	func regenerateQuiz(article: Article, content: String, config: AIProviderConfig) async {
 		UserDefaults.standard.removeObject(forKey: quizCacheKey(article.id))
 		quizQuestions = []
 		disputeResults = [:]
 		disputingIndices = []
-		await generateQuiz(article: article, content: content, endpoint: endpoint, model: model)
+		await generateQuiz(article: article, content: content, config: config)
 	}
 
 	// MARK: - Quiz cache
@@ -185,8 +183,7 @@ final class ArticleDetailViewModel {
 		question: QuizQuestion,
 		userChosenIndex: Int,
 		content: String,
-		endpoint: String,
-		model: String
+		config: AIProviderConfig
 	) async {
 		guard !disputingIndices.contains(questionIndex),
 			  disputeResults[questionIndex] == nil else { return }
@@ -195,14 +192,13 @@ final class ArticleDetailViewModel {
 		defer { disputingIndices.remove(questionIndex) }
 
 		do {
-			let result = try await OllamaService.shared.reviewQuizAnswer(
+			let result = try await AIService.shared.reviewQuizAnswer(
 				questionText: question.question,
 				options: question.options,
 				originalCorrectIndex: question.correctIndex,
 				userChosenIndex: userChosenIndex,
 				articleExcerpt: content,
-				endpoint: endpoint,
-				model: model
+				config: config
 			)
 			disputeResults[questionIndex] = result
 		} catch {
@@ -230,12 +226,11 @@ final class ArticleDetailViewModel {
 	func rewriteWithAI(
 		article: Article,
 		content: String,
-		endpoint: String,
-		model: String,
+		config: AIProviderConfig,
 		customPrompt: String = ""
 	) async -> OllamaArticleResult? {
 		// Cancel any in-flight rewrite before starting a new one so rapid successive
-		// taps don't queue up multiple Ollama requests.
+		// taps don't queue up multiple provider requests.
 		rewriteTask?.cancel()
 
 		isProcessingAI = true
@@ -243,11 +238,10 @@ final class ArticleDetailViewModel {
 
 		let task: Task<OllamaArticleResult?, Never> = Task {
 			do {
-				return try await OllamaService.shared.rewriteAndSummarize(
+				return try await AIService.shared.rewriteAndSummarize(
 					title: article.title,
 					content: content,
-					endpoint: endpoint,
-					model: model,
+					config: config,
 					customPromptTemplate: customPrompt
 				)
 			} catch {

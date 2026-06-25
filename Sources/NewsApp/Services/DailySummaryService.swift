@@ -19,7 +19,7 @@ actor DailySummaryService {
 
 	/// Summarizes a single article and persists the briefing.
 	/// No-ops silently if already in progress, already summarized, or Ollama fails.
-	func summarize(articleId: String, title: String, content: String, endpoint: String, model: String) async {
+	func summarize(articleId: String, title: String, content: String, config: AIProviderConfig) async {
 		guard !inProgress.contains(articleId) else { return }
 
 		// Skip if this article already has a summary.
@@ -31,11 +31,10 @@ actor DailySummaryService {
 		defer { inProgress.remove(articleId) }
 
 		do {
-			let briefing = try await OllamaService.shared.summarizeForDaily(
+			let briefing = try await AIService.shared.summarizeForDaily(
 				title: title,
 				content: content,
-				endpoint: endpoint,
-				model: model
+				config: config
 			)
 			try articleRepo.updateDailySummary(id: articleId, summary: briefing)
 			await MainActor.run {
@@ -48,7 +47,7 @@ actor DailySummaryService {
 
 	/// Processes any of today's read articles that are missing a daily summary.
 	/// Called at startup so summaries are filled in for articles read in a previous session.
-	func processPending(endpoint: String, model: String) async {
+	func processPending(config: AIProviderConfig) async {
 		guard let articles = try? articleRepo.fetchTodaysReadWithoutSummary() else { return }
 		for article in articles {
 			// Prefer cached readable content; fall back to feed summary or title.
@@ -59,8 +58,7 @@ actor DailySummaryService {
 				articleId: article.id,
 				title: article.title,
 				content: content,
-				endpoint: endpoint,
-				model: model
+				config: config
 			)
 		}
 	}
