@@ -90,7 +90,7 @@ final class SourcesViewModel {
 			reload()
 			let inserted = source
 			Task {
-				try? await FeedRefreshService.shared.refresh(source: inserted)
+				_ = try? await FeedRefreshService.shared.refresh(source: inserted)
 				onSourceAdded?()
 			}
 		} catch {

@@ -100,7 +100,7 @@ final class FeedRefreshService: @unchecked Sendable {
 		// 0 means "keep forever" — skip pruning entirely.
 		guard retentionDays > 0 else { return }
 		guard let cutoff = Calendar.current.date(byAdding: .day, value: -retentionDays, to: Date()) else { return }
-		try? articleRepo.pruneArticles(olderThan: cutoff)
+		_ = try? articleRepo.pruneArticles(olderThan: cutoff)
 	}
 
 	private func friendlyError(_ error: Error, sourceId: Int64, sources: [NewsSource]) -> String {
