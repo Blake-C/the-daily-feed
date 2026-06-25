@@ -1,7 +1,10 @@
 import Foundation
 
-final class OllamaService: @unchecked Sendable {
-	static let shared = OllamaService()
+/// Unified text-generation service for all AI features. Builds prompts and parses
+/// strict JSON identically for every provider; only the underlying HTTP call
+/// (`generateOllama` / `generateAnthropic` / `generateOpenAI`) is provider-specific.
+final class AIService: @unchecked Sendable {
+	static let shared = AIService()
 	private init() {}
 
 	// MARK: - Public API
@@ -26,8 +29,7 @@ final class OllamaService: @unchecked Sendable {
 	func rewriteAndSummarize(
 		title: String,
 		content: String,
-		endpoint: String,
-		model: String,
+		config: AIProviderConfig,
 		customPromptTemplate: String = ""
 	) async throws -> OllamaArticleResult {
 		let template = customPromptTemplate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -38,7 +40,7 @@ final class OllamaService: @unchecked Sendable {
 			.replacingOccurrences(of: "{title}", with: safeTitle)
 			.replacingOccurrences(of: "{content}", with: String(content.prefix(4000)))
 
-		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model, jsonFormat: true)
+		let responseText = try await generate(prompt: prompt, config: config, jsonFormat: true)
 		return try parseArticleResult(from: responseText)
 	}
 
@@ -68,8 +70,7 @@ final class OllamaService: @unchecked Sendable {
 		title: String,
 		content: String,
 		previousQuestions: [QuizQuestion] = [],
-		endpoint: String,
-		model: String
+		config: AIProviderConfig
 	) async throws -> QuizQuestion {
 		let safeTitle   = String(title.trimmingCharacters(in: .whitespacesAndNewlines).prefix(200))
 		let numberedContent = Self.numberParagraphs(
@@ -127,8 +128,7 @@ final class OllamaService: @unchecked Sendable {
 
 		let responseText = try await generate(
 			prompt: prompt,
-			endpoint: endpoint,
-			model: model,
+			config: config,
 			jsonFormat: true,
 			timeoutInterval: 90
 		)
@@ -153,8 +153,7 @@ final class OllamaService: @unchecked Sendable {
 		originalCorrectIndex: Int,
 		userChosenIndex: Int,
 		articleExcerpt: String,
-		endpoint: String,
-		model: String
+		config: AIProviderConfig
 	) async throws -> QuizDisputeResult {
 		let optionList = options.enumerated()
 			.map { "\($0.offset): \($0.element)" }
@@ -185,7 +184,7 @@ final class OllamaService: @unchecked Sendable {
 			{"verdict": "user_correct" or "original_correct" or "question_invalid", "correctIndex": <number>, "explanation": "<one sentence>"}
 			"""
 
-		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model, jsonFormat: true)
+		let responseText = try await generate(prompt: prompt, config: config, jsonFormat: true)
 		return try parseDisputeResult(from: responseText, fallbackIndex: originalCorrectIndex)
 	}
 
@@ -238,17 +237,16 @@ final class OllamaService: @unchecked Sendable {
 		]}
 		"""
 
-	/// Returns up to 6 source suggestions from Ollama based on the user's current feed names.
+	/// Returns up to 6 source suggestions based on the user's current feed names.
 	/// - Parameter currentSourceNames: Comma-separated source names, used as context.
 	func suggestSources(
 		currentSourceNames: String,
-		endpoint: String,
-		model: String
+		config: AIProviderConfig
 	) async throws -> [OllamaSourceSuggestion] {
 		let safeContext = String(currentSourceNames.trimmingCharacters(in: .whitespacesAndNewlines).prefix(500))
 		let prompt = Self.sourceSuggestionPromptTemplate
 			.replacingOccurrences(of: "{sources}", with: safeContext.isEmpty ? "various news sources" : safeContext)
-		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model, jsonFormat: true)
+		let responseText = try await generate(prompt: prompt, config: config, jsonFormat: true)
 		return try parseSourceSuggestions(from: responseText)
 	}
 
@@ -291,8 +289,7 @@ final class OllamaService: @unchecked Sendable {
 	func summarizeForDaily(
 		title: String,
 		content: String,
-		endpoint: String,
-		model: String
+		config: AIProviderConfig
 	) async throws -> String {
 		let safeTitle = String(title.trimmingCharacters(in: .whitespacesAndNewlines).prefix(200))
 		let safeContent = String(content.trimmingCharacters(in: .whitespacesAndNewlines).prefix(3_000))
@@ -301,7 +298,7 @@ final class OllamaService: @unchecked Sendable {
 			.replacingOccurrences(of: "{title}", with: safeTitle)
 			.replacingOccurrences(of: "{content}", with: safeContent)
 
-		let responseText = try await generate(prompt: prompt, endpoint: endpoint, model: model, jsonFormat: true)
+		let responseText = try await generate(prompt: prompt, config: config, jsonFormat: true)
 		return try parseDailySummary(from: responseText)
 	}
 
@@ -331,12 +328,49 @@ final class OllamaService: @unchecked Sendable {
 		return String(stripped[start...end])
 	}
 
+	/// Provider-agnostic entry point. Routes to the selected backend; prompt
+	/// building and JSON parsing around this call are identical for every provider.
 	private func generate(
+		prompt: String,
+		config: AIProviderConfig,
+		jsonFormat: Bool = false,
+		timeoutInterval: TimeInterval = 60
+	) async throws -> String {
+		switch config.provider {
+		case .ollama:
+			return try await generateOllama(
+				prompt: prompt,
+				endpoint: config.endpoint,
+				model: config.model,
+				jsonFormat: jsonFormat,
+				timeoutInterval: timeoutInterval
+			)
+		case .anthropic:
+			return try await generateAnthropic(
+				prompt: prompt,
+				model: config.model,
+				apiKey: config.apiKey,
+				timeoutInterval: timeoutInterval
+			)
+		case .openAI:
+			return try await generateOpenAI(
+				prompt: prompt,
+				model: config.model,
+				apiKey: config.apiKey,
+				jsonFormat: jsonFormat,
+				timeoutInterval: timeoutInterval
+			)
+		}
+	}
+
+	// MARK: Ollama (local)
+
+	private func generateOllama(
 		prompt: String,
 		endpoint: String,
 		model: String,
-		jsonFormat: Bool = false,
-		timeoutInterval: TimeInterval = 60
+		jsonFormat: Bool,
+		timeoutInterval: TimeInterval
 	) async throws -> String {
 		guard let baseURL = URL(string: endpoint) else {
 			throw NewsError.invalidURL(endpoint)
@@ -377,13 +411,106 @@ final class OllamaService: @unchecked Sendable {
 		return text
 	}
 
+	// MARK: Anthropic (Claude — Messages API)
+
+	private func generateAnthropic(
+		prompt: String,
+		model: String,
+		apiKey: String,
+		timeoutInterval: TimeInterval
+	) async throws -> String {
+		guard !apiKey.trimmingCharacters(in: .whitespaces).isEmpty else {
+			throw NewsError.missingAPIKey
+		}
+		guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
+			throw NewsError.invalidURL("api.anthropic.com")
+		}
+
+		var request = URLRequest(url: url, timeoutInterval: timeoutInterval)
+		request.httpMethod = "POST"
+		request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+		request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+		request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+
+		let body: [String: Any] = [
+			"model": model,
+			"max_tokens": 2_048,
+			"messages": [["role": "user", "content": prompt]],
+		]
+		request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+		let (data, response) = try await URLSession.shared.data(for: request)
+		guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+			throw NewsError.aiUnavailable
+		}
+
+		let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+		// A safety classifier may decline the request (HTTP 200, stop_reason "refusal").
+		if let stop = json?["stop_reason"] as? String, stop == "refusal" {
+			throw NewsError.parseFailed("The model declined to answer this request.")
+		}
+		guard
+			let content = json?["content"] as? [[String: Any]],
+			let textBlock = content.first(where: { ($0["type"] as? String) == "text" }),
+			let text = textBlock["text"] as? String
+		else {
+			throw NewsError.parseFailed("Unexpected Anthropic response shape")
+		}
+		return text
+	}
+
+	// MARK: OpenAI (Chat Completions API)
+
+	private func generateOpenAI(
+		prompt: String,
+		model: String,
+		apiKey: String,
+		jsonFormat: Bool,
+		timeoutInterval: TimeInterval
+	) async throws -> String {
+		guard !apiKey.trimmingCharacters(in: .whitespaces).isEmpty else {
+			throw NewsError.missingAPIKey
+		}
+		guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
+			throw NewsError.invalidURL("api.openai.com")
+		}
+
+		var request = URLRequest(url: url, timeoutInterval: timeoutInterval)
+		request.httpMethod = "POST"
+		request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+		request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+
+		var body: [String: Any] = [
+			"model": model,
+			"messages": [["role": "user", "content": prompt]],
+		]
+		// The prompts already contain the word "JSON", which json_object mode requires.
+		if jsonFormat { body["response_format"] = ["type": "json_object"] }
+		request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+		let (data, response) = try await URLSession.shared.data(for: request)
+		guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+			throw NewsError.aiUnavailable
+		}
+
+		let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+		guard
+			let choices = json?["choices"] as? [[String: Any]],
+			let message = choices.first?["message"] as? [String: Any],
+			let text = message["content"] as? String
+		else {
+			throw NewsError.parseFailed("Unexpected OpenAI response shape")
+		}
+		return text
+	}
+
 	private func parseArticleResult(from text: String) throws -> OllamaArticleResult {
 		let cleaned = extractJSONObject(from: text)
 		guard
 			let data = cleaned.data(using: .utf8),
 			let result = try? JSONDecoder().decode(OllamaArticleResult.self, from: data)
 		else {
-			throw NewsError.parseFailed("Could not parse Ollama JSON: \(cleaned.prefix(200))")
+			throw NewsError.parseFailed("Could not parse AI JSON: \(cleaned.prefix(200))")
 		}
 		return result
 	}

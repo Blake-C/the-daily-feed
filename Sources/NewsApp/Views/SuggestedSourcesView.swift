@@ -37,8 +37,7 @@ struct SuggestedSourcesView: View {
 					Button {
 						vm.refresh(
 							currentSourceNames: currentSourceNames,
-							endpoint: appState.resolvedEndpoint,
-							model: appState.resolvedModel
+							config: appState.aiConfig
 						)
 					} label: {
 						if vm.isRefreshing {
@@ -72,7 +71,7 @@ struct SuggestedSourcesView: View {
 					ContentUnavailableView(
 						"No Suggestions Yet",
 						systemImage: "antenna.radiowaves.left.and.right",
-						description: Text("Tap the refresh button to ask Ollama for source recommendations based on your current feeds.")
+						description: Text("Tap the refresh button to ask the AI provider for source recommendations based on your current feeds.")
 					)
 					.frame(width: geo.size.width, height: max(geo.size.height - 80, 200))
 				} else {
@@ -99,8 +98,7 @@ struct SuggestedSourcesView: View {
 			vm.syncAddedState(existingFeedURLs: Set(sourcesVM.sources.map { $0.url }))
 			vm.refreshIfNeeded(
 				currentSourceNames: currentSourceNames,
-				endpoint: appState.resolvedEndpoint,
-				model: appState.resolvedModel
+				config: appState.aiConfig
 			)
 		}
 		}

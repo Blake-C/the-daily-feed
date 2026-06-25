@@ -19,6 +19,18 @@ final class AppState {
 	var ollamaModel: String = AppState.readString("ollamaModel", default: "") {
 		didSet { AppState.write(ollamaModel, forKey: "ollamaModel") }
 	}
+	/// Active AI provider raw value ("ollama" | "anthropic" | "openAI"). Default: Ollama.
+	var aiProvider: String = AppState.readString("aiProvider", default: AIProvider.ollama.rawValue) {
+		didSet { AppState.write(aiProvider, forKey: "aiProvider") }
+	}
+	/// Claude model id. Empty = use the recommended default.
+	var anthropicModel: String = AppState.readString("anthropicModel", default: "") {
+		didSet { AppState.write(anthropicModel, forKey: "anthropicModel") }
+	}
+	/// OpenAI model id. Empty = use the recommended default.
+	var openAIModel: String = AppState.readString("openAIModel", default: "") {
+		didSet { AppState.write(openAIModel, forKey: "openAIModel") }
+	}
 	/// Auto-refresh interval in minutes. 0 = off.
 	var autoRefreshInterval: Int = AppState.readInt("autoRefreshInterval", default: 0) {
 		didSet { AppState.write(autoRefreshInterval, forKey: "autoRefreshInterval") }
@@ -66,10 +78,37 @@ final class AppState {
 			: ollamaModel
 	}
 
+	/// Snapshot of the active provider's configuration, passed to `AIService` for
+	/// every AI task. `Sendable`, so background actors can use it off the main actor.
+	var aiConfig: AIProviderConfig {
+		switch AIProvider(rawValue: aiProvider) ?? .ollama {
+		case .ollama:
+			return AIProviderConfig(provider: .ollama, model: resolvedModel, endpoint: resolvedEndpoint, apiKey: "")
+		case .anthropic:
+			let model = anthropicModel.trimmingCharacters(in: .whitespaces).isEmpty
+				? AIProvider.defaultAnthropicModel : anthropicModel
+			return AIProviderConfig(provider: .anthropic, model: model, endpoint: "", apiKey: anthropicApiKey)
+		case .openAI:
+			let model = openAIModel.trimmingCharacters(in: .whitespaces).isEmpty
+				? AIProvider.defaultOpenAIModel : openAIModel
+			return AIProviderConfig(provider: .openAI, model: model, endpoint: "", apiKey: openAIApiKey)
+		}
+	}
+
 	// MARK: - Sensitive credentials (Keychain — not iCloud KV)
 
 	var openWeatherApiKey: String {
 		didSet { KeychainService.shared.set(openWeatherApiKey, for: "openWeatherApiKey") }
+	}
+
+	/// Anthropic API key. Stored in Keychain only — never UserDefaults/iCloud/plist.
+	var anthropicApiKey: String {
+		didSet { KeychainService.shared.set(anthropicApiKey, for: "anthropicApiKey") }
+	}
+
+	/// OpenAI API key. Stored in Keychain only — never UserDefaults/iCloud/plist.
+	var openAIApiKey: String {
+		didSet { KeychainService.shared.set(openAIApiKey, for: "openAIApiKey") }
 	}
 
 	var hasWeather: Bool { !openWeatherApiKey.isEmpty }
@@ -83,6 +122,8 @@ final class AppState {
 			UserDefaults.standard.removeObject(forKey: "openWeatherApiKey")
 		}
 		openWeatherApiKey = KeychainService.shared.get("openWeatherApiKey")
+		anthropicApiKey = KeychainService.shared.get("anthropicApiKey")
+		openAIApiKey = KeychainService.shared.get("openAIApiKey")
 
 		// Promote existing UserDefaults values to iCloud KV store once so other
 		// devices see them on first sync. Falls back gracefully when iCloud is off.
@@ -108,6 +149,9 @@ final class AppState {
 			switch key {
 			case "ollamaEndpoint":          ollamaEndpoint          = Self.readString(key, default: "")
 			case "ollamaModel":             ollamaModel             = Self.readString(key, default: "")
+			case "aiProvider":              aiProvider              = Self.readString(key, default: AIProvider.ollama.rawValue)
+			case "anthropicModel":          anthropicModel          = Self.readString(key, default: "")
+			case "openAIModel":             openAIModel             = Self.readString(key, default: "")
 			case "autoRefreshInterval":     autoRefreshInterval     = Self.readInt(key, default: 0)
 			case "articleRetentionDays":    articleRetentionDays    = Self.readInt(key, default: 30)
 			case "articleFontSize":         articleFontSize         = Self.readInt(key, default: 17)
@@ -156,7 +200,8 @@ final class AppState {
 		let iCloud = NSUbiquitousKeyValueStore.default
 		let ud = UserDefaults.standard
 		let keys = [
-			"ollamaEndpoint", "ollamaModel", "autoRefreshInterval", "articleRetentionDays",
+			"ollamaEndpoint", "ollamaModel", "aiProvider", "anthropicModel", "openAIModel",
+			"autoRefreshInterval", "articleRetentionDays",
 			"articleFontSize", "ollamaPrompt", "aiSummaryEnabled", "dailySummaryEnabled",
 			"suggestedSourcesEnabled", "quizEnabled", "useCelsius",
 		]

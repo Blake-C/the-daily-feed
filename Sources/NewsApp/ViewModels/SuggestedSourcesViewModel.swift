@@ -31,21 +31,20 @@ final class SuggestedSourcesViewModel {
 		}
 	}
 
-	func refresh(currentSourceNames: String, endpoint: String, model: String) {
+	func refresh(currentSourceNames: String, config: AIProviderConfig) {
 		guard !isRefreshing else { return }
 		isRefreshing = true
 		Task {
 			defer { isRefreshing = false }
 			await SuggestedSourcesService.shared.refresh(
 				currentSourceNames: currentSourceNames,
-				endpoint: endpoint,
-				model: model
+				config: config
 			)
 			load()
 		}
 	}
 
-	func refreshIfNeeded(currentSourceNames: String, endpoint: String, model: String) {
+	func refreshIfNeeded(currentSourceNames: String, config: AIProviderConfig) {
 		Task {
 			let needed = await SuggestedSourcesService.shared.needsRefresh()
 			guard needed else { return }
@@ -53,8 +52,7 @@ final class SuggestedSourcesViewModel {
 			defer { isRefreshing = false }
 			await SuggestedSourcesService.shared.refresh(
 				currentSourceNames: currentSourceNames,
-				endpoint: endpoint,
-				model: model
+				config: config
 			)
 			load()
 		}
