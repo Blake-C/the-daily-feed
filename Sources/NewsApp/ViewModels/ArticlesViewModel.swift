@@ -119,6 +119,7 @@ final class ArticlesViewModel {
 	///   articles are fetched. Pass `true` only for background/auto-refresh calls
 	///   so the user is not notified when they manually trigger a refresh.
 	func refresh(notifyIfNew: Bool = false) async {
+		guard !isRefreshing else { return }
 		isRefreshing = true
 		defer { isRefreshing = false }
 		let result = await refreshService.refreshAll { [weak self] id, fetching in
@@ -138,7 +139,7 @@ final class ArticlesViewModel {
 	/// position, new articles are only merged immediately when the user is at the top
 	/// of the list; otherwise they are held aside and surfaced via the "N new articles"
 	/// pill (`pendingNewCount`) until the user opts in via `showPendingArticles()`.
-	private func reloadInPlace() async {
+	func reloadInPlace() async {
 		availableTagNames = (try? articleRepo.fetchAvailableTagNames(
 			sourceId: selectedSourceId,
 			dateRange: dateRangeFilter

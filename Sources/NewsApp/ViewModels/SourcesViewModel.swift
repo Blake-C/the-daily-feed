@@ -16,8 +16,11 @@ final class SourcesViewModel {
 	/// The UI presents a confirmation before adding.
 	var pendingDiscovery: FeedDiscoveryService.DiscoveryResult?
 
-	/// Called after a new source is added and its initial fetch completes.
-	var onSourceAdded: (() -> Void)?
+	/// Called after a source add completes. `needsNetworkRefresh` is `true` when the
+	/// sources have not yet been individually fetched (e.g. OPML import) and a full
+	/// `refreshAll` is required; `false` when the source was already fetched individually
+	/// and only a DB reload is needed.
+	var onSourceAdded: ((_ needsNetworkRefresh: Bool) -> Void)?
 
 	private let sourceRepo = SourceRepository()
 	private let articleRepo = ArticleRepository()
@@ -107,7 +110,7 @@ final class SourcesViewModel {
 			let inserted = source
 			Task {
 				_ = try? await FeedRefreshService.shared.refresh(source: inserted)
-				onSourceAdded?()
+				onSourceAdded?(false)
 			}
 		} catch {
 			errorMessage = error.localizedDescription
@@ -215,7 +218,7 @@ final class SourcesViewModel {
 			var message = "\(imported) source\(imported == 1 ? "" : "s") imported"
 			if skipped > 0 { message += ", \(skipped) already present" }
 			importSummary = message + "."
-			if imported > 0 { onSourceAdded?() }
+			if imported > 0 { onSourceAdded?(true) }
 		} catch {
 			errorMessage = error.localizedDescription
 		}

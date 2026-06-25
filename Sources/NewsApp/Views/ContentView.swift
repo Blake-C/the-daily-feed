@@ -126,9 +126,13 @@ struct ContentView: View {
 			// any pending notifications that arrived while the app was not running.
 			_ = NotificationService.shared
 
-			sourcesVM.onSourceAdded = { [weak articlesVM, weak sourcesVM] in
+			sourcesVM.onSourceAdded = { [weak articlesVM, weak sourcesVM] needsNetworkRefresh in
 				Task {
-					await articlesVM?.refresh()
+					if needsNetworkRefresh {
+						await articlesVM?.refresh()
+					} else {
+						await articlesVM?.reloadInPlace()
+					}
 					sourcesVM?.load(dateRange: articlesVM?.dateRangeFilter ?? .today)
 				}
 			}
