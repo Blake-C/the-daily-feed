@@ -193,7 +193,7 @@ All app-wide settings are `@AppStorage` with iCloud KV store sync fallback:
 | ViewModel | Manages |
 |---|---|
 | `AppState` | App-wide settings, iCloud sync |
-| `ArticlesViewModel` | Grid articles, filters (tag, date, source, read, bookmarks, hidden), pagination, search |
+| `ArticlesViewModel` | Grid articles, filters (tag, date, source, read, bookmarks, hidden), pagination, search, pending new-article buffering |
 | `ArticleDetailViewModel` | Content loading, quiz generation & dispute |
 | `SourcesViewModel` | Source list, add/edit/delete/reorder, OPML, unread counts, fetch spinners |
 | `DailySummaryViewModel` | Daily briefing articles + total summary |
@@ -208,10 +208,12 @@ All app-wide settings are `@AppStorage` with iCloud KV store sync fallback:
 - **Main layout:** `NavigationSplitView` — sidebar (sources + filter sections) / content (article grid) / detail sheet
 - **Article grid:** Responsive multi-column (`LazyVGrid` with adaptive columns, newspaper layout)
 - **Article detail:** Modal sheet (full window width on macOS 26)
-- **Newspaper header:** Date + weather widget (`NewspaperHeaderView`)
+- **Newspaper header:** Date + weather widget (`NewspaperHeaderView`); shows an "Updating feeds…" spinner while a refresh is in flight
+- **Refresh indicators:** Global header spinner + per-source sidebar spinners (`SourcesViewModel.fetchingSourceIds`, driven by a `FeedRefreshService.refreshAll` progress callback)
 - **Tag filters:** Horizontal chip bar — single-select, auto-hidden if no articles for that tag
 - **Skeleton loading:** Placeholder cards shown during pagination; count matches visible rows
 - **Pagination:** 40 items/page; prefetch triggers at 20-item threshold from end
+- **New-article pill:** Refreshing while scrolled down does not push the list — new articles are held aside and surfaced as a "N new articles" pill; tapping it loads them and scrolls to top. When the user is already at the top they merge silently
 
 ---
 

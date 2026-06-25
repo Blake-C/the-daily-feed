@@ -17,6 +17,7 @@ A macOS news reader with a newspaper-inspired layout. Built with Swift 6 and Swi
 - **Hidden articles** — dismiss articles from the feed with a one-tap undo toast
 - **Share / Copy Link** — share articles via the macOS share sheet or copy the URL directly
 - **Lazy loading** — prefetches ahead of the scroll position for smooth performance
+- **Non-disruptive refresh** — refreshing while scrolled down keeps your place; new articles appear as a tap-to-load "N new articles" pill instead of jumping the list
 
 ### Sources & Feeds
 - **RSS & website sources** — add feeds by RSS URL or website URL (auto-discovers feed links)
@@ -24,6 +25,7 @@ A macOS news reader with a newspaper-inspired layout. Built with Swift 6 and Swi
 - **Source management** — edit, reorder (drag-to-reorder), and color-code sources
 - **Per-source unread badges** — unread count displayed per source in the sidebar
 - **Auto-refresh** — configurable background refresh interval
+- **Refresh indicators** — an "Updating feeds…" indicator in the header and a per-source spinner in the sidebar show exactly what is being fetched
 - **System notifications** — optional notification when new articles arrive
 
 ### Filtering & Search
