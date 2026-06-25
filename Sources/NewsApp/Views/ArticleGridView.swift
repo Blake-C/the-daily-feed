@@ -19,8 +19,15 @@ struct ArticleGridView: View {
 			ScrollViewReader { proxy in
 				ScrollView {
 					LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
-						// Invisible anchor at the very top
+						// Invisible anchor at the very top. Its appearance also tracks
+						// whether the user is at the top, so a refresh can decide between
+						// silent-merge and the "N new articles" pill.
 						Color.clear.frame(height: 0).id("articleListTop")
+							.onAppear {
+								vm.isAtTop = true
+								vm.mergePendingIfAtTop()
+							}
+							.onDisappear { vm.isAtTop = false }
 
 						// Active filter description
 						if let description = vm.activeFilterDescription {
@@ -81,6 +88,14 @@ struct ArticleGridView: View {
 					emptyState
 				}
 			}
+			.overlay(alignment: .top) {
+				if vm.pendingNewCount > 0 {
+					NewArticlesPill(count: vm.pendingNewCount) { vm.showPendingArticles() }
+						.padding(.top, 8)
+						.transition(.move(edge: .top).combined(with: .opacity))
+				}
+			}
+			.animation(.spring(response: 0.3, dampingFraction: 0.8), value: vm.pendingNewCount)
 		}
 		.overlay(alignment: .bottom) {
 			if vm.pendingUndoHide != nil {
@@ -138,6 +153,35 @@ struct ArticleGridView: View {
 	/// Targets roughly 340 pt per column with a minimum of 2.
 	private func columnCount(for width: CGFloat) -> Int {
 		max(2, Int(width / 340))
+	}
+}
+
+// MARK: - New Articles Pill
+
+private struct NewArticlesPill: View {
+	let count: Int
+	let onTap: () -> Void
+
+	private var label: String {
+		"\(count) new article\(count == 1 ? "" : "s")"
+	}
+
+	var body: some View {
+		Button(action: onTap) {
+			HStack(spacing: 8) {
+				Image(systemName: "arrow.up")
+					.font(.system(size: 12, weight: .semibold))
+				Text(label)
+					.font(.system(size: 13, weight: .semibold))
+			}
+			.foregroundColor(.white)
+			.padding(.horizontal, 18)
+			.padding(.vertical, 10)
+			.background(Color.accentColor, in: Capsule())
+			.shadow(color: .black.opacity(0.25), radius: 12, y: 4)
+		}
+		.buttonStyle(.plain)
+		.accessibilityLabel("Load \(label)")
 	}
 }
 

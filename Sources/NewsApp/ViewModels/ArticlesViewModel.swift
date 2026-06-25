@@ -30,6 +30,13 @@ final class ArticlesViewModel {
 	/// Views observe this to scroll back to the top.
 	private(set) var scrollResetToken = 0
 
+	/// Number of newly-fetched articles held aside during a refresh because the user
+	/// is scrolled down. Drives the "N new articles" pill. 0 = nothing pending.
+	private(set) var pendingNewCount = 0
+	/// True while the user is viewing the very top of the article list. When true,
+	/// refreshed articles merge silently; when false, they are held in `pendingArticles`.
+	var isAtTop = true
+
 	/// Called whenever one or more articles are marked read so external observers
 	/// (e.g. the sidebar unread badge) can update without polling.
 	var onArticleRead: (() -> Void)?
@@ -50,6 +57,9 @@ final class ArticlesViewModel {
 	private var loadTask: Task<Void, Never>?
 	private var searchDebounceTask: Task<Void, Never>?
 	private var undoHideTask: Task<Void, Never>?
+	/// Freshly-fetched page-0 articles held aside while the user is scrolled down,
+	/// swapped into `articles` when the user taps the "N new articles" pill.
+	private var pendingArticles: [Article]?
 
 	private static let selectedSourceKey = "articlesVM.selectedSourceId"
 
@@ -124,8 +134,10 @@ final class ArticlesViewModel {
 		await reloadInPlace()
 	}
 
-	/// Replaces the current page of articles without clearing the array first,
-	/// avoiding the blank-flash and scroll-reset that `reset()` + `loadNextPage()` causes.
+	/// Reloads the first page after a refresh. To avoid yanking the user's scroll
+	/// position, new articles are only merged immediately when the user is at the top
+	/// of the list; otherwise they are held aside and surfaced via the "N new articles"
+	/// pill (`pendingNewCount`) until the user opts in via `showPendingArticles()`.
 	private func reloadInPlace() async {
 		availableTagNames = (try? articleRepo.fetchAvailableTagNames(
 			sourceId: selectedSourceId,
@@ -135,14 +147,52 @@ final class ArticlesViewModel {
 		hiddenCount   = (try? articleRepo.fetchHiddenCount()) ?? hiddenCount
 
 		let query = buildQuery(offset: 0)
+		let fetched: [Article]
 		do {
-			let fetched = try articleRepo.fetch(query: query)
-			articles      = fetched
-			hasMore       = fetched.count >= pageSize
-			currentOffset = fetched.count
+			fetched = try articleRepo.fetch(query: query)
 		} catch {
 			errorMessage = error.localizedDescription
+			return
 		}
+
+		// Nothing new at the front (or empty result): refresh in place, no disruption.
+		if fetched.isEmpty || fetched.first?.id == articles.first?.id || isAtTop {
+			applyFetchedPage(fetched)
+			pendingArticles = nil
+			pendingNewCount = 0
+			return
+		}
+
+		// User is scrolled down and new articles arrived: hold them aside. Results are
+		// sorted publishedAt DESC, so the new items are a contiguous block at the front.
+		let existing = Set(articles.map(\.id))
+		pendingArticles = fetched
+		pendingNewCount = fetched.prefix { !existing.contains($0.id) }.count
+	}
+
+	/// Swaps the held-aside articles into view and scrolls back to the top.
+	/// Invoked when the user taps the "N new articles" pill.
+	func showPendingArticles() {
+		guard let pending = pendingArticles else { return }
+		applyFetchedPage(pending)
+		pendingArticles = nil
+		pendingNewCount = 0
+		scrollResetToken += 1
+	}
+
+	/// Merges held-aside articles without forcing a scroll — used when the user
+	/// scrolls back to the top on their own while a pill is showing.
+	func mergePendingIfAtTop() {
+		guard isAtTop, let pending = pendingArticles else { return }
+		applyFetchedPage(pending)
+		pendingArticles = nil
+		pendingNewCount = 0
+	}
+
+	private func applyFetchedPage(_ fetched: [Article]) {
+		articles      = fetched
+		hasMore       = fetched.count >= pageSize
+		currentOffset = fetched.count
 	}
 
 	func applySearch(_ text: String) {
@@ -375,6 +425,10 @@ final class ArticlesViewModel {
 		articles = []
 		currentOffset = 0
 		hasMore = true
+		// Discard any pending refresh held for the previous filter context.
+		pendingArticles = nil
+		pendingNewCount = 0
+		isAtTop = true
 		scrollResetToken += 1
 	}
 
