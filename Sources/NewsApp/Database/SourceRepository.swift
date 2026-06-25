@@ -120,7 +120,7 @@ final class SourceRepository: @unchecked Sendable {
 
 		try db.write { conn in
 			for (index, d) in defaults.enumerated() {
-				var source = NewsSource(
+				let source = NewsSource(
 					id: nil,
 					name: d.name,
 					url: d.url,
