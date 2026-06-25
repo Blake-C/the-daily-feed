@@ -1,6 +1,6 @@
 # CLAUDE.md — The Daily Feed
 
-A macOS 26 newspaper-style news reader built entirely with Swift 6 and SwiftUI, using Swift Package Manager. All AI features run through a local Ollama instance. No server-side components.
+A macOS 26 newspaper-style news reader built entirely with Swift 6 and SwiftUI, using Swift Package Manager. AI features run through a user-selected provider — a local Ollama instance (default), or the Anthropic or OpenAI APIs. No server-side components of our own.
 
 ---
 
@@ -41,7 +41,7 @@ Sources/NewsApp/
 | Pattern | Where used |
 |---|---|
 | Repository | `ArticleRepository`, `SourceRepository`, `QuizRepository` — abstract all SQL |
-| Service singletons | `RSSService`, `OllamaService`, `ReadabilityService`, `WeatherService`, etc. |
+| Service singletons | `RSSService`, `AIService`, `ReadabilityService`, `WeatherService`, etc. |
 | Swift actors | `DailySummaryService`, `SuggestedSourcesService` — background-only work |
 | `@Observable` | All ViewModels and `AppState` — no Combine, no `@StateObject`/`@ObservedObject` |
 | `async/await` | All network and DB calls — no GCD, no DispatchQueue manual management |
@@ -114,10 +114,14 @@ No other package manager. No CocoaPods. No SPM plugins.
 - CSP blocks all scripts, inline handlers, and external loads except images
 - Caches result in `articles.readableContent` — second open returns cached content, no WKWebView
 
-### OllamaService
-- Default endpoint: `http://localhost:11434` (configurable in Settings)
-- Default model: `gemma4:e4b` (configurable)
-- **Prompt injection hardening:**
+### AIService
+- Unified service for all AI features (rewrite, daily summary, quiz, dispute, suggested sources).
+- **Multi-provider** — the active provider is chosen in Settings (`aiProvider`); the default is Ollama. Each public method takes an `AIProviderConfig` (a `Sendable` snapshot from `AppState.aiConfig`) instead of raw endpoint/model. Prompt-building and JSON parsing are provider-agnostic; only the private `generate(...)` dispatch differs per provider:
+  - `generateOllama` — `POST {endpoint}/api/generate`, `format: "json"`. Keeps the localhost / HTTPS guard (remote endpoints must use HTTPS).
+  - `generateAnthropic` — `POST https://api.anthropic.com/v1/messages`, headers `x-api-key` + `anthropic-version: 2023-06-01`, `max_tokens: 2048`. Throws `NewsError.missingAPIKey` if no key; checks `stop_reason != "refusal"`; reads `content[0].text`.
+  - `generateOpenAI` — `POST https://api.openai.com/v1/chat/completions`, `Authorization: Bearer`, `response_format: {type: "json_object"}`. Reads `choices[0].message.content`.
+- `AIProvider` / `AIProviderConfig` and the curated model lists live in `AIProvider.swift`.
+- **Prompt injection hardening (unchanged across providers):**
   - Title truncated to 200 chars, content to 4000 chars before substitution
   - Content paragraphs numbered `[1] text\n[2] text…` to prevent injection via article body
   - All responses expected as strict JSON; no `.unsafe` decoding
@@ -131,7 +135,7 @@ No other package manager. No CocoaPods. No SPM plugins.
 
 ### KeychainService
 - Wraps SecItem APIs for storing/reading/deleting sensitive values
-- Used for OpenWeatherMap API key only
+- Used for the OpenWeatherMap, Anthropic, and OpenAI API keys (keys: `openWeatherApiKey`, `anthropicApiKey`, `openAIApiKey`)
 
 ### ArticleTaggingService
 - Two-layer auto-tagging: feed-native categories + keyword matching
@@ -148,7 +152,7 @@ No other package manager. No CocoaPods. No SPM plugins.
 - Disabled by default; toggled in Settings (`dailySummaryEnabled`)
 
 ### SuggestedSourcesService (actor)
-- Asks Ollama for reputable feed suggestions based on existing sources
+- Asks the active AI provider for reputable feed suggestions based on existing sources
 - Validates each suggestion via `FeedDiscoveryService` before surfacing
 - Disabled by default; toggled in Settings (`suggestedSourcesEnabled`)
 
@@ -161,9 +165,12 @@ All app-wide settings are `@AppStorage` with iCloud KV store sync fallback:
 
 | Key | Default | Description |
 |---|---|---|
+| `aiProvider` | `ollama` | Active AI provider: `ollama` \| `anthropic` \| `openAI` |
 | `ollamaEndpoint` | `http://localhost:11434` | Ollama server URL |
-| `ollamaModel` | `gemma4:e4b` | LLM model name |
-| `ollamaPrompt` | `""` | Custom prompt template (empty = use built-in) |
+| `ollamaModel` | `gemma4:e4b` | Ollama model name |
+| `anthropicModel` | `""` | Claude model id (empty = `claude-haiku-4-5`) |
+| `openAIModel` | `""` | OpenAI model id (empty = `gpt-4o-mini`) |
+| `ollamaPrompt` | `""` | Custom AI Summary prompt template (empty = use built-in; applies to all providers) |
 | `aiSummaryEnabled` | `true` | Headline rewrite + summary toggle |
 | `dailySummaryEnabled` | `false` | Daily briefing toggle |
 | `suggestedSourcesEnabled` | `false` | Feed recommendations toggle |
@@ -238,10 +245,10 @@ These are non-negotiable and must be maintained in all new code:
 
 1. **API keys in Keychain** — never store sensitive values in UserDefaults, plist, or code
 2. **CSP on injected HTML** — `ReadabilityService` must keep restrictive CSP; do not relax it
-3. **Ollama prompt injection hardening** — always truncate user-derived content before LLM substitution; always use numbered paragraphs; always parse LLM output as strict JSON
+3. **Prompt injection hardening (all providers)** — always truncate user-derived content before LLM substitution; always use numbered paragraphs; always parse LLM output as strict JSON. This logic is shared in `AIService` and must stay provider-agnostic.
 4. **Link security** — all anchor links in rendered article HTML must carry `title` attributes with the href URL (for hover-preview before clicking)
 5. **No XSS** — do not render unsanitized HTML outside of the Readability-extracted + CSP-wrapped WKWebView
-6. **Localhost-only Ollama** — surface a warning if the user configures a non-localhost endpoint
+6. **Off-device content warnings** — surface a warning when AI traffic leaves the device: a non-localhost Ollama endpoint, or the Anthropic / OpenAI providers (which always send article content off-device). Cloud API keys are HTTPS-only and stored in Keychain.
 7. **No external telemetry** — do not add analytics, crash reporting, or remote logging without explicit user opt-in
 
 After writing new Swift code, run `mcp__Snyk__snyk_code_scan` and fix any findings before marking work complete.
