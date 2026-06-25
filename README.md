@@ -32,16 +32,18 @@ A macOS news reader with a newspaper-inspired layout. Built with Swift 6 and Swi
 - **Unread & date range filters** — narrow the feed to what matters now
 - **Active filter label** — dynamic description of current filters shown above the grid
 
-### AI (Ollama)
-- **Headline rewriting** — rewrite article titles using your local LLM
+### AI
+- **Choice of provider** — run AI features on a local [Ollama](https://ollama.com) instance (default), or on Anthropic (Claude) or OpenAI models with your own API key. Selectable in Settings; the chosen provider handles every AI task
+- **Headline rewriting** — rewrite article titles into clear, factual headlines
 - **Article Quiz** — comprehension questions (multiple choice, true/false, yes/no) generated per article, with scoring, dispute resolution, and a stats history view
 - **Daily Summary** — silently summarises articles as you read them, collected in a Library view
-- **Suggested Sources** — Ollama recommends reputable feeds based on what you already follow
+- **Suggested Sources** — recommends reputable feeds based on what you already follow
 
 ### Privacy & Storage
 - **Local SQLite storage** — all articles, sources, tags, and quiz scores stored on-device via GRDB
 - **Article retention** — configurable retention window (7 / 30 / 60 / 90 days); bookmarked articles exempt
-- **Keychain storage** — API keys stored in the macOS Keychain, never in UserDefaults
+- **Keychain storage** — all API keys (weather, Anthropic, OpenAI) stored in the macOS Keychain, never in UserDefaults
+- **On-device by default** — Ollama keeps article content local; choosing Anthropic or OpenAI sends article content to that provider (clearly noted in Settings)
 - **iCloud settings sync** — app settings sync across Macs via iCloud key-value store
 - **No telemetry** — no analytics, crash reporting, or remote logging of any kind
 
@@ -55,7 +57,7 @@ A macOS news reader with a newspaper-inspired layout. Built with Swift 6 and Swi
 ## Requirements
 
 - macOS 26+
-- [Ollama](https://ollama.com) running locally for AI features (default: `http://localhost:11434`, model: `gemma4:e4b`)
+- For on-device AI: [Ollama](https://ollama.com) running locally (default: `http://localhost:11434`, model: `gemma4:e4b`). Alternatively, an Anthropic or OpenAI API key for cloud AI
 - OpenWeatherMap API key for the weather widget (free tier at [openweathermap.org](https://openweathermap.org))
 
 ---
