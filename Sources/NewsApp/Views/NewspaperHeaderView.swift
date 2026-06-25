@@ -4,6 +4,13 @@ struct NewspaperHeaderView: View {
 	@Environment(AppState.self) var appState
 	private var weatherService = WeatherService.shared
 
+	/// True while feeds are being refreshed — drives the "Updating feeds…" indicator.
+	let isRefreshing: Bool
+
+	init(isRefreshing: Bool) {
+		self.isRefreshing = isRefreshing
+	}
+
 	private var dateString: String {
 		let formatter = DateFormatter()
 		formatter.dateFormat = "EEEE, MMMM d, yyyy"
@@ -14,13 +21,26 @@ struct NewspaperHeaderView: View {
 		VStack(spacing: 0) {
 			// Masthead
 			ZStack {
-				// Left: Date
-				HStack {
+				// Left: Date + refresh indicator
+				HStack(spacing: 10) {
 					Text(dateString)
 						.font(.system(size: 11, weight: .regular, design: .serif))
 						.foregroundStyle(.secondary)
+					if isRefreshing {
+						HStack(spacing: 5) {
+							ProgressView()
+								.controlSize(.small)
+							Text("Updating feeds…")
+								.font(.system(size: 11, weight: .regular, design: .serif))
+								.foregroundStyle(.secondary)
+						}
+						.transition(.opacity)
+						.accessibilityElement(children: .combine)
+						.accessibilityLabel("Updating feeds")
+					}
 					Spacer()
 				}
+				.animation(.easeInOut(duration: 0.2), value: isRefreshing)
 
 				// Center: Title
 				Text("THE DAILY FEED")

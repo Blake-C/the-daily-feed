@@ -28,7 +28,7 @@ struct ContentView: View {
 				.frame(minWidth: 200, idealWidth: 220)
 		} detail: {
 			VStack(spacing: 0) {
-				NewspaperHeaderView()
+				NewspaperHeaderView(isRefreshing: articlesVM.isRefreshing)
 				if articlesVM.showDailySummary {
 					DailySummaryView(
 						vm: dailySummaryVM,
