@@ -136,6 +136,14 @@ struct ContentView: View {
 			articlesVM.onArticleRead = { [weak articlesVM, weak sourcesVM] in
 				sourcesVM?.refreshUnreadCounts(dateRange: articlesVM?.dateRangeFilter ?? .today)
 			}
+			// Drive per-source sidebar spinners as each feed starts/finishes fetching.
+			articlesVM.onSourceFetchStateChange = { [weak sourcesVM] id, fetching in
+				if fetching {
+					sourcesVM?.markSourceFetching(id)
+				} else {
+					sourcesVM?.markSourceFinished(id)
+				}
+			}
 			// Trigger background daily summarization when readable content is cached
 			// for a read article. Runs only when the feature is enabled.
 			articlesVM.onReadArticleContentCached = { [weak appState] id, title, content in

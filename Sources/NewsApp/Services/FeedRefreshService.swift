@@ -10,8 +10,13 @@ final class FeedRefreshService: @unchecked Sendable {
 
 	private init() {}
 
+	/// - Parameter onSourceStateChange: Optional progress callback fired with
+	///   `(sourceId, true)` when a source's fetch starts and `(sourceId, false)`
+	///   when it finishes. Every start is matched by exactly one finish, so a
+	///   caller-maintained in-flight set always drains to empty. May be invoked
+	///   off the main actor — marshal to the main actor in the callback if needed.
 	@discardableResult
-	func refreshAll() async -> RefreshResult {
+	func refreshAll(onSourceStateChange: (@Sendable (Int64, Bool) -> Void)? = nil) async -> RefreshResult {
 		let sources: [NewsSource]
 		do {
 			sources = try sourceRepo.fetchEnabled()
@@ -37,12 +42,14 @@ final class FeedRefreshService: @unchecked Sendable {
 			for _ in 0..<min(maxConcurrency, sources.count) {
 				if let source = pending.next() {
 					let s = source
+					if let id = s.id { onSourceStateChange?(id, true) }
 					group.addTask { await self.fetchOne(source: s) }
 				}
 			}
 
 			// As each slot frees up, feed in the next source.
 			while let (sourceId, result) = await group.next() {
+				if let id = sourceId { onSourceStateChange?(id, false) }
 				switch result {
 				case .success(let count):
 					totalFetched += count
@@ -53,6 +60,7 @@ final class FeedRefreshService: @unchecked Sendable {
 				}
 				if let source = pending.next() {
 					let s = source
+					if let id = s.id { onSourceStateChange?(id, true) }
 					group.addTask { await self.fetchOne(source: s) }
 				}
 			}

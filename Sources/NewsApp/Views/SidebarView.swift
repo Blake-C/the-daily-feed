@@ -191,7 +191,8 @@ struct SidebarView: View {
 							isSelected: articlesVM.selectedSourceId == source.id,
 							unreadCount: source.isEnabled ? unread : 0,
 							badge: source.isEnabled ? nil : "pause.circle",
-							error: source.lastError
+							error: source.lastError,
+							isFetching: sourcesVM.fetchingSourceIds.contains(source.id ?? -1)
 						) {
 							articlesVM.filterBySource(source.id)
 						}
@@ -279,6 +280,7 @@ private struct SidebarRow: View {
 	let unreadCount: Int     // 0 = hide badge
 	let badge: String?       // optional SF symbol for a secondary indicator
 	let error: String?       // non-nil = show warning indicator
+	var isFetching: Bool = false  // true = show a fetch spinner in place of the badge/count
 	let action: () -> Void
 
 	var body: some View {
@@ -303,22 +305,28 @@ private struct SidebarRow: View {
 						.help(error)
 				}
 
-				if let badge {
-					Image(systemName: badge)
-						.font(.system(size: 11))
-						.foregroundStyle(.secondary)
-				}
+				if isFetching {
+					ProgressView()
+						.controlSize(.mini)
+						.accessibilityLabel("Refreshing \(title)")
+				} else {
+					if let badge {
+						Image(systemName: badge)
+							.font(.system(size: 11))
+							.foregroundStyle(.secondary)
+					}
 
-				if unreadCount > 0 {
-					Text(unreadCount > 999 ? "999+" : "\(unreadCount)")
-						.font(.system(size: 11, weight: .semibold))
-						.foregroundStyle(isSelected ? Color.accentColor : .secondary)
-						.padding(.horizontal, 6)
-						.padding(.vertical, 2)
-						.background(
-							(isSelected ? Color.accentColor : Color.secondary).opacity(0.15),
-							in: Capsule()
-						)
+					if unreadCount > 0 {
+						Text(unreadCount > 999 ? "999+" : "\(unreadCount)")
+							.font(.system(size: 11, weight: .semibold))
+							.foregroundStyle(isSelected ? Color.accentColor : .secondary)
+							.padding(.horizontal, 6)
+							.padding(.vertical, 2)
+							.background(
+								(isSelected ? Color.accentColor : Color.secondary).opacity(0.15),
+								in: Capsule()
+							)
+					}
 				}
 			}
 			.padding(.vertical, 3)

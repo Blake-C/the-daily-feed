@@ -10,6 +10,8 @@ final class SourcesViewModel {
 	var unreadCounts: [Int64: Int] = [:]
 	/// Non-nil while feed autodiscovery is running.
 	var discoveryInProgress = false
+	/// IDs of sources currently being fetched — drives the per-source sidebar spinner.
+	private(set) var fetchingSourceIds: Set<Int64> = []
 	/// Set when discovery finds a different URL than the one the user typed.
 	/// The UI presents a confirmation before adding.
 	var pendingDiscovery: FeedDiscoveryService.DiscoveryResult?
@@ -32,6 +34,20 @@ final class SourcesViewModel {
 		} catch {
 			errorMessage = error.localizedDescription
 		}
+	}
+
+	// MARK: - Per-source fetch state
+
+	func markSourceFetching(_ id: Int64) {
+		fetchingSourceIds.insert(id)
+	}
+
+	func markSourceFinished(_ id: Int64) {
+		fetchingSourceIds.remove(id)
+	}
+
+	func clearFetchingSources() {
+		fetchingSourceIds.removeAll()
 	}
 
 	/// Lightweight re-query of unread counts without reloading sources.

@@ -36,6 +36,9 @@ final class ArticlesViewModel {
 	/// Fired when a read article's Readability content is cached; passes (id, title, content).
 	/// ContentView uses this to trigger background daily summarization via DailySummaryService.
 	var onReadArticleContentCached: ((String, String, String) -> Void)?
+	/// Fired as each source starts/finishes fetching during a refresh; passes (sourceId, isFetching).
+	/// ContentView wires this to SourcesViewModel so the sidebar can show per-source spinners.
+	var onSourceFetchStateChange: ((Int64, Bool) -> Void)?
 
 	/// Non-nil while the undo toast is visible after hiding an article.
 	private(set) var pendingUndoHide: Article? = nil
@@ -108,7 +111,9 @@ final class ArticlesViewModel {
 	func refresh(notifyIfNew: Bool = false) async {
 		isRefreshing = true
 		defer { isRefreshing = false }
-		let result = await refreshService.refreshAll()
+		let result = await refreshService.refreshAll { [weak self] id, fetching in
+			Task { @MainActor in self?.onSourceFetchStateChange?(id, fetching) }
+		}
 		if notifyIfNew {
 			await NotificationService.shared.notifyNewArticles(count: result.fetched)
 		}
